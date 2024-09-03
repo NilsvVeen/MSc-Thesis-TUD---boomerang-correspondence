@@ -46,6 +46,17 @@ int main()
     // Create the SFML window
     sf::RenderWindow window(sf::VideoMode(800, 600), "SFML Shape Drawer");
 
+    // Create and set up the view
+    sf::View view = window.getDefaultView();
+    view.setSize(static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y));
+
+    // Apply zoom factor
+    float zoomFactor = 1.0f / 7.0f; // Zoom in by a factor of 3
+    view.zoom(zoomFactor); // Note: zoom factor < 1.0 zooms in
+
+    // Set the view to the window
+    window.setView(view);
+
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -69,7 +80,7 @@ int main()
     texture.create(window.getSize().x, window.getSize().y);
     texture.update(window);
     sf::Image screenshot = texture.copyToImage();
-    screenshot.saveToFile("circle_and_ellipse.png");
+    screenshot.saveToFile(directoryName + "/circle_and_ellipse.png");
 
     return 0;
 }

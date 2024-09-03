@@ -10,6 +10,7 @@
 #include <fstream>  // For file handling
 #include <sys/stat.h> // For mkdir (POSIX) or _mkdir (Windows)
 #include <direct.h> // For _mkdir on Windows
+#include <SFML/Graphics.hpp>
 
 
 #ifndef PI
@@ -21,7 +22,7 @@
 //	double x, y;
 //};
 struct Point {
-    int x, y;
+    double x, y;
 };
 
 
@@ -72,8 +73,10 @@ std::vector<Point> generateCircleVertices(int radius, int numVertices) {
     std::vector<Point> vertices;
     for (int i = 0; i < numVertices; ++i) {
         double angle = 2 * PI * i / numVertices;
-        int x = static_cast<int>(radius * cos(angle));
-        int y = static_cast<int>(radius * sin(angle));
+        //int x = static_cast<int>(radius * cos(angle));
+        //int y = static_cast<int>(radius * sin(angle));
+        double x = radius * cos(angle);
+        double y = radius * sin(angle);
         vertices.push_back({ x, y });
     }
     return vertices;
@@ -90,8 +93,8 @@ std::vector<Point> generateEllipseVertices(int circleRadius, int axisRatio, int 
     // Generate the ellipse vertices by scaling the circle vertices
     std::vector<Point> ellipseVertices;
     for (const auto& vertex : circleVertices) {
-        int x = vertex.x * a / circleRadius;
-        int y = vertex.y * b / circleRadius;
+        double x = vertex.x * a / circleRadius;
+        double y = vertex.y * b / circleRadius;
         ellipseVertices.push_back({ x, y });
     }
     return ellipseVertices;
@@ -158,6 +161,19 @@ void writeParamsToFile(const std::string& filename, const std::vector<double>& p
     }
 }
 
+void drawShape(sf::RenderWindow& window, const std::vector<Point>& vertices, sf::Color color) {
+    sf::VertexArray shape(sf::LineStrip, vertices.size() + 1);
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        shape[i].position = sf::Vector2f(vertices[i].x + window.getSize().x / 2,
+            -vertices[i].y + window.getSize().y / 2);
+        shape[i].color = color;
+    }
+    shape[vertices.size()].position = sf::Vector2f(vertices[0].x + window.getSize().x / 2,
+        -vertices[0].y + window.getSize().y / 2);
+    shape[vertices.size()].color = color;
+    window.draw(shape);
+}
+
 
 
 int main()
@@ -205,6 +221,39 @@ int main()
 
     // Write the parameter values for each vertex of the ellipse to a file
     writeParamsToFile(directoryName + "/ellipse_params.txt", params_ellipse);
+
+
+
+
+
+    // Create the SFML window
+    sf::RenderWindow window(sf::VideoMode(800, 600), "SFML Shape Drawer");
+
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed)
+                window.close();
+        }
+
+        window.clear(sf::Color::White);
+
+        // Draw the circle
+        drawShape(window, circleVertices, sf::Color::Blue);
+
+        // Draw the ellipse
+        drawShape(window, ellipseVertices, sf::Color::Red);
+
+        window.display();
+    }
+
+    // Save the screenshots
+    sf::Texture texture;
+    texture.create(window.getSize().x, window.getSize().y);
+    texture.update(window);
+    sf::Image screenshot = texture.copyToImage();
+    screenshot.saveToFile("circle_and_ellipse.png");
+
 
     return 0;
 }

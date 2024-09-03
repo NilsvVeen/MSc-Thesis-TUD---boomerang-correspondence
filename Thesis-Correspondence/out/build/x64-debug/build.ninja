@@ -57,7 +57,23 @@ build CMakeFiles\Thesis-Correspondence.dir\Thesis-Correspondence.cpp.obj: CXX_CO
   TARGET_COMPILE_PDB = CMakeFiles\Thesis-Correspondence.dir\
   TARGET_PDB = Thesis-Correspondence.pdb
 
-build CMakeFiles\Thesis-Correspondence.dir\curve_parametrization.cpp.obj: CXX_COMPILER__Thesis-Correspondence_Debug C$:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\curve_parametrization.cpp || cmake_object_order_depends_target_Thesis-Correspondence
+build CMakeFiles\Thesis-Correspondence.dir\geometry.cpp.obj: CXX_COMPILER__Thesis-Correspondence_Debug C$:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\geometry.cpp || cmake_object_order_depends_target_Thesis-Correspondence
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++20
+  INCLUDES = -external:IC:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\libraries\SFML-2.6.1\include -external:W0
+  OBJECT_DIR = CMakeFiles\Thesis-Correspondence.dir
+  OBJECT_FILE_DIR = CMakeFiles\Thesis-Correspondence.dir
+  TARGET_COMPILE_PDB = CMakeFiles\Thesis-Correspondence.dir\
+  TARGET_PDB = Thesis-Correspondence.pdb
+
+build CMakeFiles\Thesis-Correspondence.dir\file_utils.cpp.obj: CXX_COMPILER__Thesis-Correspondence_Debug C$:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\file_utils.cpp || cmake_object_order_depends_target_Thesis-Correspondence
+  FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++20
+  INCLUDES = -external:IC:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\libraries\SFML-2.6.1\include -external:W0
+  OBJECT_DIR = CMakeFiles\Thesis-Correspondence.dir
+  OBJECT_FILE_DIR = CMakeFiles\Thesis-Correspondence.dir
+  TARGET_COMPILE_PDB = CMakeFiles\Thesis-Correspondence.dir\
+  TARGET_PDB = Thesis-Correspondence.pdb
+
+build CMakeFiles\Thesis-Correspondence.dir\sfml_utils.cpp.obj: CXX_COMPILER__Thesis-Correspondence_Debug C$:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\sfml_utils.cpp || cmake_object_order_depends_target_Thesis-Correspondence
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1 -std:c++20
   INCLUDES = -external:IC:\Users\Nils\Desktop\Msc-Thesis\repo\MSc-Thesis-TUD---boomerang-correspondence\Thesis-Correspondence\libraries\SFML-2.6.1\include -external:W0
   OBJECT_DIR = CMakeFiles\Thesis-Correspondence.dir
@@ -73,7 +89,7 @@ build CMakeFiles\Thesis-Correspondence.dir\curve_parametrization.cpp.obj: CXX_CO
 #############################################
 # Link the executable Thesis-Correspondence.exe
 
-build Thesis-Correspondence.exe: CXX_EXECUTABLE_LINKER__Thesis-Correspondence_Debug CMakeFiles\Thesis-Correspondence.dir\Thesis-Correspondence.cpp.obj CMakeFiles\Thesis-Correspondence.dir\curve_parametrization.cpp.obj | ..\..\..\libraries\SFML-2.6.1\lib\sfml-graphics-d.lib ..\..\..\libraries\SFML-2.6.1\lib\sfml-window-d.lib ..\..\..\libraries\SFML-2.6.1\lib\sfml-system-d.lib
+build Thesis-Correspondence.exe: CXX_EXECUTABLE_LINKER__Thesis-Correspondence_Debug CMakeFiles\Thesis-Correspondence.dir\Thesis-Correspondence.cpp.obj CMakeFiles\Thesis-Correspondence.dir\geometry.cpp.obj CMakeFiles\Thesis-Correspondence.dir\file_utils.cpp.obj CMakeFiles\Thesis-Correspondence.dir\sfml_utils.cpp.obj | ..\..\..\libraries\SFML-2.6.1\lib\sfml-graphics-d.lib ..\..\..\libraries\SFML-2.6.1\lib\sfml-window-d.lib ..\..\..\libraries\SFML-2.6.1\lib\sfml-system-d.lib
   FLAGS = /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MDd /Zi /Ob0 /Od /RTC1
   LINK_FLAGS = /machine:x64 /debug /INCREMENTAL /subsystem:console
   LINK_LIBRARIES = ..\..\..\libraries\SFML-2.6.1\lib\sfml-graphics-d.lib  ..\..\..\libraries\SFML-2.6.1\lib\sfml-window-d.lib  ..\..\..\libraries\SFML-2.6.1\lib\sfml-system-d.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib

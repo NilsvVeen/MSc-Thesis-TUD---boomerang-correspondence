@@ -3,178 +3,10 @@
 
 #include "Thesis-Correspondence.h"
 
-#include <iostream>
-#include <vector>
-#include <cmath>
-#include <algorithm> // for std::min and std::max
-#include <fstream>  // For file handling
-#include <sys/stat.h> // For mkdir (POSIX) or _mkdir (Windows)
-#include <direct.h> // For _mkdir on Windows
-#include <SFML/Graphics.hpp>
-
-
-#ifndef PI
-#define PI 3.14159265358979323846
-#endif
-
-// Structure to represent a point (vertex) in 2D
-//struct Point {
-//	double x, y;
-//};
-struct Point {
-    double x, y;
-};
-
-
-// Function to compute the Euclidean distance between two points
-double distance(const Point& a, const Point& b) {
-	double dx = b.x - a.x;
-	double dy = b.y - a.y;
-	return std::sqrt(dx * dx + dy * dy);
-}
-
-
-std::vector<double> computeParametrization(const std::vector<Point>& vertices) {
-
-    int n = vertices.size();
-    if (n < 2) {
-        throw std::invalid_argument("At least two vertices are required to form a curve.");
-    }
-
-    std::vector<double> params(n, 0.0);
-
-    double lengthCurve = 0.0f;
-    std::vector<double> segments(n - 1, 0.0);
-
-    for (int i = 0; i < n - 1; ++i) {
-        segments[i] = distance(vertices[i], vertices[i + 1]);
-        lengthCurve += segments[i];
-    }
-
-    // Compute parameter values for each vertex
-    for (int i = 1; i < n; ++i) {
-        params[i] = params[i - 1] + (segments[i - 1] / lengthCurve);
-    }
-
-    // Ensure the last vertex is mapped to 1
-    params[n - 1] = 1.0;
-
-    return params;
-
-
-
-
-
-}
-
-
-// Function to generate vertices of a circle using integer values
-std::vector<Point> generateCircleVertices(int radius, int numVertices) {
-    std::vector<Point> vertices;
-    for (int i = 0; i < numVertices; ++i) {
-        double angle = 2 * PI * i / numVertices;
-        //int x = static_cast<int>(radius * cos(angle));
-        //int y = static_cast<int>(radius * sin(angle));
-        double x = radius * cos(angle);
-        double y = radius * sin(angle);
-        vertices.push_back({ x, y });
-    }
-    return vertices;
-}
-
-// Function to generate vertices of an ellipse using integer values
-std::vector<Point> generateEllipseVertices(int circleRadius, int axisRatio, int numVertices) {
-    std::vector<Point> circleVertices = generateCircleVertices(circleRadius, numVertices);
-
-    // Estimate the ellipse axes a and b
-    int a = circleRadius * axisRatio;
-    int b = circleRadius / axisRatio;
-
-    // Generate the ellipse vertices by scaling the circle vertices
-    std::vector<Point> ellipseVertices;
-    for (const auto& vertex : circleVertices) {
-        double x = vertex.x * a / circleRadius;
-        double y = vertex.y * b / circleRadius;
-        ellipseVertices.push_back({ x, y });
-    }
-    return ellipseVertices;
-}
-
-// Function to draw points in a text grid
-void drawShape(const std::vector<Point>& vertices, int width, int height) {
-    std::vector<std::vector<char>> grid(height, std::vector<char>(width, ' '));
-
-    int centerX = width / 2;
-    int centerY = height / 2;
-
-    for (const auto& vertex : vertices) {
-        int x = vertex.x + centerX;
-        int y = vertex.y + centerY;
-
-        if (x >= 0 && x < width && y >= 0 && y < height) {
-            grid[y][x] = '*';
-        }
-    }
-
-    // Print the grid
-    for (const auto& row : grid) {
-        for (const auto& cell : row) {
-            std::cout << cell;
-        }
-        std::cout << std::endl;
-    }
-}
-
-// Function to create a directory if it does not exist
-void createDirectory(const std::string& dirName) {
-#ifdef _WIN32
-    _mkdir(dirName.c_str());
-#else
-    mkdir(dirName.c_str(), 0755);
-#endif
-}
-
-// Function to write data to a text file
-void writeToFile(const std::string& filename, const std::vector<Point>& vertices) {
-    std::ofstream file(filename);
-    if (file.is_open()) {
-        for (const auto& vertex : vertices) {
-            file << vertex.x << " " << vertex.y << std::endl;
-        }
-        file.close();
-    }
-    else {
-        std::cerr << "Unable to open file " << filename << std::endl;
-    }
-}
-
-void writeParamsToFile(const std::string& filename, const std::vector<double>& params) {
-    std::ofstream file(filename);
-    if (file.is_open()) {
-        for (size_t i = 0; i < params.size(); ++i) {
-            file << "p_" << i + 1 << " = " << params[i] << std::endl;
-        }
-        file.close();
-    }
-    else {
-        std::cerr << "Unable to open file " << filename << std::endl;
-    }
-}
-
-void drawShape(sf::RenderWindow& window, const std::vector<Point>& vertices, sf::Color color) {
-    sf::VertexArray shape(sf::LineStrip, vertices.size() + 1);
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        shape[i].position = sf::Vector2f(vertices[i].x + window.getSize().x / 2,
-            -vertices[i].y + window.getSize().y / 2);
-        shape[i].color = color;
-    }
-    shape[vertices.size()].position = sf::Vector2f(vertices[0].x + window.getSize().x / 2,
-        -vertices[0].y + window.getSize().y / 2);
-    shape[vertices.size()].color = color;
-    window.draw(shape);
-}
-
-
+// main.cpp
+#include "geometry.h"
+#include "file_utils.h"
+#include "sfml_utils.h"
 
 int main()
 {
@@ -193,17 +25,6 @@ int main()
     // Generate ellipse vertices
     std::vector<Point> ellipseVertices = generateEllipseVertices(circleRadius, axisRatio, numVertices);
 
-    // Output number of points to a file
-    std::ofstream pointsFile(directoryName + "/points_info.txt");
-    if (pointsFile.is_open()) {
-        pointsFile << "Amount of points in circle: " << circleVertices.size() << std::endl;
-        pointsFile << "Amount of points in ellipse: " << ellipseVertices.size() << std::endl;
-        pointsFile.close();
-    }
-    else {
-        std::cerr << "Unable to open points_info.txt" << std::endl;
-    }
-
     // Write the circle vertices to a file
     writeToFile(directoryName + "/circle_vertices.txt", circleVertices);
 
@@ -221,10 +42,6 @@ int main()
 
     // Write the parameter values for each vertex of the ellipse to a file
     writeParamsToFile(directoryName + "/ellipse_params.txt", params_ellipse);
-
-
-
-
 
     // Create the SFML window
     sf::RenderWindow window(sf::VideoMode(800, 600), "SFML Shape Drawer");
@@ -253,7 +70,6 @@ int main()
     texture.update(window);
     sf::Image screenshot = texture.copyToImage();
     screenshot.saveToFile("circle_and_ellipse.png");
-
 
     return 0;
 }

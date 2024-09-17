@@ -6,6 +6,7 @@
 #include <polyscope/surface_mesh.h>
 #include <fstream>
 #include <Eigen/Core>
+//#include <opencv2/opencv.hpp> // For saving the PNG
 
 void viewSTLObject(const std::string& filename) {
     Eigen::MatrixXd V; // Vertices

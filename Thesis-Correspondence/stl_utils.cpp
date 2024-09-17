@@ -9,6 +9,7 @@
 #include <polyscope/surface_mesh.h>
 #include <polyscope/point_cloud.h>
 #include <igl/writeSTL.h>
+#include <igl/fit_plane.h>
 
 
 void viewSTLObject(const std::string& filename) {
@@ -65,9 +66,7 @@ void printFilesInDirectory(const std::string& directoryPath) {
 }
 
 
-
-// Function to compute the weighted average normal direction, rotate the object, and show it
-void computeAndSaveNormalDirection(const std::string& filename) {
+void fitPlaneAndAlignMesh(const std::string& filename) {
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces
     Eigen::MatrixXd N; // Normals
@@ -85,42 +84,18 @@ void computeAndSaveNormalDirection(const std::string& filename) {
         return;
     }
 
-    // Compute the weighted average normal direction
-    Eigen::Vector3d averageNormal(0, 0, 0);
-    double totalArea = 0.0;
+    // Fit a plane to the mesh
+    Eigen::RowVector3d planeNormal;
+    Eigen::RowVector3d planePoint;
+    igl::fit_plane(V, planeNormal, planePoint);
 
-    for (int i = 0; i < F.rows(); ++i) {
-        Eigen::Vector3d v0 = V.row(F(i, 0));
-        Eigen::Vector3d v1 = V.row(F(i, 1));
-        Eigen::Vector3d v2 = V.row(F(i, 2));
+    // Output the plane normal
+    std::cout << "Plane Normal: " << planeNormal << std::endl;
 
-        // Compute the normal for this face
-        Eigen::Vector3d normal = N.row(i).normalized();
-
-        // Compute the area of the triangle
-        Eigen::Vector3d e1 = v1 - v0;
-        Eigen::Vector3d e2 = v2 - v0;
-        double area = (e1.cross(e2)).norm() / 2.0;
-
-        // Weight the normal by the area of the triangle
-        totalArea += area;
-        averageNormal += normal * area;
-    }
-
-    if (totalArea > 0) {
-        averageNormal /= totalArea;
-        averageNormal.normalize();
-    }
-    else {
-        std::cerr << "Total area is zero. Cannot compute average normal direction." << std::endl;
-        return;
-    }
-
-    std::cout << "Weighted Average Normal Direction: " << averageNormal.transpose() << std::endl;
-
-    // Calculate the rotation matrix to align averageNormal with the targetDirection (Z-axis)
+    // Calculate the rotation matrix to align planeNormal with the targetDirection (Z-axis)
+    Eigen::Vector3d normal(planeNormal);
     Eigen::Vector3d targetDirection(0, 0, 1);
-    Eigen::Matrix3d rotationMatrix = Eigen::Quaterniond::FromTwoVectors(averageNormal, targetDirection).toRotationMatrix();
+    Eigen::Matrix3d rotationMatrix = Eigen::Quaterniond::FromTwoVectors(normal, targetDirection).toRotationMatrix();
 
     // Rotate the mesh
     V = (rotationMatrix * V.transpose()).transpose();

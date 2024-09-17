@@ -97,7 +97,7 @@ int main()
     //viewSTLObject(modelPath);
 
     // Call the function to compute and save the normal direction
-    computeAndSaveNormalDirection(modelPath);
+    fitPlaneAndAlignMesh(modelPath);
 
     return 0;
 }

@@ -57,9 +57,22 @@ set(LIBIGL_WITH_OPENGL_GLFW_IMGUI ON)    # Enable ImGui for GUI interaction (opt
 target_link_libraries(Thesis-Correspondence igl::core)
 
 
+# --- OpenCV Setup ---
+
+# Set the path to the directory containing OpenCVConfig.cmake
+set(OpenCV_DIR "${CMAKE_SOURCE_DIR}/libraries/opencv/build")
+
+# Find OpenCV package
+find_package(OpenCV 4.10 REQUIRED)
+
+# Add include directories for OpenCV
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+
+# Link OpenCV libraries to your target
+target_link_libraries(Thesis-Correspondence ${OpenCV_LIBS})
 
 # Define a variable for the models directory
 set(MODELS_DIRECTORY "${CMAKE_SOURCE_DIR}/models")
-
 # Add the global models directory as a compile definition
 add_definitions(-DMODELS_DIRECTORY="${MODELS_DIRECTORY}")

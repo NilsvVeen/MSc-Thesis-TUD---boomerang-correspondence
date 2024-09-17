@@ -88,13 +88,16 @@ int main()
     screenshot.saveToFile(directoryName + "/circle_and_ellipse.png");
 
 
-    std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_01.stl";
-
     // Print files in the global models directory
     printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
+    std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_01.stl";
+
     // Call the function to view the STL object
-    viewSTLObject(modelPath);
+    //viewSTLObject(modelPath);
+
+    // Call the function to compute and save the normal direction
+    computeAndSaveNormalDirection(modelPath);
 
     return 0;
 }

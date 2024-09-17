@@ -91,7 +91,7 @@ int main()
     // Print files in the global models directory
     printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
-    std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_01.stl";
+    std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_02.stl";
 
     // Call the function to view the STL object
     //viewSTLObject(modelPath);

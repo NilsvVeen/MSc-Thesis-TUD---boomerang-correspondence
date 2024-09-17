@@ -106,6 +106,7 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
     // Register the rotated mesh with Polyscope
     polyscope::registerSurfaceMesh("Rotated Mesh", V, F);
 
+    polyscope::screenshot("2d_projection.png");
     // Show the rotated mesh
     polyscope::show();
 }

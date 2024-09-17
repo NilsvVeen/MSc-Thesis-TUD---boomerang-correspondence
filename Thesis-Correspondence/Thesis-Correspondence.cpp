@@ -7,6 +7,11 @@
 #include "geometry.h"
 #include "file_utils.h"
 #include "sfml_utils.h"
+#include "stl_utils.h"
+
+
+
+const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
 int main()
 {
@@ -81,6 +86,15 @@ int main()
     texture.update(window);
     sf::Image screenshot = texture.copyToImage();
     screenshot.saveToFile(directoryName + "/circle_and_ellipse.png");
+
+
+    std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_01.stl";
+
+    // Print files in the global models directory
+    printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
+
+    // Call the function to view the STL object
+    viewSTLObject(modelPath);
 
     return 0;
 }

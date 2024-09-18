@@ -1,15 +1,22 @@
 
 #include <iostream>
 #include <filesystem>
-#include <igl/readSTL.h>
 #include <fstream>
+
 #include <Eigen/Core>
-#include <polyscope/polyscope.h>
+#include <Eigen/Dense>
+
 #include <opencv2/opencv.hpp> // For saving the PNG
+
+#include <polyscope/polyscope.h>
 #include <polyscope/surface_mesh.h>
 #include <polyscope/point_cloud.h>
+
+#include <igl/readSTL.h>
 #include <igl/writeSTL.h>
 #include <igl/fit_plane.h>
+#include <igl/slice_mask.h> // To filter the vertices
+
 
 
 void viewSTLObject(const std::string& filename) {
@@ -65,6 +72,11 @@ void printFilesInDirectory(const std::string& directoryPath) {
     }
 }
 
+// Function to compute the surface area of a triangle
+double computeTriangleArea(const Eigen::Vector3d& v0, const Eigen::Vector3d& v1, const Eigen::Vector3d& v2) {
+    return 0.5 * (v1 - v0).cross(v2 - v0).norm();
+}
+
 
 void fitPlaneAndAlignMesh(const std::string& filename) {
     Eigen::MatrixXd V; // Vertices
@@ -107,6 +119,72 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
     polyscope::registerSurfaceMesh("Rotated Mesh", V, F);
 
     polyscope::screenshot("2d_projection.png");
-    // Show the rotated mesh
+
+    // Now we will slice the mesh along the Z-axis and calculate the area for each slice
+    int numSlices = 10;
+    double minZ = V.col(2).minCoeff();
+    double maxZ = V.col(2).maxCoeff();
+    double sliceThickness = (maxZ - minZ) / numSlices;
+
+    int maxAreaSlice = -1;
+    double maxSliceArea = 0.0;
+
+    Eigen::MatrixXd V_maxAreaSlice;
+    Eigen::MatrixXi F_maxAreaSlice;
+
+    for (int i = 0; i < numSlices; ++i) {
+        double sliceMinZ = minZ + i * sliceThickness;
+        double sliceMaxZ = sliceMinZ + sliceThickness;
+
+        std::vector<int> sliceFaces;  // Store the indices of faces in this slice
+
+        // Identify faces that are within the slice range
+        for (int j = 0; j < F.rows(); ++j) {
+            Eigen::Vector3d v0 = V.row(F(j, 0));
+            Eigen::Vector3d v1 = V.row(F(j, 1));
+            Eigen::Vector3d v2 = V.row(F(j, 2));
+
+            // Check if all vertices of this face are within the slice range
+            if ((v0.z() >= sliceMinZ && v0.z() < sliceMaxZ) &&
+                (v1.z() >= sliceMinZ && v1.z() < sliceMaxZ) &&
+                (v2.z() >= sliceMinZ && v2.z() < sliceMaxZ)) {
+                sliceFaces.push_back(j);  // Add the face index
+            }
+        }
+
+        // Create the sliced faces matrix for this slice
+        Eigen::MatrixXi F_slice(sliceFaces.size(), 3);
+        for (int k = 0; k < sliceFaces.size(); ++k) {
+            F_slice.row(k) = F.row(sliceFaces[k]);
+        }
+
+        // Compute the surface area for this slice
+        double sliceArea = 0.0;
+        for (int j = 0; j < F_slice.rows(); ++j) {
+            Eigen::Vector3d v0 = V.row(F_slice(j, 0));
+            Eigen::Vector3d v1 = V.row(F_slice(j, 1));
+            Eigen::Vector3d v2 = V.row(F_slice(j, 2));
+            sliceArea += computeTriangleArea(v0, v1, v2);
+        }
+
+        // Find the slice with the maximum surface area
+        if (sliceArea > maxSliceArea) {
+            maxSliceArea = sliceArea;
+            maxAreaSlice = i;
+            V_maxAreaSlice = V;
+            F_maxAreaSlice = F_slice;
+        }
+    }
+
+    if (maxAreaSlice >= 0) {
+        // Highlight the slice with the maximum surface area in red
+        polyscope::registerSurfaceMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
+
+        Eigen::MatrixXd colors(F_maxAreaSlice.rows(), 3);
+        colors.setConstant(1.0, 0.0, 0.0); // Red color
+        polyscope::registerSurfaceMesh("Max Area Slice Highlight", V_maxAreaSlice, F_maxAreaSlice);
+    }
+
+    // Show the rotated mesh and max area slice
     polyscope::show();
 }

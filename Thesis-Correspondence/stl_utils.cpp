@@ -192,59 +192,6 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
 }
 
 
-// Function to calculate boundary vertices
-std::set<int> calculateBoundaryVertices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
-    // Map to count occurrences of each edge
-    std::map<std::pair<int, int>, int> edgeCount;
-
-    // Iterate over all faces
-    for (int i = 0; i < F.rows(); ++i) {
-        int v0 = F(i, 0);
-        int v1 = F(i, 1);
-        int v2 = F(i, 2);
-
-        // Define edges as pairs of vertex indices (sorted)
-        std::vector<std::pair<int, int>> edges = {
-            {std::min(v0, v1), std::max(v0, v1)},
-            {std::min(v1, v2), std::max(v1, v2)},
-            {std::min(v2, v0), std::max(v2, v0)}
-        };
-
-        // Count occurrences of each edge
-        for (const auto& edge : edges) {
-            edgeCount[edge]++;
-        }
-    }
-
-    // Set to store boundary vertices
-    std::set<int> boundaryVertices;
-
-    // Iterate over edges and find boundary edges
-    for (const auto& edge : edgeCount) {
-        if (edge.second == 1) { // Boundary edge
-            boundaryVertices.insert(edge.first.first);
-            boundaryVertices.insert(edge.first.second);
-        }
-    }
-
-    return boundaryVertices;
-}
-
-void createBoundaryMesh(const Eigen::MatrixXd& V, const std::set<int>& boundaryVertices) {
-    Eigen::MatrixXd boundaryVerticesMatrix(boundaryVertices.size(), 3);
-    std::vector<int> boundaryIndices(boundaryVertices.begin(), boundaryVertices.end());
-
-    for (size_t i = 0; i < boundaryIndices.size(); ++i) {
-        boundaryVerticesMatrix.row(i) = V.row(boundaryIndices[i]);
-    }
-
-    // Register the new mesh with Polyscope
-    polyscope::registerPointCloud("Boundary Vertices", boundaryVerticesMatrix);
-    //polyscope::setPointCloudRadius(0.01); // Adjust the size of the points
-
-    // Show all registered meshes
-    polyscope::show();
-}
 
 
 // Main function to fit plane, align mesh, and show results
@@ -282,11 +229,7 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         initializePolyscopeAndRegisterMesh("2D Projection", V_2D, rotatedF);
         initializePolyscopeAndRegisterMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
 
-        // Calculate boundary vertices
-        std::set<int> boundaryVertices = calculateBoundaryVertices(V_2D, rotatedF);
-
-        // Show boundary vertices
-        createBoundaryMesh(V_2D, boundaryVertices);
+        // create a function given vertices only the border vertices of a 2d shape in XY plane (ignore Z)
 
 
         // Take screenshots

@@ -78,6 +78,14 @@ double computeTriangleArea(const Eigen::Vector3d& v0, const Eigen::Vector3d& v1,
 }
 
 
+// Project vertices to 2D (XY plane) and fix Z to a specified value
+Eigen::MatrixXd projectToXYWithFixedZ(const Eigen::MatrixXd& V, double fixedZ) {
+    Eigen::MatrixXd V_2D(V.rows(), 3);
+    V_2D.leftCols(2) = V.leftCols(2);  // Copy X and Y
+    V_2D.col(2).setConstant(fixedZ);  // Set Z to fixedZ
+    return V_2D;
+}
+
 void fitPlaneAndAlignMesh(const std::string& filename) {
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces
@@ -118,7 +126,8 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
     // Register the rotated mesh with Polyscope
     polyscope::registerSurfaceMesh("Rotated Mesh", V, F);
 
-    polyscope::screenshot("2d_projection.png");
+    // Screenshot for the rotated mesh
+    polyscope::screenshot("rotated_mesh.png");
 
     // Now we will slice the mesh along the Z-axis and calculate the area for each slice
     int numSlices = 10;
@@ -177,14 +186,25 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
     }
 
     if (maxAreaSlice >= 0) {
-        // Highlight the slice with the maximum surface area in red
-        polyscope::registerSurfaceMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
+        // Compute the average Z coordinate for the max area slice
+        Eigen::VectorXd zCoords(F_maxAreaSlice.rows());
+        for (int i = 0; i < F_maxAreaSlice.rows(); ++i) {
+            zCoords(i) = V.row(F_maxAreaSlice(i, 0)).z() +
+                V.row(F_maxAreaSlice(i, 1)).z() +
+                V.row(F_maxAreaSlice(i, 2)).z();
+        }
+        double avgZ = zCoords.mean() / 3.0;
 
-        Eigen::MatrixXd colors(F_maxAreaSlice.rows(), 3);
-        colors.setConstant(1.0, 0.0, 0.0); // Red color
-        polyscope::registerSurfaceMesh("Max Area Slice Highlight", V_maxAreaSlice, F_maxAreaSlice);
+        // Project the mesh onto the XY plane with fixed Z coordinate
+        Eigen::MatrixXd V_2D = projectToXYWithFixedZ(V, avgZ);
+
+        // Register the 2D projection with Polyscope
+        polyscope::registerSurfaceMesh("2D Projection", V_2D, F);
+
+        // Screenshot for the 2D projection
+        polyscope::screenshot("2d_projection.png");
     }
 
-    // Show the rotated mesh and max area slice
+    // Show the rotated mesh and 2D projection
     polyscope::show();
 }

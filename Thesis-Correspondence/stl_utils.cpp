@@ -86,6 +86,7 @@ Eigen::MatrixXd projectToXYWithFixedZ(const Eigen::MatrixXd& V, double fixedZ) {
     return V_2D;
 }
 
+
 void fitPlaneAndAlignMesh(const std::string& filename) {
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces
@@ -201,10 +202,15 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         // Register the 2D projection with Polyscope
         polyscope::registerSurfaceMesh("2D Projection", V_2D, F);
 
-        // Screenshot for the 2D projection
-        polyscope::screenshot("2d_projection.png");
+        // Register the maximum area slice with Polyscope
+        polyscope::registerSurfaceMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
+
+        // Highlight the maximum area slice in red
+        Eigen::MatrixXd colors(F_maxAreaSlice.rows(), 3);
+        colors.setConstant(1.0, 0.0, 0.0); // Red color
+
     }
 
-    // Show the rotated mesh and 2D projection
+    // Show the rotated mesh, max area slice, and 2D projection
     polyscope::show();
 }

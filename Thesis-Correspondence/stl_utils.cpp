@@ -16,6 +16,9 @@
 #include <igl/fit_plane.h>
 #include <igl/slice_mask.h> // To filter the vertices
 
+#include <igl/triangle/triangulate.h>
+#include <igl/boundary_loop.h>
+
 
 void viewSTLObject(const std::string& filename) {
     Eigen::MatrixXd V; // Vertices
@@ -230,7 +233,13 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         initializePolyscopeAndRegisterMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
 
         // create a function given vertices only the border vertices of a 2d shape in XY plane (ignore Z)
+        // You can only use V_2D. (note you can ignore the z coordinates and add those back later)
+        // WORK HERE:
 
+        // Triangulate here using libigl
+
+
+        // UNTIL HERE
 
         // Take screenshots
         takeScreenshot("2d_projection.png");

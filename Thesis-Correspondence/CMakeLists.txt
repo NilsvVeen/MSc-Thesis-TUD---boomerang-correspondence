@@ -40,6 +40,34 @@ add_subdirectory("${CMAKE_SOURCE_DIR}/libraries/polyscope")
 include_directories("${CMAKE_SOURCE_DIR}/libraries/polyscope/include")
 target_link_libraries(Thesis-Correspondence polyscope)
 
+
+
+
+
+
+# --- CGAL Setup ---
+# Add CGAL directory
+set(CGAL_DIR "${CMAKE_SOURCE_DIR}/libraries/CGAL-5.6.1")
+
+# Manually set CMAKE_PREFIX_PATH for CGAL
+set(CMAKE_PREFIX_PATH ${CGAL_DIR})
+
+# Find CGAL
+find_package(CGAL REQUIRED)
+
+# Include CGAL directories
+include_directories(${CGAL_INCLUDE_DIRS})
+
+# Link CGAL libraries
+target_link_libraries(Thesis-Correspondence ${CGAL_LIBRARIES})
+
+
+# # --- GLFW Setup ---
+# include_directories("${CMAKE_SOURCE_DIR}/libraries/glfw-3.4")
+# include_directories("${CMAKE_SOURCE_DIR}/libraries/glfw-3.4/include")
+# target_link_libraries(Thesis-Correspondence glfw)
+
+
 # --- libigl Setup ---
 set(LIBIGL_DIR "${CMAKE_SOURCE_DIR}/libraries/libigl")
 add_subdirectory(${LIBIGL_DIR} "libigl")
@@ -54,25 +82,36 @@ set(LIBIGL_WITH_OPENGL_GLFW ON)          # Enable GLFW for windowing
 set(LIBIGL_WITH_OPENGL_GLFW_IMGUI ON)    # Enable ImGui for GUI interaction (optional)
 
 # Link the necessary libigl components (e.g., core, OpenGL, and GLFW)
+# target_link_libraries(Thesis-Correspondence igl::core)
+
+# Enable libigl's CGAL functionality
+set(LIBIGL_WITH_CGAL ON)
+set(LIBIGL_WITH_CGAL_COPYLEFT ON)
+
+# Include the CGAL copyleft directory
+include_directories("${LIBIGL_DIR}/include/igl/copyleft/cgal")
+
+
+# Link the necessary libigl components (e.g., core, OpenGL, GLFW, CGAL)
 target_link_libraries(Thesis-Correspondence igl::core)
 
 
 # --- OpenCV Setup ---
 
 # Set the path to the directory containing OpenCVConfig.cmake
-set(OpenCV_DIR "${CMAKE_SOURCE_DIR}/libraries/opencv/build")
+#set(OpenCV_DIR "${CMAKE_SOURCE_DIR}/libraries/opencv/build")
 
 # Find OpenCV package
-find_package(OpenCV 4.10 REQUIRED)
+#find_package(OpenCV 4.10 REQUIRED)
 
 # Add include directories for OpenCV
-include_directories(${OpenCV_INCLUDE_DIRS})
+#include_directories(${OpenCV_INCLUDE_DIRS})
 
 
 # Link OpenCV libraries to your target
-target_link_libraries(Thesis-Correspondence ${OpenCV_LIBS})
+#target_link_libraries(Thesis-Correspondence ${OpenCV_LIBS})
 
 # Define a variable for the models directory
-set(MODELS_DIRECTORY "${CMAKE_SOURCE_DIR}/models")
+#set(MODELS_DIRECTORY "${CMAKE_SOURCE_DIR}/models")
 # Add the global models directory as a compile definition
-add_definitions(-DMODELS_DIRECTORY="${MODELS_DIRECTORY}")
+#add_definitions(-DMODELS_DIRECTORY="${MODELS_DIRECTORY}")

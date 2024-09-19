@@ -17,6 +17,28 @@
 //Build shared libraries
 BUILD_SHARED_LIBS:BOOL=OFF
 
+//Build the testing tree.
+BUILD_TESTING:BOOL=OFF
+
+//Activate the debug messages of the script FindBoost
+Boost_DEBUG:BOOL=OFF
+
+//Link with static Boost libraries
+CGAL_Boost_USE_STATIC_LIBS:BOOL=ON
+
+//Display memory and real time usage at end of CTest test outputs
+CGAL_CTEST_DISPLAY_MEM_AND_TIME:BOOL=OFF
+
+//Activate the CGAL developers mode. See https://github.com/CGAL/cgal/wiki/CGAL_DEV_MODE
+CGAL_DEV_MODE:BOOL=OFF
+
+//The directory containing a CMake configuration file for CGAL.
+CGAL_DIR:PATH=CGAL_DIR-NOTFOUND
+
+//If set, the ctest command will not skip the tests of the draw
+// functions.
+CGAL_TEST_DRAW_FUNCTIONS:BOOL=OFF
+
 //Path to a program.
 CMAKE_AR:FILEPATH=C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lib.exe
 
@@ -278,14 +300,24 @@ FETCHCONTENT_QUIET:BOOL=ON
 // for eigen
 FETCHCONTENT_SOURCE_DIR_EIGEN:PATH=
 
+//When not empty, overrides where to find pre-populated content
+// for glfw
+FETCHCONTENT_SOURCE_DIR_GLFW:PATH=
+
 //Enables UPDATE_DISCONNECTED behavior for all content population
 FETCHCONTENT_UPDATES_DISCONNECTED:BOOL=OFF
 
 //Enables UPDATE_DISCONNECTED behavior just for population of eigen
 FETCHCONTENT_UPDATES_DISCONNECTED_EIGEN:BOOL=OFF
 
+//Enables UPDATE_DISCONNECTED behavior just for population of glfw
+FETCHCONTENT_UPDATES_DISCONNECTED_GLFW:BOOL=OFF
+
 //Git command line client
 GIT_EXECUTABLE:FILEPATH=C:/Program Files/Git/cmd/git.exe
+
+//The directory containing a CMake configuration file for GLFW3.
+GLFW3_DIR:PATH=GLFW3_DIR-NOTFOUND
 
 //Value Computed by CMake
 GLFW_BINARY_DIR:STATIC=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/out/build/x64-debug/libraries/polyscope/deps/glfw
@@ -299,11 +331,21 @@ GLFW_BUILD_EXAMPLES:BOOL=OFF
 //Build the GLFW test programs
 GLFW_BUILD_TESTS:BOOL=OFF
 
+//Build support for Win32
+GLFW_BUILD_WIN32:BOOL=ON
+
+//The directory containing a CMake configuration file for GLFW.
+GLFW_DIR:PATH=GLFW_DIR-NOTFOUND
+
 //Generate installation target
 GLFW_INSTALL:BOOL=OFF
 
 //Value Computed by CMake
 GLFW_IS_TOP_LEVEL:STATIC=OFF
+
+//Library type override for GLFW (SHARED, STATIC, OBJECT, or empty
+// to follow BUILD_SHARED_LIBS)
+GLFW_LIBRARY_TYPE:STRING=
 
 //Value Computed by CMake
 GLFW_SOURCE_DIR:STATIC=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/polyscope/deps/glfw
@@ -371,6 +413,18 @@ GLM_ENABLE_SIMD_SSSE3:BOOL=OFF
 //Force 'pure' instructions
 GLM_FORCE_PURE:BOOL=OFF
 
+//The directory containing a CMake configuration file for GMP.
+GMP_DIR:PATH=GMP_DIR-NOTFOUND
+
+//The directory containing the GMP header files
+GMP_INCLUDE_DIR:PATH=GMP_INCLUDE_DIR-NOTFOUND
+
+//Path to the Debug GMP library
+GMP_LIBRARY_DEBUG:FILEPATH=GMP_LIBRARY_DEBUG-NOTFOUND
+
+//Path to the Release GMP library
+GMP_LIBRARY_RELEASE:FILEPATH=GMP_LIBRARY_RELEASE-NOTFOUND
+
 //Enable Hunter package manager support
 HUNTER_ENABLED:BOOL=OFF
 
@@ -437,6 +491,12 @@ LIBIGL_WARNINGS_AS_ERRORS:BOOL=OFF
 //Build target igl::xml
 LIBIGL_XML:BOOL=OFF
 
+//OpenGL library for win32
+OPENGL_gl_LIBRARY:STRING=opengl32
+
+//GLU library for win32
+OPENGL_glu_LIBRARY:STRING=glu32
+
 //The directory containing a CMake configuration file for OpenCV.
 OpenCV_DIR:PATH=OpenCV_DIR-NOTFOUND
 
@@ -499,6 +559,18 @@ polyscope_SOURCE_DIR:STATIC=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MS
 # INTERNAL cache entries
 ########################
 
+//ADVANCED property for variable: Boost_DEBUG
+Boost_DEBUG-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CGAL_Boost_USE_STATIC_LIBS
+CGAL_Boost_USE_STATIC_LIBS-ADVANCED:INTERNAL=1
+//Directory containing the Core package
+CGAL_CORE_PACKAGE_DIR:INTERNAL=
+//Directory containing the GraphicsView package
+CGAL_GRAPHICSVIEW_PACKAGE_DIR:INTERNAL=
+//Directory containing the Installation package
+CGAL_INSTALLATION_PACKAGE_DIR:INTERNAL=
+//Directory containing the Maintenance package
+CGAL_MAINTENANCE_PACKAGE_DIR:INTERNAL=
 //ADVANCED property for variable: CMAKE_AR
 CMAKE_AR-ADVANCED:INTERNAL=1
 //This is the directory where this CMakeCache.txt was created
@@ -623,7 +695,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_MT
 CMAKE_MT-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=15
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=14
 //Platform information initialized
 CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1
 //noop for ranlib
@@ -667,16 +739,28 @@ CMAKE_STATIC_LINKER_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_STATIC_LINKER_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO
 CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
+//Variable hidden from user
+CMAKE_UNAME:INTERNAL=CMAKE_UNAME-NOTFOUND
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding OpenCV
 FIND_PACKAGE_MESSAGE_DETAILS_OpenCV:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/opencv/build][v4.10.0(4.10)]
+//Details about finding OpenGL
+FIND_PACKAGE_MESSAGE_DETAILS_OpenGL:INTERNAL=[opengl32][c ][v()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: GIT_EXECUTABLE
 GIT_EXECUTABLE-ADVANCED:INTERNAL=1
+//GLFW pkg-config Libs.private
+GLFW_PKG_CONFIG_LIBS_PRIVATE:INTERNAL= -lgdi32
+//GLFW pkg-config Requires.private
+GLFW_PKG_CONFIG_REQUIRES_PRIVATE:INTERNAL=
 //Have include EGL/egl.h
 HAVE_EGL_LIB:INTERNAL=
+//ADVANCED property for variable: OPENGL_gl_LIBRARY
+OPENGL_gl_LIBRARY-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: OPENGL_glu_LIBRARY
+OPENGL_glu_LIBRARY-ADVANCED:INTERNAL=1
 //CMAKE_INSTALL_PREFIX during last run
 _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/out/install/x64-debug
 

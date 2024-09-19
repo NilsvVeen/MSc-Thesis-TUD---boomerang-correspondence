@@ -27,10 +27,15 @@ Boost_DEBUG:BOOL=OFF
 Boost_DIR:PATH=Boost_DIR-NOTFOUND
 
 //Path to a file.
-Boost_INCLUDE_DIR:PATH=Boost_INCLUDE_DIR-NOTFOUND
+Boost_INCLUDE_DIR:PATH=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1
 
 //Link with static Boost libraries
 CGAL_Boost_USE_STATIC_LIBS:BOOL=ON
+
+//Setting for advanced users that what to change the default number
+// types used in filtered kernels. Some options might not be working
+// depending on how you configured your build.
+CGAL_CMAKE_EXACT_NT_BACKEND:STRING=Default
 
 //Display memory and real time usage at end of CTest test outputs
 CGAL_CTEST_DISPLAY_MEM_AND_TIME:BOOL=OFF
@@ -587,8 +592,12 @@ polyscope_SOURCE_DIR:STATIC=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MS
 Boost_DEBUG-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: Boost_DIR
 Boost_DIR-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Boost_INCLUDE_DIR
+Boost_INCLUDE_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CGAL_Boost_USE_STATIC_LIBS
 CGAL_Boost_USE_STATIC_LIBS-ADVANCED:INTERNAL=1
+//STRINGS property for variable: CGAL_CMAKE_EXACT_NT_BACKEND
+CGAL_CMAKE_EXACT_NT_BACKEND-STRINGS:INTERNAL=GMP_BACKEND;GMPXX_BACKEND;BOOST_GMP_BACKEND;BOOST_BACKEND;LEDA_BACKEND;MP_FLOAT_BACKEND;Default
 //Directory containing the Core package
 CGAL_CORE_PACKAGE_DIR:INTERNAL=
 //Directory containing the GraphicsView package
@@ -597,6 +606,10 @@ CGAL_GRAPHICSVIEW_PACKAGE_DIR:INTERNAL=
 CGAL_INSTALLATION_PACKAGE_DIR:INTERNAL=
 //Directory containing the Maintenance package
 CGAL_MAINTENANCE_PACKAGE_DIR:INTERNAL=
+//CGAL library is configured to use GMP
+CGAL_USE_GMP:INTERNAL=TRUE
+//CGAL library is configured to use MPFR
+CGAL_USE_MPFR:INTERNAL=TRUE
 //ADVANCED property for variable: CMAKE_AR
 CMAKE_AR-ADVANCED:INTERNAL=1
 //This is the directory where this CMakeCache.txt was created
@@ -721,7 +734,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_MT
 CMAKE_MT-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=14
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=15
 //Platform information initialized
 CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1
 //noop for ranlib
@@ -769,10 +782,12 @@ CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 CMAKE_UNAME:INTERNAL=CMAKE_UNAME-NOTFOUND
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Details about finding Boost
+FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1][c ][v1.86.0(1.66)]
 //Details about finding GMP
 FIND_PACKAGE_MESSAGE_DETAILS_GMP:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/gmp.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
 //Details about finding MPFR
-FIND_PACKAGE_MESSAGE_DETAILS_MPFR:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/mpfr/lib/mpfr.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/mpfr/include][v()]
+FIND_PACKAGE_MESSAGE_DETAILS_MPFR:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/libmpfr-4.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
 //Details about finding OpenCV
 FIND_PACKAGE_MESSAGE_DETAILS_OpenCV:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/opencv/build][v4.10.0(4.10)]
 //Details about finding OpenGL
@@ -791,6 +806,20 @@ HAVE_EGL_LIB:INTERNAL=
 OPENGL_gl_LIBRARY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: OPENGL_glu_LIBRARY
 OPENGL_glu_LIBRARY-ADVANCED:INTERNAL=1
+//Last used BOOST_ROOT value.
+_BOOST_ROOT_LAST:INTERNAL=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1
+//Last used Boost_ADDITIONAL_VERSIONS value.
+_Boost_ADDITIONAL_VERSIONS_LAST:INTERNAL=1.89.1;1.89.0;1.89;1.88.1;1.88.0;1.88;1.87.1;1.87.0;1.87;1.86.1;1.86.0;1.86;1.85.1;1.85.0;1.85;1.84.1;1.84.0;1.84;1.83.1;1.83.0;1.83;1.82.1;1.82.0;1.82;1.81.1;1.81.0;1.81;1.80.1;1.80.0;1.80;1.79.1;1.79.0;1.79;1.78.1;1.78.0;1.78;1.77.1;1.77.0;1.77;1.76.1;1.76.0;1.76;1.75.1;1.75.0;1.75;1.74.1;1.74.0;1.74;1.73.1;1.73.0;1.73;1.72.1;1.72.0;1.72;1.71.1;1.71.0;1.71;1.70.1;1.70.0;1.70;1.69.1;1.69.0;1.69;1.68.1;1.68.0;1.68;1.67.1;1.67.0;1.67;1.66.1;1.66.0;1.66;1.65.1;1.65.0;1.65;1.64.1;1.64.0;1.64;1.63.1;1.63.0;1.63;1.62.1;1.62.0;1.62;1.61.1;1.61.0;1.61;1.60.1;1.60.0;1.60;1.59.1;1.59.0;1.59;1.58.1;1.58.0;1.58;1.57.1;1.57.0;1.57
+//Components requested for this build tree.
+_Boost_COMPONENTS_SEARCHED:INTERNAL=
+//Last used Boost_INCLUDE_DIR value.
+_Boost_INCLUDE_DIR_LAST:INTERNAL=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1
+//Last used Boost_NAMESPACE value.
+_Boost_NAMESPACE_LAST:INTERNAL=boost
+//Last used Boost_USE_MULTITHREADED value.
+_Boost_USE_MULTITHREADED_LAST:INTERNAL=TRUE
+//Last used Boost_USE_STATIC_LIBS value.
+_Boost_USE_STATIC_LIBS_LAST:INTERNAL=ON
 //CMAKE_INSTALL_PREFIX during last run
 _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/out/install/x64-debug
 

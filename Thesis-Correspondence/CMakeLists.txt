@@ -58,12 +58,24 @@ set(GMP_INCLUDE_DIR "${GMP_DIR}/include")  # Adjust if necessary
 set(GMP_LIBRARIES "${GMP_DIR}/lib/gmp.lib")  # Adjust if necessary
 
 # Set the MPFR directory
-set(MPFR_DIR "${GMP_DIR}/mpfr")  # Adjust if necessary, this should be where MPFR is located
+set(MPFR_DIR "${GMP_DIR}")  # Adjust if necessary, this should be where MPFR is located
 set(MPFR_INCLUDE_DIR "${MPFR_DIR}/include")  # Adjust if necessary
-set(MPFR_LIBRARIES "${MPFR_DIR}/lib/mpfr.lib")  # Adjust if necessary
+set(MPFR_LIBRARIES "${MPFR_DIR}/lib/libmpfr-4.lib")  # Adjust if necessary
 
 # Include directories for GMP and MPFR
 include_directories(${GMP_INCLUDE_DIR} ${MPFR_INCLUDE_DIR})
+
+
+# --- Boost Setup ---
+set(BOOST_ROOT "${CMAKE_SOURCE_DIR}/libraries/boost_1_86_0_b1")
+set(BOOST_LIBRARY_DIR "${BOOST_ROOT}/lib64-msvc-14.2")  # Adjust if necessary for your configuration
+set(BOOST_INCLUDE_DIR "${BOOST_ROOT}")
+
+# Find Boost
+find_package(Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
+target_link_libraries(Thesis-Correspondence ${Boost_LIBRARIES})
+
 
 # Find CGAL
 find_package(CGAL REQUIRED)

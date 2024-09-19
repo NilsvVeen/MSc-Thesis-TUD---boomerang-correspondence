@@ -236,7 +236,17 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         // You can only use V_2D. (note you can ignore the z coordinates and add those back later)
         // WORK HERE:
 
-        // Triangulate here using libigl
+        // Create a vector for the convex hull vertices
+        Eigen::MatrixXd V_hull;
+        Eigen::MatrixXi F_hull; // Faces of the convex hull
+
+        // Call the convex hull function from libigl
+        igl::copyleft::cgal::convex_hull(V_2D, V_hull, F_hull);
+
+        // Register the convex hull with Polyscope
+        initializePolyscopeAndRegisterMesh("Convex Hull", V_hull, F_hull);
+
+
 
 
         // UNTIL HERE

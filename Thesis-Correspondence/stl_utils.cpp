@@ -18,6 +18,26 @@
 #include <igl/copyleft/cgal/convex_hull.h>
 
 
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Alpha_shape_2.h>
+#include <CGAL/Alpha_shape_vertex_base_2.h>
+#include <CGAL/Alpha_shape_face_base_2.h>
+#include <CGAL/Delaunay_triangulation_2.h>
+#include <vector>
+
+typedef CGAL::Exact_predicates_inexact_constructions_kernel  K;
+typedef K::FT                                                FT;
+typedef K::Point_2                                           Point;
+typedef K::Segment_2                                         Segment;
+typedef CGAL::Alpha_shape_vertex_base_2<K>                   Vb;
+typedef CGAL::Alpha_shape_face_base_2<K>                     Fb;
+typedef CGAL::Triangulation_data_structure_2<Vb, Fb>          Tds;
+typedef CGAL::Delaunay_triangulation_2<K, Tds>                Triangulation_2;
+typedef CGAL::Alpha_shape_2<Triangulation_2>                 Alpha_shape_2;
+typedef Alpha_shape_2::Alpha_shape_edges_iterator            Alpha_shape_edges_iterator;
+
+
+
 
 
 void viewSTLObject(const std::string& filename) {
@@ -195,7 +215,28 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
 }
 
 
+void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices) {
+    std::vector<Point> points;
+    for (int i = 0; i < V_2D.rows(); ++i) {
+        points.emplace_back(V_2D(i, 0), V_2D(i, 1));
+    }
 
+    // Create the Alpha Shape with an initial alpha parameter
+    Alpha_shape_2 alpha_shape(points.begin(), points.end(), FT(10000), Alpha_shape_2::GENERAL);
+
+    // Extract border edges
+    std::set<Point> borderPoints;
+    for (Alpha_shape_edges_iterator it = alpha_shape.alpha_shape_edges_begin(); it != alpha_shape.alpha_shape_edges_end(); ++it) {
+        Segment segment = alpha_shape.segment(*it);
+        borderPoints.insert(segment.source());
+        borderPoints.insert(segment.target());
+    }
+
+    // Convert border points back to Eigen format
+    for (const auto& point : borderPoints) {
+        borderVertices.emplace_back(point.x(), point.y());
+    }
+}
 
 // Main function to fit plane, align mesh, and show results
 void fitPlaneAndAlignMesh(const std::string& filename) {
@@ -232,10 +273,6 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         initializePolyscopeAndRegisterMesh("2D Projection", V_2D, rotatedF);
         initializePolyscopeAndRegisterMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
 
-        // create a function given vertices only the border vertices of a 2d shape in XY plane (ignore Z)
-        // You can only use V_2D. (note you can ignore the z coordinates and add those back later)
-        // WORK HERE:
-
         // Create a vector for the convex hull vertices
         Eigen::MatrixXd V_hull;
         Eigen::MatrixXi F_hull; // Faces of the convex hull
@@ -245,6 +282,36 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
 
         // Register the convex hull with Polyscope
         initializePolyscopeAndRegisterMesh("Convex Hull", V_hull, F_hull);
+
+        // create a function given vertices only the border vertices of a 2d shape in XY plane (ignore Z)
+        // You can only use V_2D. (note you can ignore the z coordinates and add those back later)
+        // WORK HERE:
+
+        // Try 2d Alpha Shape from CGAL
+
+// Extract the border vertices using Alpha Shape
+        std::vector<Eigen::Vector2d> borderVertices;
+        findBorderVerticesWithAlphaShape(V_2D, borderVertices);
+
+        // Check if any border vertices were found
+        if (borderVertices.empty()) {
+            std::cout << "No border vertices found using Alpha Shape." << std::endl;
+        }
+        else {
+            // Convert border vertices to Eigen format and set last column to avgZ
+            Eigen::MatrixXd V_border(borderVertices.size(), 3);
+            for (size_t i = 0; i < borderVertices.size(); ++i) {
+                V_border(i, 0) = borderVertices[i].x(); // X coordinate
+                V_border(i, 1) = borderVertices[i].y(); // Y coordinate
+                V_border(i, 2) = avgZ;                  // Z coordinate (set to avgZ)
+            }
+
+            // Register the border vertices as a point cloud with Polyscope
+            polyscope::registerPointCloud("Alpha Shape Border Vertices", V_border);
+            takeScreenshot("alpha_shape_border.png");
+        }
+
+
 
 
 

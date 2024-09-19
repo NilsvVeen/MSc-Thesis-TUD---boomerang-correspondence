@@ -55,7 +55,7 @@ set(CMAKE_PREFIX_PATH ${CGAL_DIR})
 set(GMP_DIR "${CGAL_DIR}/auxiliary/gmp")
 # Include GMP directories
 set(GMP_INCLUDE_DIR "${GMP_DIR}/include")  # Adjust if necessary
-set(GMP_LIBRARIES "${GMP_DIR}/lib/gmp.lib")  # Adjust if necessary
+set(GMP_LIBRARIES "${GMP_DIR}/lib/libgmp-10.lib")  # Adjust if necessary
 
 # Set the MPFR directory
 set(MPFR_DIR "${GMP_DIR}")  # Adjust if necessary, this should be where MPFR is located
@@ -139,6 +139,6 @@ target_link_libraries(Thesis-Correspondence igl::core)
 #target_link_libraries(Thesis-Correspondence ${OpenCV_LIBS})
 
 # Define a variable for the models directory
-#set(MODELS_DIRECTORY "${CMAKE_SOURCE_DIR}/models")
+set(MODELS_DIRECTORY "${CMAKE_SOURCE_DIR}/models")
 # Add the global models directory as a compile definition
-#add_definitions(-DMODELS_DIRECTORY="${MODELS_DIRECTORY}")
+add_definitions(-DMODELS_DIRECTORY="${MODELS_DIRECTORY}")

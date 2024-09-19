@@ -785,7 +785,7 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding Boost
 FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1][c ][v1.86.0(1.66)]
 //Details about finding GMP
-FIND_PACKAGE_MESSAGE_DETAILS_GMP:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/gmp.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
+FIND_PACKAGE_MESSAGE_DETAILS_GMP:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/libgmp-10.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
 //Details about finding MPFR
 FIND_PACKAGE_MESSAGE_DETAILS_MPFR:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/libmpfr-4.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
 //Details about finding OpenCV

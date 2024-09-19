@@ -5,7 +5,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include <opencv2/opencv.hpp> // For saving the PNG
+//#include <opencv2/opencv.hpp> // For saving the PNG
 
 #include <polyscope/polyscope.h>
 #include <polyscope/surface_mesh.h>
@@ -15,7 +15,7 @@
 #include <igl/writeSTL.h>
 #include <igl/fit_plane.h>
 #include <igl/slice_mask.h> // To filter the vertices
-//#include <igl/copyleft/cgal/convex_hull.h>
+#include <igl/copyleft/cgal/convex_hull.h>
 
 
 

@@ -16,8 +16,6 @@
 #include <igl/fit_plane.h>
 #include <igl/slice_mask.h> // To filter the vertices
 
-#include <igl/triangle/triangulate.h>
-#include <igl/boundary_loop.h>
 
 
 void viewSTLObject(const std::string& filename) {

@@ -215,7 +215,7 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
 }
 
 
-void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices) {
+void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices, double& alpha) {
     std::vector<Point> points;
     for (int i = 0; i < V_2D.rows(); ++i) {
         points.emplace_back(V_2D(i, 0), V_2D(i, 1));
@@ -223,9 +223,9 @@ void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<E
 
     // Create the Alpha Shape with an initial alpha parameter
     Alpha_shape_2 alpha_shape(points.begin(), points.end(), FT(0.0), Alpha_shape_2::GENERAL);
-
+    
     // Set an appropriate alpha value for better border extraction (adjust as needed)
-    alpha_shape.set_alpha(0.01); // Modify the alpha parameter based on your data for the best results
+    alpha_shape.set_alpha(alpha); // Modify the alpha parameter based on your data for the best results
 
     // Extract border edges
     std::set<Point> borderPoints;
@@ -294,28 +294,32 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
 
         // Try 2d Alpha Shape from CGAL
 
+            //for (double alpha = 0.1; alpha <= 1.0; alpha += 0.1) {
+
+            double alpha = 1.0; // This is good enough. alpha 0.1 - 1.0 is good! less points the higher alpha
             // Extract the border vertices using Alpha Shape
-        std::vector<Eigen::Vector2d> borderVertices;
-        findBorderVerticesWithAlphaShape(V_2D, borderVertices);
+            std::vector<Eigen::Vector2d> borderVertices;
+            findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha); // Pass alpha to the function
 
-        // Check if any border vertices were found
-        if (borderVertices.empty()) {
-            std::cout << "No border vertices found using Alpha Shape." << std::endl;
-        }
-        else {
-            // Convert border vertices to Eigen format and set last column to avgZ
-            Eigen::MatrixXd V_border(borderVertices.size(), 3);
-            for (size_t i = 0; i < borderVertices.size(); ++i) {
-                V_border(i, 0) = borderVertices[i].x(); // X coordinate
-                V_border(i, 1) = borderVertices[i].y(); // Y coordinate
-                V_border(i, 2) = avgZ;                  // Z coordinate (set to avgZ)
+            // Check if any border vertices were found
+            if (borderVertices.empty()) {
+                std::cout << "No border vertices found using Alpha Shape for alpha = " << alpha << "." << std::endl;
             }
+            else {
+                // Convert border vertices to Eigen format and set last column to avgZ
+                Eigen::MatrixXd V_border(borderVertices.size(), 3);
+                for (size_t i = 0; i < borderVertices.size(); ++i) {
+                    V_border(i, 0) = borderVertices[i].x(); // X coordinate
+                    V_border(i, 1) = borderVertices[i].y(); // Y coordinate
+                    V_border(i, 2) = avgZ;                  // Z coordinate (set to avgZ)
+                }
 
-            // Register the border vertices as a point cloud with Polyscope
-            polyscope::registerPointCloud("Alpha Shape Border Vertices", V_border);
-            takeScreenshot("alpha_shape_border.png");
-        }
-
+                // Register the border vertices as a point cloud with Polyscope
+                std::string cloudName = "Alpha Shape Border Vertices (alpha = " + std::to_string(alpha) + ")";
+                polyscope::registerPointCloud(cloudName, V_border);
+                takeScreenshot("alpha_shape_border_alpha_" + std::to_string(alpha) + ".png");
+            }
+            //}
 
 
 

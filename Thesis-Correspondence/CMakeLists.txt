@@ -46,11 +46,24 @@ target_link_libraries(Thesis-Correspondence polyscope)
 
 
 # --- CGAL Setup ---
-# Add CGAL directory
 set(CGAL_DIR "${CMAKE_SOURCE_DIR}/libraries/CGAL-5.6.1")
 
 # Manually set CMAKE_PREFIX_PATH for CGAL
 set(CMAKE_PREFIX_PATH ${CGAL_DIR})
+
+# Set the GMP directory
+set(GMP_DIR "${CGAL_DIR}/auxiliary/gmp")
+# Include GMP directories
+set(GMP_INCLUDE_DIR "${GMP_DIR}/include")  # Adjust if necessary
+set(GMP_LIBRARIES "${GMP_DIR}/lib/gmp.lib")  # Adjust if necessary
+
+# Set the MPFR directory
+set(MPFR_DIR "${GMP_DIR}/mpfr")  # Adjust if necessary, this should be where MPFR is located
+set(MPFR_INCLUDE_DIR "${MPFR_DIR}/include")  # Adjust if necessary
+set(MPFR_LIBRARIES "${MPFR_DIR}/lib/mpfr.lib")  # Adjust if necessary
+
+# Include directories for GMP and MPFR
+include_directories(${GMP_INCLUDE_DIR} ${MPFR_INCLUDE_DIR})
 
 # Find CGAL
 find_package(CGAL REQUIRED)
@@ -58,8 +71,10 @@ find_package(CGAL REQUIRED)
 # Include CGAL directories
 include_directories(${CGAL_INCLUDE_DIRS})
 
-# Link CGAL libraries
-target_link_libraries(Thesis-Correspondence ${CGAL_LIBRARIES})
+# Link CGAL, GMP, and MPFR libraries
+target_link_libraries(Thesis-Correspondence ${CGAL_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
+
+
 
 
 # # --- GLFW Setup ---

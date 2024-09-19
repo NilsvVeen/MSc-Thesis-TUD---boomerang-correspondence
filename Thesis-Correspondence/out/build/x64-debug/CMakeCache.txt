@@ -23,6 +23,12 @@ BUILD_TESTING:BOOL=OFF
 //Activate the debug messages of the script FindBoost
 Boost_DEBUG:BOOL=OFF
 
+//The directory containing a CMake configuration file for Boost.
+Boost_DIR:PATH=Boost_DIR-NOTFOUND
+
+//Path to a file.
+Boost_INCLUDE_DIR:PATH=Boost_INCLUDE_DIR-NOTFOUND
+
 //Link with static Boost libraries
 CGAL_Boost_USE_STATIC_LIBS:BOOL=ON
 
@@ -38,6 +44,10 @@ CGAL_DIR:PATH=CGAL_DIR-NOTFOUND
 //If set, the ctest command will not skip the tests of the draw
 // functions.
 CGAL_TEST_DRAW_FUNCTIONS:BOOL=OFF
+
+//Use CGAL with GMPXX: use C++ classes of GNU MP instead of CGAL
+// wrappers
+CGAL_WITH_GMPXX:BOOL=OFF
 
 //Path to a program.
 CMAKE_AR:FILEPATH=C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/lib.exe
@@ -413,6 +423,12 @@ GLM_ENABLE_SIMD_SSSE3:BOOL=OFF
 //Force 'pure' instructions
 GLM_FORCE_PURE:BOOL=OFF
 
+//The directory containing the GMPXX include files
+GMPXX_INCLUDE_DIR:PATH=GMPXX_INCLUDE_DIR-NOTFOUND
+
+//Path to the GMPXX library
+GMPXX_LIBRARIES:FILEPATH=GMPXX_LIBRARIES-NOTFOUND
+
 //The directory containing a CMake configuration file for GMP.
 GMP_DIR:PATH=GMP_DIR-NOTFOUND
 
@@ -491,6 +507,14 @@ LIBIGL_WARNINGS_AS_ERRORS:BOOL=OFF
 //Build target igl::xml
 LIBIGL_XML:BOOL=OFF
 
+//The directory containing the MPFR header files
+MPFR_INCLUDE_DIR:PATH=MPFR_INCLUDE_DIR-NOTFOUND
+
+//Path to the MPFR library
+MPFR_LIBRARIES:FILEPATH=MPFR_LIBRARIES-NOTFOUND
+
+MPFR_LIBRARIES_DIR:FILEPATH=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib
+
 //OpenGL library for win32
 OPENGL_gl_LIBRARY:STRING=opengl32
 
@@ -561,6 +585,8 @@ polyscope_SOURCE_DIR:STATIC=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MS
 
 //ADVANCED property for variable: Boost_DEBUG
 Boost_DEBUG-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: Boost_DIR
+Boost_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CGAL_Boost_USE_STATIC_LIBS
 CGAL_Boost_USE_STATIC_LIBS-ADVANCED:INTERNAL=1
 //Directory containing the Core package
@@ -743,6 +769,10 @@ CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 CMAKE_UNAME:INTERNAL=CMAKE_UNAME-NOTFOUND
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
+//Details about finding GMP
+FIND_PACKAGE_MESSAGE_DETAILS_GMP:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/gmp.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
+//Details about finding MPFR
+FIND_PACKAGE_MESSAGE_DETAILS_MPFR:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/mpfr/lib/mpfr.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/mpfr/include][v()]
 //Details about finding OpenCV
 FIND_PACKAGE_MESSAGE_DETAILS_OpenCV:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/opencv/build][v4.10.0(4.10)]
 //Details about finding OpenGL

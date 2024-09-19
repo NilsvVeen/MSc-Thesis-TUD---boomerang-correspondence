@@ -222,14 +222,19 @@ void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<E
     }
 
     // Create the Alpha Shape with an initial alpha parameter
-    Alpha_shape_2 alpha_shape(points.begin(), points.end(), FT(10000), Alpha_shape_2::GENERAL);
+    Alpha_shape_2 alpha_shape(points.begin(), points.end(), FT(0.0), Alpha_shape_2::GENERAL);
+
+    // Set an appropriate alpha value for better border extraction (adjust as needed)
+    alpha_shape.set_alpha(0.01); // Modify the alpha parameter based on your data for the best results
 
     // Extract border edges
     std::set<Point> borderPoints;
     for (Alpha_shape_edges_iterator it = alpha_shape.alpha_shape_edges_begin(); it != alpha_shape.alpha_shape_edges_end(); ++it) {
-        Segment segment = alpha_shape.segment(*it);
-        borderPoints.insert(segment.source());
-        borderPoints.insert(segment.target());
+        if (alpha_shape.classify(*it) == Alpha_shape_2::REGULAR || alpha_shape.classify(*it) == Alpha_shape_2::SINGULAR) {
+            Segment segment = alpha_shape.segment(*it);
+            borderPoints.insert(segment.source());
+            borderPoints.insert(segment.target());
+        }
     }
 
     // Convert border points back to Eigen format
@@ -289,7 +294,7 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
 
         // Try 2d Alpha Shape from CGAL
 
-// Extract the border vertices using Alpha Shape
+            // Extract the border vertices using Alpha Shape
         std::vector<Eigen::Vector2d> borderVertices;
         findBorderVerticesWithAlphaShape(V_2D, borderVertices);
 

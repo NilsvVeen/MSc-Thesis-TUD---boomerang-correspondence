@@ -62,6 +62,8 @@ int main()
 
             // Sort vertices by proximity
             Eigen::MatrixXd sortedVertices = sortVerticesByProximity(V);
+            savePointCloudToFile("output_files/border_vertices_in_order.obj", sortedVertices);
+
             showPointCloudInParts(sortedVertices);
         }
     }

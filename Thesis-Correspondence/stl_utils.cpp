@@ -162,3 +162,83 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
 
 
 
+bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for reading: " << filename << std::endl;
+        return false;
+    }
+
+    std::vector<Eigen::Vector3d> vertices;
+    std::vector<Eigen::Vector3i> faces;
+    std::string line;
+
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string type;
+        iss >> type;
+
+        if (type == "v") {
+            Eigen::Vector3d vertex;
+            iss >> vertex[0] >> vertex[1] >> vertex[2];
+            vertices.push_back(vertex);
+        }
+        else if (type == "f") {
+            Eigen::Vector3i face;
+            int idx;
+            for (int i = 0; i < 3; ++i) {
+                iss >> idx;
+                face[i] = idx - 1;  // OBJ format uses 1-based indexing
+            }
+            faces.push_back(face);
+        }
+    }
+
+    V = Eigen::MatrixXd(vertices.size(), 3);
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        V.row(i) = vertices[i];
+    }
+
+    F = Eigen::MatrixXi(faces.size(), 3);
+    for (size_t i = 0; i < faces.size(); ++i) {
+        F.row(i) = faces[i];
+    }
+
+    file.close();
+    return true;
+}
+
+
+bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for reading: " << filename << std::endl;
+        return false;
+    }
+
+    std::string line;
+    bool headerEnded = false;
+    std::vector<Eigen::Vector3d> vertices;
+
+    while (std::getline(file, line)) {
+        if (!headerEnded) {
+            if (line == "end_header") {
+                headerEnded = true;
+            }
+            continue;
+        }
+
+        std::istringstream iss(line);
+        Eigen::Vector3d vertex;
+        iss >> vertex[0] >> vertex[1] >> vertex[2];
+        vertices.push_back(vertex);
+    }
+
+    V = Eigen::MatrixXd(vertices.size(), 3);
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        V.row(i) = vertices[i];
+    }
+
+    file.close();
+    return true;
+}

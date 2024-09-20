@@ -40,6 +40,6 @@ double calculateAverageZ(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
 void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& N);
 
 // Main function to fit plane, align mesh, and show results
-void fitPlaneAndAlignMesh(const std::string& filename);
+std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir);
 
 #endif // STL_UTILS_H

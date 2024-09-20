@@ -21,8 +21,8 @@ int main()
     //int axisRatio = 2;           // Ratio a/b for the ellipse (integer value)
 
     //// Create a directory for output files
-    //std::string directoryName = "output_files";
-    //createDirectory(directoryName);
+    std::string directoryName = "output_files";
+    createDirectory(directoryName);
 
     //// Generate circle vertices
     //std::vector<Point> circleVertices = generateCircleVertices(circleRadius, numVertices);
@@ -97,7 +97,7 @@ int main()
     //viewSTLObject(modelPath);
 
     // Call the function to compute and save the normal direction
-    fitPlaneAndAlignMesh(modelPath);
+    std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
 
     return 0;
 }

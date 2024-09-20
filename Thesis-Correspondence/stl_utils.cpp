@@ -1,7 +1,6 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
-
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
@@ -92,6 +91,51 @@ void printFilesInDirectory(const std::string& directoryPath) {
         std::cerr << "Error accessing directory: " << e.what() << std::endl;
     }
 }
+
+
+// Save mesh to a file in OBJ format
+void saveMeshToFile(const std::string& filename, const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    // Write vertices
+    for (int i = 0; i < V.rows(); ++i) {
+        file << "v " << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+    }
+
+    // Write faces
+    for (int i = 0; i < F.rows(); ++i) {
+        file << "f " << F(i, 0) + 1 << " " << F(i, 1) + 1 << " " << F(i, 2) + 1 << std::endl;
+    }
+
+    file.close();
+    std::cout << "Mesh saved to " << filename << std::endl;
+}
+
+// Save point cloud to a file in PLY format
+void savePointCloudToFile(const std::string& filename, const Eigen::MatrixXd& V) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    // Write PLY header
+    file << "ply\nformat ascii 1.0\nelement vertex " << V.rows() << "\n";
+    file << "property float x\nproperty float y\nproperty float z\nend_header\n";
+
+    // Write vertices
+    for (int i = 0; i < V.rows(); ++i) {
+        file << V(i, 0) << " " << V(i, 1) << " " << V(i, 2) << std::endl;
+    }
+
+    file.close();
+    std::cout << "Point cloud saved to " << filename << std::endl;
+}
+
 
 
 // Function to compute the surface area of a triangle
@@ -244,10 +288,11 @@ void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<E
 }
 
 // Main function to fit plane, align mesh, and show results
-void fitPlaneAndAlignMesh(const std::string& filename) {
+std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir) {
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces
     Eigen::MatrixXd N; // Normals
+    std::vector<Eigen::Vector2d> borderVertices;
 
     // Process STL file
     processSTLFile(filename, V, F, N);
@@ -256,6 +301,17 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
     Eigen::MatrixXd rotatedV;
     Eigen::MatrixXi rotatedF;
     fitPlaneAndAlignMesh(V, F, rotatedV, rotatedF);
+
+
+
+    // Define file paths for saving the meshes
+    std::string rotatedMeshFile = outputDir + "/rotated_mesh.obj";
+    std::string maxAreaSliceFile = outputDir + "/max_area_slice.obj";
+    std::string projectionFile = outputDir + "/2d_projection.obj";
+    std::string borderVerticesFile = outputDir + "/alpha_shape_border.obj";
+
+    // Save the rotated mesh to a file
+    saveMeshToFile(rotatedMeshFile, rotatedV, rotatedF);
 
     // Initialize Polyscope and register the rotated mesh
     initializePolyscopeAndRegisterMesh("Rotated Mesh", rotatedV, rotatedF);
@@ -278,6 +334,10 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         initializePolyscopeAndRegisterMesh("2D Projection", V_2D, rotatedF);
         initializePolyscopeAndRegisterMesh("Max Area Slice", V_maxAreaSlice, F_maxAreaSlice);
 
+        // Save the 2D projection and max area slice to files
+        saveMeshToFile(maxAreaSliceFile, V_maxAreaSlice, F_maxAreaSlice);
+        saveMeshToFile(projectionFile, V_2D, rotatedF);
+
         // Create a vector for the convex hull vertices
         Eigen::MatrixXd V_hull;
         Eigen::MatrixXi F_hull; // Faces of the convex hull
@@ -288,44 +348,27 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
         // Register the convex hull with Polyscope
         initializePolyscopeAndRegisterMesh("Convex Hull", V_hull, F_hull);
 
-        // create a function given vertices only the border vertices of a 2d shape in XY plane (ignore Z)
-        // You can only use V_2D. (note you can ignore the z coordinates and add those back later)
-        // WORK HERE:
+        // Try 2D Alpha Shape from CGAL
+        double alpha = 1.0; // Alpha for the alpha shape
+        findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha);
 
-        // Try 2d Alpha Shape from CGAL
-
-            //for (double alpha = 0.1; alpha <= 1.0; alpha += 0.1) {
-
-            double alpha = 1.0; // This is good enough. alpha 0.1 - 1.0 is good! less points the higher alpha
-            // Extract the border vertices using Alpha Shape
-            std::vector<Eigen::Vector2d> borderVertices;
-            findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha); // Pass alpha to the function
-
-            // Check if any border vertices were found
-            if (borderVertices.empty()) {
-                std::cout << "No border vertices found using Alpha Shape for alpha = " << alpha << "." << std::endl;
+        if (!borderVertices.empty()) {
+            // Convert border vertices to Eigen format and set last column to avgZ
+            Eigen::MatrixXd V_border(borderVertices.size(), 3);
+            for (size_t i = 0; i < borderVertices.size(); ++i) {
+                V_border(i, 0) = borderVertices[i].x();
+                V_border(i, 1) = borderVertices[i].y();
+                V_border(i, 2) = avgZ;
             }
-            else {
-                // Convert border vertices to Eigen format and set last column to avgZ
-                Eigen::MatrixXd V_border(borderVertices.size(), 3);
-                for (size_t i = 0; i < borderVertices.size(); ++i) {
-                    V_border(i, 0) = borderVertices[i].x(); // X coordinate
-                    V_border(i, 1) = borderVertices[i].y(); // Y coordinate
-                    V_border(i, 2) = avgZ;                  // Z coordinate (set to avgZ)
-                }
 
-                // Register the border vertices as a point cloud with Polyscope
-                std::string cloudName = "Alpha Shape Border Vertices (alpha = " + std::to_string(alpha) + ")";
-                polyscope::registerPointCloud(cloudName, V_border);
-                takeScreenshot("alpha_shape_border_alpha_" + std::to_string(alpha) + ".png");
-            }
-            //}
+            // Register the border vertices as a point cloud with Polyscope
+            std::string cloudName = "Alpha Shape Border Vertices (alpha = " + std::to_string(alpha) + ")";
+            polyscope::registerPointCloud(cloudName, V_border);
+            takeScreenshot("alpha_shape_border_alpha_" + std::to_string(alpha) + ".png");
 
-
-
-
-
-        // UNTIL HERE
+            // Save the border vertices to a file
+            savePointCloudToFile(borderVerticesFile, V_border);
+        }
 
         // Take screenshots
         takeScreenshot("2d_projection.png");
@@ -334,6 +377,6 @@ void fitPlaneAndAlignMesh(const std::string& filename) {
 
     // Show the registered meshes
     showMeshes();
+
+    return borderVertices;
 }
-
-

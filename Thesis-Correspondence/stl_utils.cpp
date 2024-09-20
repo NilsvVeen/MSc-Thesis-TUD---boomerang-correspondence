@@ -209,6 +209,9 @@ bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Ma
 }
 
 
+
+
+
 bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -241,4 +244,24 @@ bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V) {
 
     file.close();
     return true;
+}
+
+
+void showPointCloudInParts(const Eigen::MatrixXd& V) {
+
+    int splits = 10;
+
+    int totalVertices = V.rows();
+    int partSize = totalVertices / splits; // 20% of the point cloud
+
+    polyscope::init();
+
+    // Loop through and register each part of the point cloud
+    for (int i = 0; i < splits; ++i) {
+        Eigen::MatrixXd partV = V.middleRows(i * partSize, partSize);
+        std::string cloudName = "Point Cloud Part " + std::to_string(i + 1);
+        polyscope::registerPointCloud(cloudName, partV);
+    }
+
+    polyscope::show();
 }

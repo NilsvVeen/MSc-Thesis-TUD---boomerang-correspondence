@@ -8,6 +8,7 @@
 #include "file_utils.h"
 #include "sfml_utils.h"
 #include "stl_utils.h"
+#include "border_vertex_extraction.h"
 
 
 

@@ -27,7 +27,7 @@ Boost_DEBUG:BOOL=OFF
 Boost_DIR:PATH=Boost_DIR-NOTFOUND
 
 //Path to a file.
-Boost_INCLUDE_DIR:PATH=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1
+Boost_INCLUDE_DIR:PATH=C:/local/boost_1_86_0_b1
 
 //Link with static Boost libraries
 CGAL_Boost_USE_STATIC_LIBS:BOOL=ON
@@ -783,7 +783,7 @@ CMAKE_UNAME:INTERNAL=CMAKE_UNAME-NOTFOUND
 //ADVANCED property for variable: CMAKE_VERBOSE_MAKEFILE
 CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 //Details about finding Boost
-FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1][c ][v1.86.0(1.66)]
+FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[C:/local/boost_1_86_0_b1][c ][v1.86.0(1.66)]
 //Details about finding GMP
 FIND_PACKAGE_MESSAGE_DETAILS_GMP:INTERNAL=[C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/lib/libgmp-10.lib][C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/CGAL-5.6.1/auxiliary/gmp/include][v()]
 //Details about finding MPFR
@@ -813,7 +813,7 @@ _Boost_ADDITIONAL_VERSIONS_LAST:INTERNAL=1.89.1;1.89.0;1.89;1.88.1;1.88.0;1.88;1
 //Components requested for this build tree.
 _Boost_COMPONENTS_SEARCHED:INTERNAL=
 //Last used Boost_INCLUDE_DIR value.
-_Boost_INCLUDE_DIR_LAST:INTERNAL=C:/Users/Nils-Elvy/Desktop/thesis/Msc-Thesis/repo/MSc-Thesis-TUD---boomerang-correspondence/Thesis-Correspondence/libraries/boost_1_86_0_b1
+_Boost_INCLUDE_DIR_LAST:INTERNAL=C:/local/boost_1_86_0_b1
 //Last used Boost_NAMESPACE value.
 _Boost_NAMESPACE_LAST:INTERNAL=boost
 //Last used Boost_USE_MULTITHREADED value.

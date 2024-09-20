@@ -1,4 +1,6 @@
 
+#include "parameterize.h"
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
@@ -50,4 +52,43 @@ Eigen::MatrixXd sortVerticesByProximity(const Eigen::MatrixXd& V) {
     }
 
     return sortedVertices;
+}
+
+
+// Function to compute the Euclidean distance between two points (x,y)
+//double distance2d(const Point3& a, const Point3& b) {
+//    double dx = b.x - a.x;
+//    double dy = b.y - a.y;
+//    return std::sqrt(dx * dx + dy * dy);
+//}
+
+double distance2d(const Eigen::VectorXd& v1, const Eigen::VectorXd& v2) {
+    return (v1.head<2>() - v2.head<2>()).norm(); // Using the first two components (x, y)
+}
+
+
+std::vector<double> computeUnitParametrization(const Eigen::MatrixXd& vertices) {
+    int n = vertices.rows();
+    if (n < 2) {
+        throw std::invalid_argument("At least two vertices are required to form a curve.");
+    }
+
+    std::vector<double> params(n, 0.0);
+    double lengthCurve = 0.0;
+    std::vector<double> segments(n - 1, 0.0);
+
+    for (int i = 0; i < n - 1; ++i) {
+        segments[i] = distance2d(vertices.row(i), vertices.row(i + 1));
+        lengthCurve += segments[i];
+    }
+
+    // Compute parameter values for each vertex
+    for (int i = 1; i < n; ++i) {
+        params[i] = params[i - 1] + (segments[i - 1] / lengthCurve);
+    }
+
+    // Ensure the last vertex is mapped to 1
+    params[n - 1] = 1.0;
+
+    return params;
 }

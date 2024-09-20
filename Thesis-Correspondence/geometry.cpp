@@ -17,6 +17,7 @@
 #ifndef PI
 #define PI 3.14159265358979323846
 #endif
+
 // Function to compute the Euclidean distance between two points
 double distance(const Point& a, const Point& b) {
     double dx = b.x - a.x;

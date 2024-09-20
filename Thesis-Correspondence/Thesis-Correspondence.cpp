@@ -65,6 +65,10 @@ int main()
             savePointCloudToFile("output_files/border_vertices_in_order.obj", sortedVertices);
 
             showPointCloudInParts(sortedVertices);
+
+            std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
+
+            writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
         }
     }
 

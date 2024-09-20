@@ -1,6 +1,12 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-double computeDistance(const Eigen::VectorXd& p1, const Eigen::VectorXd& p2);
+struct Point3 {
+    double x, y, z;
+};
+
+double distance2d(const Eigen::VectorXd& v1, const Eigen::VectorXd& v2);
 
 Eigen::MatrixXd sortVerticesByProximity(const Eigen::MatrixXd& V);
+
+std::vector<double> computeUnitParametrization(const Eigen::MatrixXd& vertices);

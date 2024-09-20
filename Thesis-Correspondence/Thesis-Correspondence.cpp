@@ -27,24 +27,26 @@ int main()
     createDirectory(directoryName);
 
     if (ProcessObjects) {
-
+        old_1(directoryName);
     }
 
    
+    if (ProcessObjects) {
+
+        // Print files in the global models directory
+        printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
+
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_02.stl";
+
+        // Call the function to view the STL object
+        viewSTLObject(modelPath);
+
+        // Call the function to compute and save the normal direction
+        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
+    }
 
 
-    // Print files in the global models directory
-    printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
-
-    std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_02.stl";
-
-    // Call the function to view the STL object
-    viewSTLObject(modelPath);
-
-    // Call the function to compute and save the normal direction
-    std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
-
-    if (true) {
+    if (ParameterizeObjects) {
 
         Eigen::MatrixXd V;
 

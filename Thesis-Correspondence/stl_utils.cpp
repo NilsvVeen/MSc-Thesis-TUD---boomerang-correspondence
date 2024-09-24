@@ -267,6 +267,7 @@ void showPointCloudInParts(const Eigen::MatrixXd& V) {
     polyscope::show();
 }
 
+
 void showSelection(const Eigen::MatrixXd& V) {
     // Initialize Polyscope
     polyscope::init();
@@ -287,10 +288,23 @@ void showSelection(const Eigen::MatrixXd& V) {
             // Check if the selected object is the point cloud
             if (pickResult.first == pointCloud) {
                 int selectedIndex = pickResult.second; // Index of the selected vertex
-                selectedVertices.push_back(selectedIndex);
 
-                // Optional: Print the selected vertex index
-                std::cout << "Selected vertex: " << selectedIndex << std::endl;
+                // Check if the vertex is already in the list
+                auto it = std::find(selectedVertices.begin(), selectedVertices.end(), selectedIndex);
+                if (it != selectedVertices.end()) {
+                    // If found, remove it (deselect)
+                    selectedVertices.erase(it);
+
+                    // Optional: Print the deselected vertex index
+                    std::cout << "Deselected vertex: " << selectedIndex << std::endl;
+                }
+                else {
+                    // If not found, add it (select)
+                    selectedVertices.push_back(selectedIndex);
+
+                    // Optional: Print the selected vertex index
+                    std::cout << "Selected vertex: " << selectedIndex << std::endl;
+                }
             }
         }
 

@@ -464,6 +464,7 @@ void updateLineConnections(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_
 
 
 void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+
     polyscope::init();
 
     double radius_default = 0.0005 * 3;
@@ -474,26 +475,27 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
     // Register the first point cloud
     auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, radius_default, vertexColors1);
 
-    // Calculate offsets
-    double widthV1 = V1.col(0).maxCoeff() - V1.col(0).minCoeff();
-    double widthV2 = V2.col(0).maxCoeff() - V2.col(0).minCoeff();
-    double offset = widthV1 + ((widthV1 + widthV2) / 20.0);
+    // Calculate the necessary offsets
+    double maxX_V1 = V1.col(0).maxCoeff(); // Maximum X of V1
+    double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
+
+    // Calculate the offset to ensure V2 starts after V1
+    double offsetX = maxX_V1 - minX_V2;
 
     // Offset V2 to be next to V1, keeping the z-coordinates the same
     Eigen::MatrixXd V2_offset = V2;
 
-    // Shift in x-direction by creating a new column for x-coordinates
-    V2_offset.col(0) = V2.col(0).array() + offset; // Shift in x-direction
+    // Adjust V2's X coordinates to be next to V1
+    V2_offset.col(0) = V2.col(0).array() + offsetX; // Shift in x-direction
 
-    // Match z-coordinates
-    V2_offset.col(2) = V1.col(2).head(V2_offset.rows()); // Ensure z-coordinates are the same
+    // Keep z-coordinates the same for alignment
+    if (V2_offset.rows() <= V1.rows()) {
+        V2_offset.col(2) = V1.col(2).head(V2_offset.rows()); // Ensure z-coordinates are the same
+    }
 
-    // Optionally align the y-coordinates
-    double meanY1 = V1.col(1).mean();
-    double meanY2 = V2.col(1).mean();
-
-    // Adjust y-coordinates for alignment
-    V2_offset.col(1) = V2.col(1).array() + (meanY1 - meanY2); // Align roughly in y-direction
+    // Optionally, align the Y-coordinates if needed
+    double averageY1 = V1.col(1).mean();
+    V2_offset.col(1) = V2.col(1).array() + (averageY1 - V2.col(1).mean()); // Center V2 around the average Y of V1
 
     // Register the second point cloud
     auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", V2_offset, radius_default, vertexColors2);
@@ -524,4 +526,5 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
 
     polyscope::show();
 }
+
 

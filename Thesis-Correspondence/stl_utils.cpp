@@ -277,7 +277,7 @@ void showSelection(const Eigen::MatrixXd& V) {
 
     // Register the point cloud with Polyscope
     auto* pointCloud = polyscope::registerPointCloud("Point Cloud", V);
-    pointCloud->setPointRadius(0.005); // Set the radius to 0.005
+    pointCloud->setPointRadius(0.0005); // Set the radius to 0.005
 
     // Create an array for default vertex colors (white)
     std::vector<std::array<double, 3>> vertexColors(V.rows(), { {1.0, 1.0, 1.0} }); // Default color: white
@@ -328,6 +328,7 @@ void showSelection(const Eigen::MatrixXd& V) {
         }
         std::cout << std::endl;
     };
+
 
     // Show the Polyscope UI
     polyscope::show();

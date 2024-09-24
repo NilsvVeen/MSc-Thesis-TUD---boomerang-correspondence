@@ -48,4 +48,6 @@ bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V);
 
 void showPointCloudInParts(const Eigen::MatrixXd& V);
 
+void showSelection(const Eigen::MatrixXd& V);
+
 #endif // STL_UTILS_H

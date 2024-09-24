@@ -64,11 +64,13 @@ int main()
             Eigen::MatrixXd sortedVertices = sortVerticesByProximity(V);
             savePointCloudToFile("output_files/border_vertices_in_order.obj", sortedVertices);
 
-            showPointCloudInParts(sortedVertices);
+            //showPointCloudInParts(sortedVertices);
 
-            std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
+            //std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
 
-            writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
+            //writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
+
+            showSelection(sortedVertices);
         }
     }
 

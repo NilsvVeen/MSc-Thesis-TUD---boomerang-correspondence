@@ -277,8 +277,13 @@ void showSelection(const Eigen::MatrixXd& V) {
 
     // Register the point cloud with Polyscope
     auto* pointCloud = polyscope::registerPointCloud("Point Cloud", V);
+    pointCloud->setPointRadius(0.005); // Set the radius to 0.005
 
-    pointCloud->setPointRadius(0.0005);
+    // Create an array for default vertex colors (white)
+    std::vector<std::array<double, 3>> vertexColors(V.rows(), { {1.0, 1.0, 1.0} }); // Default color: white
+
+    // Add vertex color quantity to the point cloud
+    pointCloud->addColorQuantity("vertex color", vertexColors);
 
     // Enable picking and handle selection updates in the callback
     polyscope::state::userCallback = [&]() {
@@ -296,17 +301,20 @@ void showSelection(const Eigen::MatrixXd& V) {
                 if (it != selectedVertices.end()) {
                     // If found, remove it (deselect)
                     selectedVertices.erase(it);
-
-                    // Optional: Print the deselected vertex index
-                    std::cout << "Deselected vertex: " << selectedIndex << std::endl;
                 }
                 else {
                     // If not found, add it (select)
                     selectedVertices.push_back(selectedIndex);
-
-                    // Optional: Print the selected vertex index
-                    std::cout << "Selected vertex: " << selectedIndex << std::endl;
                 }
+
+                // Update vertex colors based on selection
+                std::vector<std::array<double, 3>> updatedColors = vertexColors; // Copy current colors
+                for (int idx : selectedVertices) {
+                    updatedColors[idx] = { {0.0, 1.0, 0.0} }; // Set selected vertex color to green
+                }
+
+                // Apply the updated colors to the point cloud
+                pointCloud->addColorQuantity("vertex color", updatedColors);
             }
         }
 

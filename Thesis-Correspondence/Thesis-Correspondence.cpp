@@ -30,11 +30,13 @@ int main()
     std::string directoryName = "output_files";
     createDirectory(directoryName);
 
-    if (ProcessObjects) {
+    // unused
+    if (CircleElipFlag) {
         old_1(directoryName);
     }
 
    
+    // get 2d outline
     if (ProcessObjects) {
 
         // Print files in the global models directory
@@ -45,11 +47,11 @@ int main()
         // Call the function to view the STL object
         viewSTLObject(modelPath);
 
-        // Call the function to compute and save the normal direction
+        // get outlining vertices of object
         std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
     }
 
-
+    // view models and parameterize
     if (ParameterizeObjects) {
 
         Eigen::MatrixXd V;

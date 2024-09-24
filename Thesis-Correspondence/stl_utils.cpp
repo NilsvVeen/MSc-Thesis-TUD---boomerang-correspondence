@@ -278,6 +278,8 @@ void showSelection(const Eigen::MatrixXd& V) {
     // Register the point cloud with Polyscope
     auto* pointCloud = polyscope::registerPointCloud("Point Cloud", V);
 
+    pointCloud->setPointRadius(0.0005);
+
     // Enable picking and handle selection updates in the callback
     polyscope::state::userCallback = [&]() {
         // Check if there is a current selection

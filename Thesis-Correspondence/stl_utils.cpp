@@ -249,6 +249,7 @@ bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V) {
 }
 
 
+// unused
 void showPointCloudInParts(const Eigen::MatrixXd& V) {
 
     int splits = 10;
@@ -336,7 +337,7 @@ void showSelection(const Eigen::MatrixXd& V) {
 }
 
 
-
+// unused
 void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
     // Initialize Polyscope
     polyscope::init();

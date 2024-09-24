@@ -301,10 +301,13 @@ void showSelection(const Eigen::MatrixXd& V) {
                 if (it != selectedVertices.end()) {
                     // If found, remove it (deselect)
                     selectedVertices.erase(it);
+                    polyscope::pick::resetSelection();
                 }
                 else {
                     // If not found, add it (select)
                     selectedVertices.push_back(selectedIndex);
+                    polyscope::pick::resetSelection();
+
                 }
 
                 // Update vertex colors based on selection

@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
+#include "stl_utils.h"
+
 
 
 // Function to compute Euclidean distance between two points
@@ -91,4 +93,59 @@ std::vector<double> computeUnitParametrization(const Eigen::MatrixXd& vertices) 
     params[n - 1] = 1.0;
 
     return params;
+}
+
+
+
+
+
+// Downsample points 
+
+// Function to downsample a point cloud to match the number of points in the smaller point cloud
+Eigen::MatrixXd downsamplePointCloud(const Eigen::MatrixXd& V, int targetNumPoints) {
+    int originalNumPoints = V.rows();
+
+    // If the number of points is already smaller or equal to the target, return the original
+    if (originalNumPoints <= targetNumPoints) {
+        return V;
+    }
+
+    // Create a new matrix to store the downsampled points
+    Eigen::MatrixXd downsampledV(targetNumPoints, V.cols());
+
+    // Calculate step size for sampling
+    double step = static_cast<double>(originalNumPoints - 1) / (targetNumPoints - 1);
+
+    // Sample points at regular intervals
+    for (int i = 0; i < targetNumPoints; ++i) {
+        int index = static_cast<int>(i * step);
+        downsampledV.row(i) = V.row(index);
+    }
+
+    return downsampledV;
+}
+
+// Function to equalize the number of points in both point clouds
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> equalizePointClouds(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+    int numPoints1 = V1.rows();
+    int numPoints2 = V2.rows();
+
+    // Determine the minimum number of points
+    int targetNumPoints = std::min(numPoints1, numPoints2);
+
+    // Downsample both point clouds to have the same number of points
+    Eigen::MatrixXd V1_downsampled = downsamplePointCloud(V1, targetNumPoints);
+    Eigen::MatrixXd V2_downsampled = downsamplePointCloud(V2, targetNumPoints);
+
+    return std::make_pair(V1_downsampled, V2_downsampled);
+}
+
+// Main function to downsample and return equalized sorted vertices
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> getEqualizedPointClouds(const Eigen::MatrixXd& sortedVertices1, const Eigen::MatrixXd& sortedVertices2) {
+
+    // Equalize the number of points in both point clouds
+    auto [equalizedV1, equalizedV2] = equalizePointClouds(sortedVertices1, sortedVertices2);
+
+    // Return the downsampled point clouds
+    return { equalizedV1, equalizedV2 };
 }

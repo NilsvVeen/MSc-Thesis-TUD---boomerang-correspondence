@@ -51,7 +51,7 @@ int main()
         std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_02.stl";
 
         // Call the function to view the STL object
-        viewSTLObject(modelPath);
+        //viewSTLObject(modelPath);
 
         // get outlining vertices of object
         std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
@@ -69,7 +69,7 @@ int main()
         std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_03.stl";
 
         // Call the function to view the STL object
-        viewSTLObject(modelPath);
+        //viewSTLObject(modelPath);
 
         // get outlining vertices of object
         std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2);
@@ -88,7 +88,7 @@ int main()
 
         // Reading point cloud from PLY file
         if (readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V) 
-            && readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V2)
+            && readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2)
             ) {
             std::cout << "Point cloud loaded successfully." << std::endl;
             std::cout << "Number of vertices: " << V.rows() << std::endl; // Print the number of vertices

@@ -463,19 +463,8 @@ void updateLineConnections(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_
 }
 
 
-void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
-
-    polyscope::init();
-
-    double radius_default = 0.0005 * 3;
-
-    std::vector<int> selectedVertices1, selectedVertices2;
-    std::vector<std::array<double, 3>> vertexColors1, vertexColors2;
-
-    // Register the first point cloud
-    auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, radius_default, vertexColors1);
-
-    // Calculate the necessary offsets
+Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+    // Calculate necessary offsets
     double maxX_V1 = V1.col(0).maxCoeff(); // Maximum X of V1
     double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
 
@@ -493,35 +482,63 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         V2_offset.col(2) = V1.col(2).head(V2_offset.rows()); // Ensure z-coordinates are the same
     }
 
-    // Optionally, align the Y-coordinates if needed
+    // Align the Y-coordinates
     double averageY1 = V1.col(1).mean();
     V2_offset.col(1) = V2.col(1).array() + (averageY1 - V2.col(1).mean()); // Center V2 around the average Y of V1
+
+    return V2_offset;
+}
+
+void handleUserSelection(auto pointCloud1, auto pointCloud2,
+    const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_offset,
+    std::vector<int>& selectedVertices1, std::vector<int>& selectedVertices2,
+    const std::vector<std::array<double, 3>>& vertexColors1,
+    const std::vector<std::array<double, 3>>& vertexColors2,
+    double radius_default) {
+    if (polyscope::pick::haveSelection()) {
+        auto pickResult = polyscope::pick::getSelection();
+
+        if (pickResult.first == pointCloud1) {
+            handleSelection(pointCloud1, selectedVertices1, vertexColors1);
+        }
+        else if (pickResult.first == pointCloud2) {
+            handleSelection(pointCloud2, selectedVertices2, vertexColors2);
+        }
+    }
+
+    // Update lines between matching selected vertices
+    updateLineConnections(V1, V2_offset, selectedVertices1, selectedVertices2, radius_default / 3);
+
+    std::cout << "Selected vertices in Point Cloud 1: ";
+    for (int v : selectedVertices1) std::cout << v << " ";
+    std::cout << std::endl;
+
+    std::cout << "Selected vertices in Point Cloud 2: ";
+    for (int v : selectedVertices2) std::cout << v << " ";
+    std::cout << std::endl;
+}
+
+void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+
+    polyscope::init();
+
+    double radius_default = 0.0005 * 3;
+
+    std::vector<int> selectedVertices1, selectedVertices2;
+    std::vector<std::array<double, 3>> vertexColors1, vertexColors2;
+
+    // Register the first point cloud
+    auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, radius_default, vertexColors1);
+
+    // Calculate and adjust offsets for V2
+    Eigen::MatrixXd V2_offset = calculateAndAdjustOffsets(V1, V2);
 
     // Register the second point cloud
     auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", V2_offset, radius_default, vertexColors2);
 
+    // Set user callback for handling selections
     polyscope::state::userCallback = [&]() {
-        if (polyscope::pick::haveSelection()) {
-            auto pickResult = polyscope::pick::getSelection();
-
-            if (pickResult.first == pointCloud1) {
-                handleSelection(pointCloud1, selectedVertices1, vertexColors1);
-            }
-            else if (pickResult.first == pointCloud2) {
-                handleSelection(pointCloud2, selectedVertices2, vertexColors2);
-            }
-        }
-
-        // Update lines between matching selected vertices
-        updateLineConnections(V1, V2_offset, selectedVertices1, selectedVertices2, radius_default / 3);
-
-        std::cout << "Selected vertices in Point Cloud 1: ";
-        for (int v : selectedVertices1) std::cout << v << " ";
-        std::cout << std::endl;
-
-        std::cout << "Selected vertices in Point Cloud 2: ";
-        for (int v : selectedVertices2) std::cout << v << " ";
-        std::cout << std::endl;
+        handleUserSelection(pointCloud1, pointCloud2, V1, V2_offset, selectedVertices1, selectedVertices2, vertexColors1, vertexColors2, radius_default);
     };
 
     polyscope::show();

@@ -28,6 +28,11 @@
 #include <algorithm> // For std::find
 #include <polyscope/curve_network.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+
 
 
 void viewSTLObject(const std::string& filename) {
@@ -518,8 +523,29 @@ void handleUserSelection(auto pointCloud1, auto pointCloud2,
     std::cout << std::endl;
 }
 
-void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
 
+
+
+
+// Rotation function
+Eigen::MatrixXd rotatePointCloud(const Eigen::MatrixXd& V, double angle, const Eigen::Vector3d& axis) {
+    // Calculate the centroid of the point cloud
+    Eigen::Vector3d centroid = V.colwise().mean();
+
+    // Create a rotation matrix
+    Eigen::AngleAxisd rotation(angle, axis.normalized());  // 'angle' should be in radians
+    Eigen::Matrix3d rotationMatrix = rotation.toRotationMatrix();
+
+    // Shift the point cloud to the origin, rotate, and then shift back
+    Eigen::MatrixXd V_rotated = V.rowwise() - centroid.transpose(); // Center at origin
+    V_rotated = (rotationMatrix * V_rotated.transpose()).transpose(); // Rotate
+    V_rotated.rowwise() += centroid.transpose(); // Shift back
+
+    return V_rotated;
+}
+
+// Main function with slider for rotation of both point clouds
+void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
     polyscope::init();
 
     double radius_default = 0.0005 * 3;
@@ -527,21 +553,49 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
     std::vector<int> selectedVertices1, selectedVertices2;
     std::vector<std::array<double, 3>> vertexColors1, vertexColors2;
 
+    // Initial rotation angles (in radians) for both point clouds
+    static double rotationAngleRadians1 = 0.0;
+    static double rotationAngleRadians2 = 0.0;
+
+    // Axis of rotation (around Z-axis)
+    Eigen::Vector3d rotationAxis(0, 0, 1);
+
     // Register the first point cloud
     auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, radius_default, vertexColors1);
 
     // Calculate and adjust offsets for V2
     Eigen::MatrixXd V2_offset = calculateAndAdjustOffsets(V1, V2);
 
-    // Register the second point cloud
-    auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", V2_offset, radius_default, vertexColors2);
+    // Register the second point cloud (rotated)
+    auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", rotatePointCloud(V2_offset, rotationAngleRadians2, rotationAxis), radius_default, vertexColors2);
 
-    // Set user callback for handling selections
+    // Set user callback for handling UI and updates
     polyscope::state::userCallback = [&]() {
-        handleUserSelection(pointCloud1, pointCloud2, V1, V2_offset, selectedVertices1, selectedVertices2, vertexColors1, vertexColors2, radius_default);
+        // Slider for rotating the first model (V1)
+        float rotationAngleDegrees1 = static_cast<float>(rotationAngleRadians1 * 180.0 / M_PI);  // Convert radians to degrees
+        if (ImGui::SliderFloat("Rotation Angle Left Model (Degrees)", &rotationAngleDegrees1, -180.0f, 180.0f)) {
+            // Convert degrees back to radians
+            rotationAngleRadians1 = rotationAngleDegrees1 * M_PI / 180.0;
+        }
+
+        // Slider for rotating the second model (V2)
+        float rotationAngleDegrees2 = static_cast<float>(rotationAngleRadians2 * 180.0 / M_PI);  // Convert radians to degrees
+        if (ImGui::SliderFloat("Rotation Angle Right Model (Degrees)", &rotationAngleDegrees2, -180.0f, 180.0f)) {
+            // Convert degrees back to radians
+            rotationAngleRadians2 = rotationAngleDegrees2 * M_PI / 180.0;
+        }
+
+        // Update the point clouds with the new rotation angles
+        Eigen::MatrixXd V1_rotated = rotatePointCloud(V1, rotationAngleRadians1, rotationAxis); // Rotate the first point cloud
+        pointCloud1->updatePointPositions(V1_rotated); // Update Polyscope visualization for the first model
+
+        Eigen::MatrixXd V2_rotated = rotatePointCloud(V2_offset, rotationAngleRadians2, rotationAxis); // Rotate the second point cloud
+        pointCloud2->updatePointPositions(V2_rotated); // Update Polyscope visualization for the second model
+
+        // Handle user selection of vertices
+        handleUserSelection(pointCloud1, pointCloud2, V1_rotated, V2_rotated, selectedVertices1, selectedVertices2, vertexColors1, vertexColors2, radius_default);
     };
 
     polyscope::show();
 }
-
 

@@ -26,6 +26,7 @@
 #include <polyscope/pick.h>
 
 #include <algorithm> // For std::find
+#include <polyscope/curve_network.h>
 
 
 
@@ -429,27 +430,54 @@ Eigen::MatrixXd offsetPointCloud(const Eigen::MatrixXd& V, double offset) {
     return V_offset;
 }
 
+
+void updateLineConnections(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_offset, const std::vector<int>& selectedVertices1, const std::vector<int>& selectedVertices2, const double& radius_default) {
+    // Determine the number of matching pairs based on the smaller size
+    int numLines = std::min(selectedVertices1.size(), selectedVertices2.size());
+
+    if (numLines > 0) {
+        std::vector<std::array<int, 2>> edges;
+        Eigen::MatrixXd points(numLines * 2, 3); // Each line has 2 points
+
+        // Create line segments for matching points in both point clouds
+        for (int i = 0; i < numLines; ++i) {
+            int idx1 = selectedVertices1[i];
+            int idx2 = selectedVertices2[i];
+
+            // Line goes from V1[idx1] to V2_offset[idx2]
+            points.row(2 * i) = V1.row(idx1);
+            points.row(2 * i + 1) = V2_offset.row(idx2);
+
+            // Add line segment between consecutive points
+            edges.push_back({ 2 * i, 2 * i + 1 });
+        }
+
+        // Register or update the curve network (lines) between the selected vertices
+        auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines", points, edges);
+
+        // Set the radius of the curve network
+        curveNetwork->setRadius(radius_default);
+        
+    }
+}
+
+
 void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
-    // Initialize Polyscope
     polyscope::init();
 
-    // Variables for selected vertices
+    double radius_default = 0.0005;
+
     std::vector<int> selectedVertices1, selectedVertices2;
-
-    // Register point clouds and store default vertex colors
     std::vector<std::array<double, 3>> vertexColors1, vertexColors2;
-    auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, 0.001, vertexColors1);
+    auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, radius_default, vertexColors1);
 
-    // Compute bounding boxes for offset calculation
     double widthV1 = V1.col(0).maxCoeff() - V1.col(0).minCoeff();
     double widthV2 = V2.col(0).maxCoeff() - V2.col(0).minCoeff();
-    double offset = widthV1 + ((widthV1 + widthV2) / 20.0);  // Offset with a small extra space
+    double offset = widthV1 + ((widthV1 + widthV2) / 20.0);
 
-    // Apply the offset to the second point cloud
     Eigen::MatrixXd V2_offset = offsetPointCloud(V2, offset);
-    auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", V2_offset, 0.001, vertexColors2);
+    auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", V2_offset, radius_default, vertexColors2);
 
-    // Enable picking and handle selection updates in the callback
     polyscope::state::userCallback = [&]() {
         if (polyscope::pick::haveSelection()) {
             auto pickResult = polyscope::pick::getSelection();
@@ -462,7 +490,9 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
             }
         }
 
-        // Print selected vertices for both point clouds
+        // Update lines between matching selected vertices
+        updateLineConnections(V1, V2_offset, selectedVertices1, selectedVertices2, radius_default/3);
+
         std::cout << "Selected vertices in Point Cloud 1: ";
         for (int v : selectedVertices1) std::cout << v << " ";
         std::cout << std::endl;
@@ -472,6 +502,5 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         std::cout << std::endl;
     };
 
-    // Show the Polyscope UI
     polyscope::show();
 }

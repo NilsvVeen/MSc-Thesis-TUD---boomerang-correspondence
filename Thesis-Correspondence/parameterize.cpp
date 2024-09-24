@@ -101,7 +101,8 @@ std::vector<double> computeUnitParametrization(const Eigen::MatrixXd& vertices) 
 
 // Downsample points 
 
-// Function to downsample a point cloud to match the number of points in the smaller point cloud
+// Function to downsample a point cloud to match the number of points in the smaller point cloud 
+// note could be more fancy
 Eigen::MatrixXd downsamplePointCloud(const Eigen::MatrixXd& V, int targetNumPoints) {
     int originalNumPoints = V.rows();
 

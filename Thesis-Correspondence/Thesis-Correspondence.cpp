@@ -80,6 +80,7 @@ int main()
     // view models and parameterize
     if (ParameterizeObjects) {
 
+        // clear crap!
         polyscope::removeAllGroups();
         polyscope::removeAllStructures();
 

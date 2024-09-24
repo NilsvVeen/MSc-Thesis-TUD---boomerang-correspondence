@@ -70,7 +70,9 @@ int main()
 
             //writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
 
-            showSelection(sortedVertices);
+            //showSelection(sortedVertices);
+
+            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices);
         }
     }
 

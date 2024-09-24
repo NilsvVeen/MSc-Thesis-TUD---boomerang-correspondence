@@ -50,4 +50,9 @@ void showPointCloudInParts(const Eigen::MatrixXd& V);
 
 void showSelection(const Eigen::MatrixXd& V);
 
+void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2);
+
+void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2);
+
+
 #endif // STL_UTILS_H

@@ -333,3 +333,145 @@ void showSelection(const Eigen::MatrixXd& V) {
     // Show the Polyscope UI
     polyscope::show();
 }
+
+
+
+void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+    // Initialize Polyscope
+    polyscope::init();
+
+    // Register the first point cloud
+    auto* pointCloud1 = polyscope::registerPointCloud("Point Cloud 1", V1);
+    pointCloud1->setPointRadius(0.005); // Set point radius
+
+    // Compute the bounding box for V1
+    Eigen::VectorXd minV1 = V1.colwise().minCoeff();
+    Eigen::VectorXd maxV1 = V1.colwise().maxCoeff();
+    double widthV1 = maxV1(0) - minV1(0);  // Width along the X-axis
+
+    // Compute the bounding box for V2
+    Eigen::VectorXd minV2 = V2.colwise().minCoeff();
+    Eigen::VectorXd maxV2 = V2.colwise().maxCoeff();
+    double widthV2 = maxV2(0) - minV2(0);  // Width along the X-axis
+
+    // Calculate the average width of the two point clouds
+    double avgWidth = (widthV1 + widthV2) / 2.0;
+
+    // Add additional space based on the average width divided by 10
+    double extraSpace = avgWidth / 10.0;
+
+    // Set the offset to ensure no overlap, adding extra space
+    double offset = widthV1 + extraSpace;
+
+    // Offset the second point cloud by translating it along the X-axis
+    Eigen::MatrixXd V2_offset = V2;
+    V2_offset.col(0).array() += offset;
+
+    // Register the second point cloud with the offset applied
+    auto* pointCloud2 = polyscope::registerPointCloud("Point Cloud 2", V2_offset);
+    pointCloud2->setPointRadius(0.005); // Set point radius for the second point cloud
+
+    // Show the Polyscope UI
+    polyscope::show();
+}
+
+
+
+
+
+void updateVertexColors(polyscope::PointCloud* pointCloud, const std::vector<int>& selectedVertices, const std::vector<std::array<double, 3>>& defaultColors) {
+    // Create a copy of the current colors
+    std::vector<std::array<double, 3>> updatedColors = defaultColors;
+
+    // Set the selected vertices to green
+    for (int idx : selectedVertices) {
+        updatedColors[idx] = { {0.0, 1.0, 0.0} }; // Green for selected vertices
+    }
+
+    // Update the color quantity in Polyscope
+    pointCloud->addColorQuantity("vertex color", updatedColors);
+}
+
+void handleSelection(polyscope::PointCloud* pointCloud, std::vector<int>& selectedVertices, const std::vector<std::array<double, 3>>& defaultColors) {
+    int selectedIndex = polyscope::pick::getSelection().second;
+
+    // Check if the vertex is already selected
+    auto it = std::find(selectedVertices.begin(), selectedVertices.end(), selectedIndex);
+    if (it != selectedVertices.end()) {
+        // Deselect if it's already selected
+        selectedVertices.erase(it);
+    }
+    else {
+        // Otherwise, select the vertex
+        selectedVertices.push_back(selectedIndex);
+    }
+
+    // Reset the selection and update the colors
+    polyscope::pick::resetSelection();
+    updateVertexColors(pointCloud, selectedVertices, defaultColors);
+}
+
+polyscope::PointCloud* registerPointCloudWithColors(const std::string& name, const Eigen::MatrixXd& V, double pointRadius, std::vector<std::array<double, 3>>& vertexColors) {
+    // Register the point cloud
+    auto* pointCloud = polyscope::registerPointCloud(name, V);
+    pointCloud->setPointRadius(pointRadius);
+
+    // Set the initial colors (all white)
+    vertexColors = std::vector<std::array<double, 3>>(V.rows(), { {1.0, 1.0, 1.0} });
+    pointCloud->addColorQuantity("vertex color", vertexColors);
+
+    return pointCloud;
+}
+
+Eigen::MatrixXd offsetPointCloud(const Eigen::MatrixXd& V, double offset) {
+    Eigen::MatrixXd V_offset = V;
+    V_offset.col(0).array() += offset;
+    return V_offset;
+}
+
+void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+    // Initialize Polyscope
+    polyscope::init();
+
+    // Variables for selected vertices
+    std::vector<int> selectedVertices1, selectedVertices2;
+
+    // Register point clouds and store default vertex colors
+    std::vector<std::array<double, 3>> vertexColors1, vertexColors2;
+    auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, 0.001, vertexColors1);
+
+    // Compute bounding boxes for offset calculation
+    double widthV1 = V1.col(0).maxCoeff() - V1.col(0).minCoeff();
+    double widthV2 = V2.col(0).maxCoeff() - V2.col(0).minCoeff();
+    double offset = widthV1 + ((widthV1 + widthV2) / 20.0);  // Offset with a small extra space
+
+    // Apply the offset to the second point cloud
+    Eigen::MatrixXd V2_offset = offsetPointCloud(V2, offset);
+    auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", V2_offset, 0.001, vertexColors2);
+
+    // Enable picking and handle selection updates in the callback
+    polyscope::state::userCallback = [&]() {
+        if (polyscope::pick::haveSelection()) {
+            auto pickResult = polyscope::pick::getSelection();
+
+            if (pickResult.first == pointCloud1) {
+                handleSelection(pointCloud1, selectedVertices1, vertexColors1);
+            }
+            else if (pickResult.first == pointCloud2) {
+                handleSelection(pointCloud2, selectedVertices2, vertexColors2);
+            }
+        }
+
+        // Print selected vertices for both point clouds
+        std::cout << "Selected vertices in Point Cloud 1: ";
+        for (int v : selectedVertices1) std::cout << v << " ";
+        std::cout << std::endl;
+
+        std::cout << "Selected vertices in Point Cloud 2: ";
+        for (int v : selectedVertices2) std::cout << v << " ";
+        std::cout << std::endl;
+    };
+
+    // Show the Polyscope UI
+    polyscope::show();
+}

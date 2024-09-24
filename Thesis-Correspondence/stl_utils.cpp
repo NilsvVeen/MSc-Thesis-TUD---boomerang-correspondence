@@ -465,7 +465,7 @@ void updateLineConnections(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_
 void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
     polyscope::init();
 
-    double radius_default = 0.0005;
+    double radius_default = 0.0005 * 3 ;
 
     std::vector<int> selectedVertices1, selectedVertices2;
     std::vector<std::array<double, 3>> vertexColors1, vertexColors2;

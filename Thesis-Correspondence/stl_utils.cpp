@@ -544,20 +544,52 @@ Eigen::MatrixXd rotatePointCloud(const Eigen::MatrixXd& V, double angle, const E
     return V_rotated;
 }
 
+
+// Function to parameterize between two control points
+Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int startIdx, int endIdx) {
+    // Ensure valid indices
+    if (startIdx < 0 || endIdx >= V.rows() || startIdx >= endIdx) {
+        std::cerr << "Error: Invalid control point indices." << std::endl;
+        return Eigen::VectorXd(); // Return empty vector on error
+    }
+
+    int numVertices = endIdx - startIdx + 1;
+    Eigen::VectorXd parameterization(numVertices);
+
+    // Parameterize between [0, 1] for vertices between startIdx and endIdx
+    for (int i = 0; i < numVertices; ++i) {
+        parameterization(i) = static_cast<double>(i) / (numVertices - 1); // Linear parameterization
+    }
+
+    return parameterization;
+}
+
 // Function to be called when "parameterize" button is pressed
 void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, std::vector<int> selectedVertices1, std::vector<int> selectedVertices2) {
-    // Placeholder for parameterization logic
     std::cout << "Parameterization function called." << std::endl;
 
-    std::cout << "Vertices V1." << V1.rows() << std::endl;
-    std::cout << "Vertices V2." << V2.rows() << std::endl;
+    std::cout << "Vertices V1: " << V1.rows() << std::endl;
+    std::cout << "Vertices V2: " << V2.rows() << std::endl;
 
-    std::cout << "Selected Vertices V1." << selectedVertices1.size() << std::endl;
-    std::cout << "Selected Vertices V2." << selectedVertices2.size() << std::endl;
+    // Example for parameterizing between the first two control points in selectedVertices1
+    if (selectedVertices1.size() >= 2) {
+        int startIdx1 = selectedVertices1[0];
+        int endIdx1 = selectedVertices1[1];
+
+        Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1, startIdx1, endIdx1);
+        std::cout << "Parameterization for V1 between " << startIdx1 << " and " << endIdx1 << ":\n" << paramV1 << std::endl;
+    }
+
+    // Example for parameterizing between the first two control points in selectedVertices2
+    if (selectedVertices2.size() >= 2) {
+        int startIdx2 = selectedVertices2[0];
+        int endIdx2 = selectedVertices2[1];
+
+        Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2, startIdx2, endIdx2);
+        std::cout << "Parameterization for V2 between " << startIdx2 << " and " << endIdx2 << ":\n" << paramV2 << std::endl;
+    }
 
     system("PAUSE");
-
-
 }
 
 

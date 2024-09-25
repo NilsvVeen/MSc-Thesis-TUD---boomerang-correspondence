@@ -31,6 +31,7 @@
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+#include "parameterize.h"
 
 
 
@@ -545,23 +546,44 @@ Eigen::MatrixXd rotatePointCloud(const Eigen::MatrixXd& V, double angle, const E
 }
 
 
-// Function to parameterize between two control points
 Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int startIdx, int endIdx) {
     // Ensure valid indices
-    if (startIdx < 0 || endIdx >= V.rows() || startIdx >= endIdx) {
-        std::cerr << "Error: Invalid control point indices." << std::endl;
-        return Eigen::VectorXd(); // Return empty vector on error
+    if (startIdx < 0 || endIdx >= V.rows()) {
+        throw std::invalid_argument("Invalid control point indices.");
+    }
+
+    // Ensure startIdx is less than or equal to endIdx for proper handling
+    bool isReversed = false;
+    if (startIdx > endIdx) {
+        std::swap(startIdx, endIdx);
+        isReversed = true;
     }
 
     int numVertices = endIdx - startIdx + 1;
-    Eigen::VectorXd parameterization(numVertices);
+    Eigen::VectorXd params(numVertices);
+    params(0) = 0.0; // First point is always 0
+    params(numVertices - 1) = 1.0; // Last point is always 1
 
-    // Parameterize between [0, 1] for vertices between startIdx and endIdx
-    for (int i = 0; i < numVertices; ++i) {
-        parameterization(i) = static_cast<double>(i) / (numVertices - 1); // Linear parameterization
+    double lengthCurve = 0.0;
+    std::vector<double> segments(numVertices - 1, 0.0);
+
+    // Calculate segment lengths between vertices
+    for (int i = 0; i < numVertices - 1; ++i) {
+        segments[i] = distance2d(V.row(startIdx + i), V.row(startIdx + i + 1));
+        lengthCurve += segments[i];
     }
 
-    return parameterization;
+    // Compute parameter values for each vertex between startIdx and endIdx
+    for (int i = 1; i < numVertices - 1; ++i) {
+        params(i) = params(i - 1) + (segments[i - 1] / lengthCurve);
+    }
+
+    // If the original indices were reversed, reverse the parameterization so it still goes from 0 to 1
+    if (isReversed) {
+        params = Eigen::VectorXd::Ones(numVertices) - params;
+    }
+
+    return params;
 }
 
 // Function to be called when "parameterize" button is pressed

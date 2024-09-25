@@ -544,6 +544,24 @@ Eigen::MatrixXd rotatePointCloud(const Eigen::MatrixXd& V, double angle, const E
     return V_rotated;
 }
 
+// Function to be called when "parameterize" button is pressed
+void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, std::vector<int> selectedVertices1, std::vector<int> selectedVertices2) {
+    // Placeholder for parameterization logic
+    std::cout << "Parameterization function called." << std::endl;
+
+    std::cout << "Vertices V1." << V1.rows() << std::endl;
+    std::cout << "Vertices V2." << V2.rows() << std::endl;
+
+    std::cout << "Selected Vertices V1." << selectedVertices1.size() << std::endl;
+    std::cout << "Selected Vertices V2." << selectedVertices2.size() << std::endl;
+
+    system("PAUSE");
+
+
+}
+
+
+
 // Main function with slider for rotation of both point clouds
 void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
     polyscope::init();
@@ -594,8 +612,17 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
 
         // Handle user selection of vertices
         handleUserSelection(pointCloud1, pointCloud2, V1_rotated, V2_rotated, selectedVertices1, selectedVertices2, vertexColors1, vertexColors2, radius_default);
+
+        // Add a button for "parameterize"
+        if (ImGui::Button("parameterize")) {
+            // Call the parameterize function when the button is pressed
+            parameterizeWithControls(V1, V2, selectedVertices1, selectedVertices2);
+        }
+
     };
 
     polyscope::show();
 }
+
+
 

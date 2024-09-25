@@ -578,10 +578,10 @@ Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int star
         params(i) = params(i - 1) + (segments[i - 1] / lengthCurve);
     }
 
-    // If the original indices were reversed, reverse the parameterization so it still goes from 0 to 1
-    if (isReversed) {
-        params = Eigen::VectorXd::Ones(numVertices) - params;
-    }
+    //// If the original indices were reversed, reverse the parameterization so it still goes from 0 to 1
+    //if (isReversed) {
+    //    params = Eigen::VectorXd::Ones(numVertices) - params;
+    //}
 
     return params;
 }

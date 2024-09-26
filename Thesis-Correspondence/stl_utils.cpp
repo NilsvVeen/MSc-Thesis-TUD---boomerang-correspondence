@@ -556,7 +556,6 @@ Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int star
     bool isReversed = false;
     if (startIdx > endIdx) {
         std::swap(startIdx, endIdx);
-        isReversed = true;
     }
 
     int numVertices = endIdx - startIdx + 1;
@@ -578,38 +577,47 @@ Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int star
         params(i) = params(i - 1) + (segments[i - 1] / lengthCurve);
     }
 
-    //// If the original indices were reversed, reverse the parameterization so it still goes from 0 to 1
-    //if (isReversed) {
-    //    params = Eigen::VectorXd::Ones(numVertices) - params;
-    //}
 
     return params;
 }
 
-// Function to be called when "parameterize" button is pressed
-void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, std::vector<int> selectedVertices1, std::vector<int> selectedVertices2) {
-    std::cout << "Parameterization function called." << std::endl;
+// Function to compute correspondence between curves based on selected landmark pairs
+void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, 
+                               const std::vector<int>& selectedVertices1, 
+                               const std::vector<int>& selectedVertices2) {
+    std::cout << "Parameterization with landmarks called." << std::endl;
 
-    std::cout << "Vertices V1: " << V1.rows() << std::endl;
-    std::cout << "Vertices V2: " << V2.rows() << std::endl;
+    // Find the minimum number of available landmarks between the two sets
+    int numLandmarks1 = selectedVertices1.size();
+    int numLandmarks2 = selectedVertices2.size();
+    int numLandmarks = std::min(numLandmarks1, numLandmarks2);
 
-    // Example for parameterizing between the first two control points in selectedVertices1
-    if (selectedVertices1.size() >= 2) {
-        int startIdx1 = selectedVertices1[0];
-        int endIdx1 = selectedVertices1[1];
+    if (numLandmarks < 2) {
+        std::cerr << "Not enough landmarks to parameterize. At least 2 landmarks are required on both curves." << std::endl;
+        return; // Exit the function if there are not enough landmarks
+    }
+
+    // For each valid pair of consecutive landmarks, compute the parameterization for both curves
+    for (int i = 0; i < numLandmarks; ++i) {
+        // Connect the last landmark back to the first to form a closed loop if needed
+        int startIdx1 = selectedVertices1[i];
+        int endIdx1 = (i + 1) % numLandmarks == 0 ? selectedVertices1[0] : selectedVertices1[i + 1];
+
+        int startIdx2 = selectedVertices2[i];
+        int endIdx2 = (i + 1) % numLandmarks == 0 ? selectedVertices2[0] : selectedVertices2[i + 1];
 
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1, startIdx1, endIdx1);
-        std::cout << "Parameterization for V1 between " << startIdx1 << " and " << endIdx1 << ":\n" << paramV1 << std::endl;
-    }
-
-    // Example for parameterizing between the first two control points in selectedVertices2
-    if (selectedVertices2.size() >= 2) {
-        int startIdx2 = selectedVertices2[0];
-        int endIdx2 = selectedVertices2[1];
-
         Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2, startIdx2, endIdx2);
+
+        std::cout << "Parameterization for V1 between " << startIdx1 << " and " << endIdx1 << ":\n" << paramV1 << std::endl;
         std::cout << "Parameterization for V2 between " << startIdx2 << " and " << endIdx2 << ":\n" << paramV2 << std::endl;
+
+        // Extend correspondence here between paramV1 and paramV2
+        // ...
     }
+
+    std::cout << "Landmark-based parameterization complete (with closed loop where possible)." << std::endl;
+
 
     system("PAUSE");
 }

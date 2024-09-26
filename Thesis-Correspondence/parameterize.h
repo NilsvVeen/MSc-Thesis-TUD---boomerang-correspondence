@@ -12,3 +12,5 @@ Eigen::MatrixXd sortVerticesByProximity(const Eigen::MatrixXd& V);
 std::vector<double> computeUnitParametrization(const Eigen::MatrixXd& vertices);
 
 std::pair<Eigen::MatrixXd, Eigen::MatrixXd> getEqualizedPointClouds(const Eigen::MatrixXd& sortedVertices1, const Eigen::MatrixXd& sortedVertices2);
+
+Eigen::MatrixXd reverseOrder(const Eigen::MatrixXd& V);

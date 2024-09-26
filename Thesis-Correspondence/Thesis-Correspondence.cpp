@@ -97,7 +97,7 @@ int main()
 
 
             // Sort vertices by proximity
-            Eigen::MatrixXd sortedVertices = sortVerticesByProximity(V);
+            Eigen::MatrixXd sortedVertices = reverseOrder(sortVerticesByProximity(V));
             savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
 
             Eigen::MatrixXd sortedVertices2 = sortVerticesByProximity(V2);

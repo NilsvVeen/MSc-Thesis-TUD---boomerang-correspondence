@@ -8,6 +8,18 @@
 
 
 
+// Function to reverse the order of rows in an Eigen::MatrixXd
+Eigen::MatrixXd reverseOrder(const Eigen::MatrixXd& V) {
+    // Create a new matrix to hold the reversed rows
+    Eigen::MatrixXd reversed(V.rows(), V.cols());
+
+    for (int i = 0; i < V.rows(); ++i) {
+        reversed.row(i) = V.row(V.rows() - 1 - i); // Assign the row from the end to the new matrix
+    }
+
+    return reversed;
+}
+
 // Function to compute Euclidean distance between two points
 double computeDistance(const Eigen::VectorXd& p1, const Eigen::VectorXd& p2) {
     return (p1 - p2).norm(); // Calculate the Euclidean distance

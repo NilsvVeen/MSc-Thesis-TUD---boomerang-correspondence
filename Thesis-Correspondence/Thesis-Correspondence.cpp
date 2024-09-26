@@ -119,7 +119,36 @@ int main()
             //showSelection(sortedVertices);
 
             //showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2);
+
+
+
             showSideBySideSelectionWithVertexSelection(sampled.first, sampled.second);
+
+//// Clockwise circle points (with z = 0)
+//            Eigen::MatrixXd V1_test(8, 3);
+//            V1_test << 1.0, 0.0, 0.0,    // Rightmost point on the circle
+//                0.71, -0.71, 0.0, // Bottom-right
+//                0.0, -1.0, 0.0,   // Bottom
+//                -0.71, -0.71, 0.0, // Bottom-left
+//                -1.0, 0.0, 0.0,    // Leftmost point on the circle
+//                -0.71, 0.71, 0.0,  // Top-left
+//                0.0, 1.0, 0.0,    // Top
+//                0.71, 0.71, 0.0;  // Top-right
+//
+//            // Anti-clockwise circle points (with z = 0)
+//            Eigen::MatrixXd V2_test(8, 3);
+//            V2_test << 1.0, 0.0, 0.0,    // Rightmost point on the circle
+//                0.71, 0.71, 0.0,  // Top-right
+//                0.0, 1.0, 0.0,    // Top
+//                -0.71, 0.71, 0.0,  // Top-left
+//                -1.0, 0.0, 0.0,    // Leftmost point on the circle
+//                -0.71, -0.71, 0.0, // Bottom-left
+//                0.0, -1.0, 0.0,   // Bottom
+//                0.71, -0.71, 0.0; // Bottom-right
+//
+//            showSideBySideSelectionWithVertexSelection(V1_test, V1_test);
+
+
         }
     }
 

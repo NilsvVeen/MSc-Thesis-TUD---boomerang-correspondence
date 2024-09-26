@@ -548,35 +548,68 @@ Eigen::MatrixXd rotatePointCloud(const Eigen::MatrixXd& V, double angle, const E
 
 Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int startIdx, int endIdx) {
     // Ensure valid indices
-    if (startIdx < 0 || endIdx >= V.rows()) {
+    if (startIdx < 0 || startIdx >= V.rows() || endIdx < 0 || endIdx >= V.rows()) {
         throw std::invalid_argument("Invalid control point indices.");
     }
 
-    // Ensure startIdx is less than or equal to endIdx for proper handling
-    bool isReversed = false;
-    if (startIdx > endIdx) {
-        std::swap(startIdx, endIdx);
+    bool isReversed = (startIdx > endIdx);
+    int numVertices;
+    Eigen::VectorXd params;
+
+    if (isReversed) {
+        // Wrap-around case: From startIdx -> end of V, and from start of V -> endIdx
+        numVertices = V.rows() - startIdx + endIdx + 1;
+        params.resize(numVertices);
+
+        params(0) = 0.0; // First point is always 0
+        params(numVertices - 1) = 1.0; // Last point is always 1
+
+        double lengthCurve = 0.0;
+        std::vector<double> segments(numVertices - 1, 0.0);
+
+        // Calculate segment lengths for the wrap-around case
+        // 1. From startIdx to end of V
+        for (int i = 0; i < V.rows() - startIdx - 1; ++i) {
+            segments[i] = distance2d(V.row(startIdx + i), V.row(startIdx + i + 1));
+            lengthCurve += segments[i];
+        }
+        // 2. From the last point of V to the start of V
+        segments[V.rows() - startIdx - 1] = distance2d(V.row(V.rows() - 1), V.row(0));
+        lengthCurve += segments[V.rows() - startIdx - 1];
+
+        // 3. From start of V to endIdx
+        for (int i = 0; i < endIdx; ++i) {
+            segments[V.rows() - startIdx + i] = distance2d(V.row(i), V.row(i + 1));
+            lengthCurve += segments[V.rows() - startIdx + i];
+        }
+
+        // Compute parameter values
+        for (int i = 1; i < numVertices - 1; ++i) {
+            params(i) = params(i - 1) + (segments[i - 1] / lengthCurve);
+        }
     }
+    else {
+        // Standard case: startIdx <= endIdx
+        numVertices = endIdx - startIdx + 1;
+        params.resize(numVertices);
 
-    int numVertices = endIdx - startIdx + 1;
-    Eigen::VectorXd params(numVertices);
-    params(0) = 0.0; // First point is always 0
-    params(numVertices - 1) = 1.0; // Last point is always 1
+        params(0) = 0.0; // First point is always 0
+        params(numVertices - 1) = 1.0; // Last point is always 1
 
-    double lengthCurve = 0.0;
-    std::vector<double> segments(numVertices - 1, 0.0);
+        double lengthCurve = 0.0;
+        std::vector<double> segments(numVertices - 1, 0.0);
 
-    // Calculate segment lengths between vertices
-    for (int i = 0; i < numVertices - 1; ++i) {
-        segments[i] = distance2d(V.row(startIdx + i), V.row(startIdx + i + 1));
-        lengthCurve += segments[i];
+        // Calculate segment lengths between vertices
+        for (int i = 0; i < numVertices - 1; ++i) {
+            segments[i] = distance2d(V.row(startIdx + i), V.row(startIdx + i + 1));
+            lengthCurve += segments[i];
+        }
+
+        // Compute parameter values for each vertex between startIdx and endIdx
+        for (int i = 1; i < numVertices - 1; ++i) {
+            params(i) = params(i - 1) + (segments[i - 1] / lengthCurve);
+        }
     }
-
-    // Compute parameter values for each vertex between startIdx and endIdx
-    for (int i = 1; i < numVertices - 1; ++i) {
-        params(i) = params(i - 1) + (segments[i - 1] / lengthCurve);
-    }
-
 
     return params;
 }
@@ -587,24 +620,22 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
                                const std::vector<int>& selectedVertices2) {
     std::cout << "Parameterization with landmarks called." << std::endl;
 
-    // Find the minimum number of available landmarks between the two sets
     int numLandmarks1 = selectedVertices1.size();
     int numLandmarks2 = selectedVertices2.size();
     int numLandmarks = std::min(numLandmarks1, numLandmarks2);
 
     if (numLandmarks < 2) {
         std::cerr << "Not enough landmarks to parameterize. At least 2 landmarks are required on both curves." << std::endl;
-        return; // Exit the function if there are not enough landmarks
+        return; // Exit if there are not enough landmarks
     }
 
     // For each valid pair of consecutive landmarks, compute the parameterization for both curves
     for (int i = 0; i < numLandmarks; ++i) {
-        // Connect the last landmark back to the first to form a closed loop if needed
         int startIdx1 = selectedVertices1[i];
-        int endIdx1 = (i + 1) % numLandmarks == 0 ? selectedVertices1[0] : selectedVertices1[i + 1];
+        int endIdx1 = (i + 1 == numLandmarks) ? selectedVertices1[0] : selectedVertices1[i + 1];
 
         int startIdx2 = selectedVertices2[i];
-        int endIdx2 = (i + 1) % numLandmarks == 0 ? selectedVertices2[0] : selectedVertices2[i + 1];
+        int endIdx2 = (i + 1 == numLandmarks) ? selectedVertices2[0] : selectedVertices2[i + 1];
 
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1, startIdx1, endIdx1);
         Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2, startIdx2, endIdx2);
@@ -612,13 +643,15 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         std::cout << "Parameterization for V1 between " << startIdx1 << " and " << endIdx1 << ":\n" << paramV1 << std::endl;
         std::cout << "Parameterization for V2 between " << startIdx2 << " and " << endIdx2 << ":\n" << paramV2 << std::endl;
 
+
+        system("PAUSE");
         // Extend correspondence here between paramV1 and paramV2
         // ...
     }
 
-    std::cout << "Landmark-based parameterization complete (with closed loop where possible)." << std::endl;
 
 
+    std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;
     system("PAUSE");
 }
 

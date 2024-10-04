@@ -657,7 +657,7 @@ Eigen::MatrixXd downsampleBetweenPoints(const Eigen::MatrixXd& V, int startIdx, 
 }
 
 // Function to adjust paramV2 to match the values of paramV1
-Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eigen::VectorXd& paramV2) {
+Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eigen::VectorXd& paramV2, Eigen::VectorXd& alphas) {
     int sizeV1 = paramV1.size();
     int sizeV2 = paramV2.size();
     Eigen::VectorXd adjusted(sizeV1);
@@ -679,7 +679,10 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
 
         // Ensure it matches paramV1[i]
         adjusted(i) = paramV1(i); // Force match
+        alphas(i) = alpha;
     }
+
+    
 
     return adjusted;
 }
@@ -727,12 +730,15 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_equalized, 0, V1_equalized.rows() - 1);
         Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2_equalized, 0, V2_equalized.rows() - 1);
 
+
+        Eigen::VectorXd alphas(paramV1.size());
         // Interpolate paramV2 to match the size of paramV1
-        Eigen::VectorXd interpolatedV2 = adjustParamV2ToMatchV1(paramV1, paramV2);
+        Eigen::VectorXd interpolatedV2 = adjustParamV2ToMatchV1(paramV1, paramV2, alphas);
 
         // Output the results
         std::cout << "Parameterization for V1:\n" << paramV1 << std::endl;
         std::cout << "Interpolated V2:\n" << interpolatedV2 << std::endl;
+        std::cout << "alphas V2:\n" << alphas << std::endl;
 
         system("PAUSE");
         // Extend correspondence here between paramV1 and interpolatedV2

@@ -656,7 +656,6 @@ Eigen::MatrixXd downsampleBetweenPoints(const Eigen::MatrixXd& V, int startIdx, 
     return downsampledPoints;
 }
 
-// Function to adjust paramV2 to match the values of paramV1
 Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eigen::VectorXd& paramV2, Eigen::VectorXd& alphas) {
     int sizeV1 = paramV1.size();
     int sizeV2 = paramV2.size();
@@ -668,24 +667,32 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
     }
 
     for (int i = 0; i < sizeV1; ++i) {
-        // Calculate the corresponding index in paramV2
-        double t = static_cast<double>(i) / (sizeV1 - 1) * (sizeV2 - 1);
-        int index1 = static_cast<int>(t);
-        int index2 = std::min(index1 + 1, sizeV2 - 1);
-        double alpha = t - index1;  // Fractional part for interpolation
+        bool found = false; // Flag to check if we found the correct interval
 
-        // Set adjusted value to match paramV1 directly
-        adjusted(i) = (1 - alpha) * paramV2(index1) + alpha * paramV2(index2);
+        for (int j = 0; j < sizeV2 - 1; ++j) {
+            // Check if paramV1[i] is within the interval (paramV2[j], paramV2[j+1])
+            if (paramV2(j) <= paramV1(i) && paramV1(i) < paramV2(j + 1)) {
+                // Calculate alpha
+                alphas(i) = (paramV1(i) - paramV2(j)) / (paramV2(j + 1) - paramV2(j));
 
-        // Ensure it matches paramV1[i]
-        adjusted(i) = paramV1(i); // Force match
-        alphas(i) = alpha;
+                // Interpolate adjusted value using the calculated alpha
+                adjusted(i) = (1 - alphas(i)) * paramV2(j) + alphas(i) * paramV2(j + 1);
+
+                found = true; // Mark that we found the interval
+                break; // Exit the inner loop since we found the interval
+            }
+        }
+
+        if (!found) {
+            // If no valid interval was found, handle accordingly (e.g., set adjusted to a default value or throw an error)
+            adjusted(i) = paramV2(0); // Default to the first element, or you could throw an error
+            alphas(i) = 0.0; // Default alpha
+        }
     }
-
-    
 
     return adjusted;
 }
+
 
 
 

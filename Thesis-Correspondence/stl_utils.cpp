@@ -735,10 +735,13 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         // Get equalized point clouds
         auto [V1_equalized, V2_equalized] = getEqualizedPointClouds(V1_sub, V2_sub);
 
+        // Print V1_equalized and V2_equalized vertices
+        std::cout << "V1_equalized vertices:\n" << V1_equalized << std::endl;
+        std::cout << "V2_equalized vertices:\n" << V2_equalized << std::endl;
+
         // Unit parameterization for equalized point clouds
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_equalized, 0, V1_equalized.rows() - 1);
         Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2_equalized, 0, V2_equalized.rows() - 1);
-
 
         Eigen::VectorXd alphas(paramV1.size());
         Eigen::VectorXd alphas_indices(paramV1.size());
@@ -759,6 +762,7 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
     std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;
     system("PAUSE");
 }
+
 
 
 // Main function with slider for rotation of both point clouds

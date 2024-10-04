@@ -100,13 +100,13 @@ int main()
             Eigen::MatrixXd sortedVertices = reverseOrder(sortVerticesByProximity(V));
             savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
 
-            Eigen::MatrixXd sortedVertices2 = sortVerticesByProximity(V2);
-            savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+   /*         Eigen::MatrixXd sortedVertices2 = sortVerticesByProximity(V2);
+            savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);*/
 
 
 
             //sample the points so both point clouds have equal amount of points.
-            auto sampled = getEqualizedPointClouds(sortedVertices, sortedVertices2);
+            auto sampled = getEqualizedPointClouds(sortedVertices, sortedVertices);
             savePointCloudToFile(directoryName + "/border_vertices_in_order_sampled.obj", sampled.first);
             savePointCloudToFile(directoryName2 + "/border_vertices_in_order_sampled.obj", sampled.second);
 

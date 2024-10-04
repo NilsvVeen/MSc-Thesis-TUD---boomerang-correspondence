@@ -614,6 +614,53 @@ Eigen::VectorXd unitParameterizeBetweenPoints(const Eigen::MatrixXd& V, int star
     return params;
 }
 
+Eigen::MatrixXd downsampleBetweenPoints(const Eigen::MatrixXd& V, int startIdx, int endIdx, int numSamples) {
+    Eigen::MatrixXd downsampledPoints(numSamples, V.cols()); // Initialize a matrix to store downsampled points
+
+    // Check if start and end indices are valid
+    assert(startIdx >= 0 && startIdx < V.rows());
+    assert(endIdx >= 0 && endIdx < V.rows());
+
+    // Calculate total distance between the start and end points
+    double totalDistance = 0.0;
+    for (int i = startIdx; i != endIdx; i = (i + 1) % V.rows()) {
+        totalDistance += (V.row((i + 1) % V.rows()) - V.row(i)).norm();
+        if (i == endIdx) break;
+    }
+
+    // Calculate the distance increment for each sample point
+    double distanceIncrement = totalDistance / (numSamples - 1);
+
+    downsampledPoints.row(0) = V.row(startIdx); // Set the first sample point
+
+    int currentIdx = startIdx;
+    double accumulatedDistance = 0.0;
+
+    for (int i = 1; i < numSamples; ++i) {
+        double targetDistance = i * distanceIncrement;
+        while (accumulatedDistance + (V.row((currentIdx + 1) % V.rows()) - V.row(currentIdx)).norm() < targetDistance) {
+            accumulatedDistance += (V.row((currentIdx + 1) % V.rows()) - V.row(currentIdx)).norm();
+            currentIdx = (currentIdx + 1) % V.rows();
+            if (currentIdx == endIdx) break;
+        }
+        // Linear interpolation between current and next point
+        double remainingDistance = targetDistance - accumulatedDistance;
+        Eigen::VectorXd direction = (V.row((currentIdx + 1) % V.rows()) - V.row(currentIdx)).normalized();
+
+        // Ensure dimension consistency
+        assert(direction.size() == V.row(currentIdx).size());
+
+        downsampledPoints.row(i) = V.row(currentIdx) + remainingDistance * direction;
+    }
+
+    return downsampledPoints;
+}
+
+
+
+
+
+
 // Function to compute correspondence between curves based on selected landmark pairs
 void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, 
                                const std::vector<int>& selectedVertices1, 
@@ -637,6 +684,17 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         int startIdx2 = selectedVertices2[i];
         int endIdx2 = (i + 1 == numLandmarks) ? selectedVertices2[0] : selectedVertices2[i + 1];
 
+        int minimumPointsBetweenLandmarks = std::min(endIdx1 - startIdx1, endIdx2 - startIdx2);
+
+        std::cout << "Common points between L1, L2: " << minimumPointsBetweenLandmarks << std::endl;
+
+        //Eigen::VectorXd V1_sub = downsampleBetweenPoints(V1, startIdx1, endIdx1, minimumPointsBetweenLandmarks);
+
+        //Eigen::VectorXd V2_sub = downsampleBetweenPoints(V2, startIdx2, endIdx2, minimumPointsBetweenLandmarks);
+
+
+/*        Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_sub, startIdx1, endIdx1);
+        Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2_sub, startIdx2, endIdx2);  */      
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1, startIdx1, endIdx1);
         Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2, startIdx2, endIdx2);
 
@@ -712,6 +770,30 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         if (ImGui::Button("parameterize")) {
             // Call the parameterize function when the button is pressed
             parameterizeWithControls(V1, V2, selectedVertices1, selectedVertices2);
+        }
+
+        // Add a button to reset selected points
+        if (ImGui::Button("Reset Selections")) {
+            // Clear selections
+            selectedVertices1.clear();
+            selectedVertices2.clear();
+            vertexColors1.clear();
+            vertexColors2.clear();
+
+            // Reinitialize vertex colors to the default state
+            vertexColors1.resize(V1_rotated.rows(), { 1.0, 1.0, 1.0 }); // Set default color (white) for each vertex in V1
+            vertexColors2.resize(V2_rotated.rows(), { 1.0, 1.0, 1.0 }); // Set default color (white) for each vertex in V2
+
+            // Update the point cloud colors to reflect no selection
+            pointCloud1->updatePointPositions(V1_rotated);  // Reset colors for V1
+            pointCloud2->updatePointPositions(V2_rotated);  // Reset colors for V2
+
+            // Remove the existing curve network to reset the lines
+            if (polyscope::hasCurveNetwork("Corresponding Lines")) {
+                polyscope::removeCurveNetwork("Corresponding Lines"); // Reset the existing curve network
+            }
+
+            std::cout << "Selections reset." << std::endl;
         }
 
     };

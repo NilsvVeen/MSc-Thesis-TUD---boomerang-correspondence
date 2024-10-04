@@ -684,19 +684,30 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         int startIdx2 = selectedVertices2[i];
         int endIdx2 = (i + 1 == numLandmarks) ? selectedVertices2[0] : selectedVertices2[i + 1];
 
-        int minimumPointsBetweenLandmarks = std::min(endIdx1 - startIdx1, endIdx2 - startIdx2);
+        // Ensure the indices are valid
+        if (startIdx1 >= V1.rows() || endIdx1 >= V1.rows() || startIdx2 >= V2.rows() || endIdx2 >= V2.rows()) {
+            std::cerr << "Invalid indices for parameterization." << std::endl;
+            return;
+        }
 
-        std::cout << "Common points between L1, L2: " << minimumPointsBetweenLandmarks << std::endl;
+        // Get sub-vectors for V1 and V2 based on the selected landmarks
+        Eigen::MatrixXd V1_sub = V1.block(startIdx1, 0, endIdx1 - startIdx1 + 1, V1.cols());
+        Eigen::MatrixXd V2_sub = V2.block(startIdx2, 0, endIdx2 - startIdx2 + 1, V2.cols());
 
-        //Eigen::VectorXd V1_sub = downsampleBetweenPoints(V1, startIdx1, endIdx1, minimumPointsBetweenLandmarks);
+        // Print the sizes of the sub-matrices
+        std::cout << "Sub-matrix V1 size: " << V1_sub.rows() << " x " << V1_sub.cols() << std::endl;
+        std::cout << "Sub-matrix V2 size: " << V2_sub.rows() << " x " << V2_sub.cols() << std::endl;
 
-        //Eigen::VectorXd V2_sub = downsampleBetweenPoints(V2, startIdx2, endIdx2, minimumPointsBetweenLandmarks);
+        // Get equalized point clouds
+        auto [V1_equalized, V2_equalized] = getEqualizedPointClouds(V1_sub, V2_sub);
 
+        // Print the sizes of the equalized matrices
+        std::cout << "Equalized V1 size: " << V1_equalized.rows() << " x " << V1_equalized.cols() << std::endl;
+        std::cout << "Equalized V2 size: " << V2_equalized.rows() << " x " << V2_equalized.cols() << std::endl;
 
-/*        Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_sub, startIdx1, endIdx1);
-        Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2_sub, startIdx2, endIdx2);  */      
-        Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1, startIdx1, endIdx1);
-        Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2, startIdx2, endIdx2);
+        // Unit parameterization for equalized point clouds
+        Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_equalized, 0, V1_equalized.rows() - 1);
+        Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2_equalized, 0, V2_equalized.rows() - 1);
 
         std::cout << "Parameterization for V1 between " << startIdx1 << " and " << endIdx1 << ":\n" << paramV1 << std::endl;
         std::cout << "Parameterization for V2 between " << startIdx2 << " and " << endIdx2 << ":\n" << paramV2 << std::endl;

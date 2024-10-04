@@ -3,6 +3,7 @@
 #include <fstream>
 #include <Eigen/Core>
 #include <Eigen/Dense>
+#include <tuple>
 
 //#include <opencv2/opencv.hpp> // For saving the PNG
 
@@ -656,7 +657,7 @@ Eigen::MatrixXd downsampleBetweenPoints(const Eigen::MatrixXd& V, int startIdx, 
     return downsampledPoints;
 }
 
-Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eigen::VectorXd& paramV2, Eigen::VectorXd& alphas) {
+Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eigen::VectorXd& paramV2, Eigen::VectorXd& alphas, Eigen::VectorXd& alphas_indices) {
     int sizeV1 = paramV1.size();
     int sizeV2 = paramV2.size();
     Eigen::VectorXd adjusted(sizeV1);
@@ -674,7 +675,7 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
             if (paramV2(j) <= paramV1(i) && paramV1(i) < paramV2(j + 1)) {
                 // Calculate alpha
                 alphas(i) = (paramV1(i) - paramV2(j)) / (paramV2(j + 1) - paramV2(j));
-
+                alphas_indices(i) = j;
                 // Interpolate adjusted value using the calculated alpha
                 adjusted(i) = (1 - alphas(i)) * paramV2(j) + alphas(i) * paramV2(j + 1);
 
@@ -687,6 +688,7 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
             // If no valid interval was found, handle accordingly (e.g., set adjusted to a default value or throw an error)
             adjusted(i) = paramV2(0); // Default to the first element, or you could throw an error
             alphas(i) = 0.0; // Default alpha
+            alphas_indices(i) = 0.0; // Default alpha
         }
     }
 
@@ -739,13 +741,15 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
 
         Eigen::VectorXd alphas(paramV1.size());
+        Eigen::VectorXd alphas_indices(paramV1.size());
         // Interpolate paramV2 to match the size of paramV1
-        Eigen::VectorXd interpolatedV2 = adjustParamV2ToMatchV1(paramV1, paramV2, alphas);
+        Eigen::VectorXd interpolatedV2 = adjustParamV2ToMatchV1(paramV1, paramV2, alphas, alphas_indices);
 
         // Output the results
         std::cout << "Parameterization for V1:\n" << paramV1 << std::endl;
         std::cout << "Interpolated V2:\n" << interpolatedV2 << std::endl;
         std::cout << "alphas V2:\n" << alphas << std::endl;
+        std::cout << "alphas V2 indices:\n" << alphas_indices << std::endl;
 
         system("PAUSE");
         // Extend correspondence here between paramV1 and interpolatedV2

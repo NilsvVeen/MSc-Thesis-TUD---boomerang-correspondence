@@ -656,15 +656,41 @@ Eigen::MatrixXd downsampleBetweenPoints(const Eigen::MatrixXd& V, int startIdx, 
     return downsampledPoints;
 }
 
+// Function to adjust paramV2 to match the values of paramV1
+Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eigen::VectorXd& paramV2) {
+    int sizeV1 = paramV1.size();
+    int sizeV2 = paramV2.size();
+    Eigen::VectorXd adjusted(sizeV1);
+
+    // Ensure paramV2 has enough points for interpolation
+    if (sizeV2 < 2) {
+        throw std::invalid_argument("paramV2 must have at least 2 points for interpolation.");
+    }
+
+    for (int i = 0; i < sizeV1; ++i) {
+        // Calculate the corresponding index in paramV2
+        double t = static_cast<double>(i) / (sizeV1 - 1) * (sizeV2 - 1);
+        int index1 = static_cast<int>(t);
+        int index2 = std::min(index1 + 1, sizeV2 - 1);
+        double alpha = t - index1;  // Fractional part for interpolation
+
+        // Set adjusted value to match paramV1 directly
+        adjusted(i) = (1 - alpha) * paramV2(index1) + alpha * paramV2(index2);
+
+        // Ensure it matches paramV1[i]
+        adjusted(i) = paramV1(i); // Force match
+    }
+
+    return adjusted;
+}
 
 
 
 
 
-// Function to compute correspondence between curves based on selected landmark pairs
-void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, 
-                               const std::vector<int>& selectedVertices1, 
-                               const std::vector<int>& selectedVertices2) {
+void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2,
+    const std::vector<int>& selectedVertices1,
+    const std::vector<int>& selectedVertices2) {
     std::cout << "Parameterization with landmarks called." << std::endl;
 
     int numLandmarks1 = selectedVertices1.size();
@@ -694,36 +720,28 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         Eigen::MatrixXd V1_sub = V1.block(startIdx1, 0, endIdx1 - startIdx1 + 1, V1.cols());
         Eigen::MatrixXd V2_sub = V2.block(startIdx2, 0, endIdx2 - startIdx2 + 1, V2.cols());
 
-        // Print the sizes of the sub-matrices
-        std::cout << "Sub-matrix V1 size: " << V1_sub.rows() << " x " << V1_sub.cols() << std::endl;
-        std::cout << "Sub-matrix V2 size: " << V2_sub.rows() << " x " << V2_sub.cols() << std::endl;
-
         // Get equalized point clouds
         auto [V1_equalized, V2_equalized] = getEqualizedPointClouds(V1_sub, V2_sub);
-
-        // Print the sizes of the equalized matrices
-        std::cout << "Equalized V1 size: " << V1_equalized.rows() << " x " << V1_equalized.cols() << std::endl;
-        std::cout << "Equalized V2 size: " << V2_equalized.rows() << " x " << V2_equalized.cols() << std::endl;
 
         // Unit parameterization for equalized point clouds
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_equalized, 0, V1_equalized.rows() - 1);
         Eigen::VectorXd paramV2 = unitParameterizeBetweenPoints(V2_equalized, 0, V2_equalized.rows() - 1);
 
-        std::cout << "Parameterization for V1 between " << startIdx1 << " and " << endIdx1 << ":\n" << paramV1 << std::endl;
-        std::cout << "Parameterization for V2 between " << startIdx2 << " and " << endIdx2 << ":\n" << paramV2 << std::endl;
+        // Interpolate paramV2 to match the size of paramV1
+        Eigen::VectorXd interpolatedV2 = adjustParamV2ToMatchV1(paramV1, paramV2);
 
+        // Output the results
+        std::cout << "Parameterization for V1:\n" << paramV1 << std::endl;
+        std::cout << "Interpolated V2:\n" << interpolatedV2 << std::endl;
 
         system("PAUSE");
-        // Extend correspondence here between paramV1 and paramV2
+        // Extend correspondence here between paramV1 and interpolatedV2
         // ...
     }
-
-
 
     std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;
     system("PAUSE");
 }
-
 
 
 // Main function with slider for rotation of both point clouds

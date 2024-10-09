@@ -807,14 +807,14 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         //polyscope::registerPointCloud("V2 Equalized", V2_equalized);
         //polyscope::registerPointCloud("V1 Sub", V1_sub);
         //polyscope::registerPointCloud("V2 Sub", V2_sub);
-        polyscope::registerPointCloud("V2 new___" + std::to_string(i) + , NewV2);
+        polyscope::registerPointCloud("V2 new___" + std::to_string(i), NewV2);
 
 
         // Output NewV2 for inspection
         //std::cout << "NewV2 vertices:\n" << NewV2 << std::endl;
 
         // Break after the first pair of landmarks (to be adjusted as needed)
-        break;
+        //break;
     }
 
     std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;

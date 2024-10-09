@@ -873,7 +873,7 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         // Add a button for "parameterize"
         if (ImGui::Button("parameterize")) {
             // Call the parameterize function when the button is pressed
-            parameterizeWithControls(V1, V2, selectedVertices1, selectedVertices2);
+            parameterizeWithControls(V1, V2_offset, selectedVertices1, selectedVertices2);
         }
 
         // Add a button to reset selected points

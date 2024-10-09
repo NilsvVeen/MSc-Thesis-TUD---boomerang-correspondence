@@ -89,7 +89,7 @@ int main()
 
         // Reading point cloud from PLY file
         if (readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V) 
-            && readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V2)
+            && readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2)
             ) {
             std::cout << "Point cloud loaded successfully." << std::endl;
             std::cout << "Number of vertices: " << V.rows() << std::endl; // Print the number of vertices
@@ -100,7 +100,7 @@ int main()
             Eigen::MatrixXd sortedVertices = reverseOrder(sortVerticesByProximity(V));
             savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
 
-            Eigen::MatrixXd sortedVertices2 = sortVerticesByProximity(V2);
+            Eigen::MatrixXd sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
             savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
 
 
@@ -110,15 +110,15 @@ int main()
             //savePointCloudToFile(directoryName + "/border_vertices_in_order_sampled.obj", sampled.first);
             //savePointCloudToFile(directoryName2 + "/border_vertices_in_order_sampled.obj", sampled.second);
 
-            showPointCloudInParts(sortedVertices);
+            //showPointCloudInParts(sortedVertices);
 
-            //std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
+            std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
 
-            //writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
+            writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
 
             //showSelection(sortedVertices);
 
-            //showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2);
+            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2);
 
 
 

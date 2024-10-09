@@ -30,40 +30,81 @@ Eigen::Vector2d computeCentroid(const Eigen::MatrixXd& V) {
     return V.leftCols<2>().colwise().mean(); // Mean of x and y coordinates
 }
 
-// Function to sort vertices based on proximity and ensure clockwise ordering in 2D (x, y)
+//// Function to sort vertices based on proximity and ensure clockwise ordering in 2D (x, y)
+//Eigen::MatrixXd sortVerticesByProximity(const Eigen::MatrixXd& V) {
+//    int numVertices = V.rows();
+//    Eigen::MatrixXd sortedVertices(numVertices, V.cols()); // To store the sorted vertices
+//
+//    // Compute the centroid of the vertices (average position)
+//    Eigen::Vector2d centroid = computeCentroid(V);
+//
+//    // Lambda function to compute the angle of a vertex relative to the centroid
+//    auto computeAngle = [&](const Eigen::Vector2d& vertex) -> double {
+//        Eigen::Vector2d relativePos = vertex - centroid;
+//        return std::atan2(relativePos.y(), relativePos.x()); // Angle in radians
+//    };
+//
+//    // Create a vector of pairs (angle, vertex index) for sorting
+//    std::vector<std::pair<double, int>> angleIndexPairs;
+//    for (int i = 0; i < numVertices; ++i) {
+//        Eigen::Vector2d vertex2D = V.row(i).head<2>(); // Get x, y coordinates
+//        double angle = computeAngle(vertex2D);
+//        angleIndexPairs.emplace_back(angle, i); // Store the angle and corresponding index
+//    }
+//
+//    // Sort the vertices based on the angle (in ascending order for clockwise)
+//    std::sort(angleIndexPairs.begin(), angleIndexPairs.end(), [](const std::pair<double, int>& a, const std::pair<double, int>& b) {
+//        return a.first < b.first; // Sort by angle (clockwise)
+//        });
+//
+//    // Use the sorted indices to reorder the vertices
+//    for (int i = 0; i < numVertices; ++i) {
+//        sortedVertices.row(i) = V.row(angleIndexPairs[i].second); // Add the sorted vertex
+//    }
+//
+//    return sortedVertices;
+//}
+
+
+// Function to sort vertices based on proximity using nearest neighbor algorithm
 Eigen::MatrixXd sortVerticesByProximity(const Eigen::MatrixXd& V) {
     int numVertices = V.rows();
     Eigen::MatrixXd sortedVertices(numVertices, V.cols()); // To store the sorted vertices
 
-    // Compute the centroid of the vertices (average position)
-    Eigen::Vector2d centroid = computeCentroid(V);
+    // Keep track of visited vertices
+    std::vector<bool> visited(numVertices, false);
 
-    // Lambda function to compute the angle of a vertex relative to the centroid
-    auto computeAngle = [&](const Eigen::Vector2d& vertex) -> double {
-        Eigen::Vector2d relativePos = vertex - centroid;
-        return std::atan2(relativePos.y(), relativePos.x()); // Angle in radians
-    };
+    // Start with the first vertex (or any arbitrary point)
+    sortedVertices.row(0) = V.row(0); // Assign the first vertex
+    visited[0] = true; // Mark it as visited
 
-    // Create a vector of pairs (angle, vertex index) for sorting
-    std::vector<std::pair<double, int>> angleIndexPairs;
-    for (int i = 0; i < numVertices; ++i) {
-        Eigen::Vector2d vertex2D = V.row(i).head<2>(); // Get x, y coordinates
-        double angle = computeAngle(vertex2D);
-        angleIndexPairs.emplace_back(angle, i); // Store the angle and corresponding index
-    }
+    int currentVertexIdx = 0;
 
-    // Sort the vertices based on the angle (in ascending order for clockwise)
-    std::sort(angleIndexPairs.begin(), angleIndexPairs.end(), [](const std::pair<double, int>& a, const std::pair<double, int>& b) {
-        return a.first < b.first; // Sort by angle (clockwise)
-        });
+    // Loop to find the nearest unvisited vertex for each step
+    for (int i = 1; i < numVertices; ++i) {
+        double minDistance = std::numeric_limits<double>::max();
+        int nearestNeighborIdx = -1;
 
-    // Use the sorted indices to reorder the vertices
-    for (int i = 0; i < numVertices; ++i) {
-        sortedVertices.row(i) = V.row(angleIndexPairs[i].second); // Add the sorted vertex
+        // Search for the nearest unvisited vertex
+        for (int j = 0; j < numVertices; ++j) {
+            if (!visited[j]) {
+                double distance = computeDistance(V.row(currentVertexIdx), V.row(j)); // Euclidean distance
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestNeighborIdx = j; // Update nearest neighbor
+                }
+            }
+        }
+
+        // Assign the nearest unvisited vertex to the sorted list
+        sortedVertices.row(i) = V.row(nearestNeighborIdx);
+        visited[nearestNeighborIdx] = true; // Mark it as visited
+        currentVertexIdx = nearestNeighborIdx; // Update current vertex
     }
 
     return sortedVertices;
 }
+
 
 // Function to compute the Euclidean distance between two points (x,y)
 //double distance2d(const Point3& a, const Point3& b) {

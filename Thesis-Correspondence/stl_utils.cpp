@@ -800,15 +800,19 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
             }
         }
 
+        Eigen::RowVector3d color;
+        color << static_cast<double>(i) / numLandmarks, 0.5, 1.0 - static_cast<double>(i) / numLandmarks;
+        glm::vec3 colorglm(static_cast<float>(color(0)), static_cast<float>(color(1)), static_cast<float>(color(2)));
 
         // Register point clouds
-        polyscope::registerPointCloud("V1 Equalized___" + std::to_string(i), V1_equalized);
+        auto obj1 = polyscope::registerPointCloud("V1 Equalized___" + std::to_string(i), V1_equalized);
+        obj1->setPointColor(colorglm);
         //polyscope::registerPointCloud("New V2", NewV2);
         //polyscope::registerPointCloud("V2 Equalized", V2_equalized);
         //polyscope::registerPointCloud("V1 Sub", V1_sub);
         //polyscope::registerPointCloud("V2 Sub", V2_sub);
-        polyscope::registerPointCloud("V2 new___" + std::to_string(i), NewV2);
-
+        auto obj2 = polyscope::registerPointCloud("V2 new___" + std::to_string(i), NewV2);
+        obj2->setPointColor(colorglm);
 
         // Output NewV2 for inspection
         //std::cout << "NewV2 vertices:\n" << NewV2 << std::endl;

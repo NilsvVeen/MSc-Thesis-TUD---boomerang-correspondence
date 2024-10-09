@@ -22,7 +22,7 @@ const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 static const bool CircleElipFlag = false;
 static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = true;
-
+static const bool ReadCalculateSortedVertices = true;
 
 int main()
 {
@@ -96,12 +96,22 @@ int main()
             std::cout << "Number of vertices in 2: " << V2.rows() << std::endl; // Print the number of vertices
 
 
-            // Sort vertices by proximity
-            Eigen::MatrixXd sortedVertices = reverseOrder(sortVerticesByProximity(V));
-            savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
+            Eigen::MatrixXd sortedVertices, sortedVertices2;
 
-            Eigen::MatrixXd sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
-            savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+            if (ReadCalculateSortedVertices) {
+                // Read sorted vertices from file
+                readPointCloudFromFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
+                readPointCloudFromFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+            }
+            else {
+                // Sort vertices by proximity and reverse order
+                sortedVertices = reverseOrder(sortVerticesByProximity(V));
+                sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
+
+                // Write sorted vertices to file
+                savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
+                savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+            }
 
 
 

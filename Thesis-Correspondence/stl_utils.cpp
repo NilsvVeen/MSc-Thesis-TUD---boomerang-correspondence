@@ -469,7 +469,7 @@ void updateLineConnections(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_
     }
 }
 
-void createLineConnectionsAll(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const std::string& name, const double& radius) {
+void createLineConnectionsAll(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const std::string& name, const double& radius, bool visibleBool) {
     // Ensure that the number of vertices is the same for both point clouds
     if (V1.rows() != V2.rows()) {
         std::cerr << "Error: The number of vertices in V1 and V2 must be the same." << std::endl;
@@ -496,6 +496,7 @@ void createLineConnectionsAll(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
     // Set the radius of the curve network
     curveNetwork->setRadius(radius);
+    curveNetwork->setEnabled(visibleBool);
 }
 
 
@@ -837,12 +838,16 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         // Register point clouds
         auto obj1 = polyscope::registerPointCloud("V1 Equalized___" + std::to_string(i), V1_equalized);
         obj1->setPointColor(colorglm);
+        obj1->setPointRadius(0.0005);
+        obj1->setEnabled(false);
         //polyscope::registerPointCloud("New V2", NewV2);
         //polyscope::registerPointCloud("V2 Equalized", V2_equalized);
         //polyscope::registerPointCloud("V1 Sub", V1_sub);
         //polyscope::registerPointCloud("V2 Sub", V2_sub);
         auto obj2 = polyscope::registerPointCloud("V2 new___" + std::to_string(i), NewV2);
         obj2->setPointColor(colorglm);
+        obj2->setPointRadius(0.0005);
+        obj2->setEnabled(false);
 
         // Output NewV2 for inspection
         //std::cout << "NewV2 vertices:\n" << NewV2 << std::endl;
@@ -853,7 +858,7 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
 
 
-        createLineConnectionsAll(V1_equalized, NewV2, "connections___" + std::to_string(i), 0.0005 / 3);
+        createLineConnectionsAll(V1_equalized, NewV2, "connections___" + std::to_string(i), 0.0005 / 3, false);
     }
 
     std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;
@@ -915,7 +920,8 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         // Add a button for "parameterize"
         if (ImGui::Button("parameterize")) {
             // Call the parameterize function when the button is pressed
-            parameterizeWithControls(V1, V2_offset, selectedVertices1, selectedVertices2);
+            //parameterizeWithControls(V1, V2_offset, selectedVertices1, selectedVertices2);
+            parameterizeWithControls(V1_rotated, V2_rotated, selectedVertices1, selectedVertices2);
         }
 
         // Add a button to reset selected points

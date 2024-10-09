@@ -106,11 +106,11 @@ int main()
 
 
             //sample the points so both point clouds have equal amount of points.
-            auto sampled = getEqualizedPointClouds(sortedVertices, sortedVertices);
-            savePointCloudToFile(directoryName + "/border_vertices_in_order_sampled.obj", sampled.first);
-            savePointCloudToFile(directoryName2 + "/border_vertices_in_order_sampled.obj", sampled.second);
+            //auto sampled = getEqualizedPointClouds(sortedVertices, sortedVertices);
+            //savePointCloudToFile(directoryName + "/border_vertices_in_order_sampled.obj", sampled.first);
+            //savePointCloudToFile(directoryName2 + "/border_vertices_in_order_sampled.obj", sampled.second);
 
-            //showPointCloudInParts(sortedVertices);
+            showPointCloudInParts(sortedVertices);
 
             //std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
 
@@ -122,7 +122,10 @@ int main()
 
 
 
-            showSideBySideSelectionWithVertexSelection(sampled.first, sampled.second);
+            //showSideBySideSelectionWithVertexSelection(sampled.first, sampled.second);
+
+
+
 
 //// Clockwise circle points (with z = 0)
 //            Eigen::MatrixXd V1_test(8, 3);

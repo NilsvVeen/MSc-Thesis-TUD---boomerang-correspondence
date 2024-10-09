@@ -469,6 +469,36 @@ void updateLineConnections(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_
     }
 }
 
+void createLineConnectionsAll(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const std::string& name, const double& radius) {
+    // Ensure that the number of vertices is the same for both point clouds
+    if (V1.rows() != V2.rows()) {
+        std::cerr << "Error: The number of vertices in V1 and V2 must be the same." << std::endl;
+        return;
+    }
+
+    int numLines = V1.rows(); // Number of points (lines)
+
+    // Prepare edges and points for the curve network
+    std::vector<std::array<int, 2>> edges;
+    Eigen::MatrixXd points(numLines * 2, 3); // Each line has 2 points
+
+    for (int i = 0; i < numLines; ++i) {
+        // Line goes from V1[i] to V2[i]
+        points.row(2 * i) = V1.row(i);
+        points.row(2 * i + 1) = V2.row(i);
+
+        // Add line segment between consecutive points
+        edges.push_back({ 2 * i, 2 * i + 1 });
+    }
+
+    // Register the curve network (lines) between the two point clouds
+    auto* curveNetwork = polyscope::registerCurveNetwork(name, points, edges);
+
+    // Set the radius of the curve network
+    curveNetwork->setRadius(radius);
+}
+
+
 
 Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
     // Calculate necessary offsets
@@ -765,8 +795,8 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         auto [V1_equalized, V2_equalized] = getEqualizedPointClouds(V1_sub, V2_sub);
 
         // Print V1_equalized and V2_equalized vertices
-        std::cout << "V1_equalized vertices:\n" << V1_equalized << std::endl;
-        std::cout << "V2_equalized vertices:\n" << V2_equalized << std::endl;
+        //std::cout << "V1_equalized vertices:\n" << V1_equalized << std::endl;
+        //std::cout << "V2_equalized vertices:\n" << V2_equalized << std::endl;
 
         // Unit parameterization for equalized point clouds
         Eigen::VectorXd paramV1 = unitParameterizeBetweenPoints(V1_equalized, 0, V1_equalized.rows() - 1);
@@ -778,10 +808,10 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         Eigen::VectorXd interpolatedV2 = adjustParamV2ToMatchV1(paramV1, paramV2, alphas, alphas_indices);
 
         // Output the results
-        std::cout << "Parameterization for V1:\n" << paramV1 << std::endl;
-        std::cout << "Interpolated V2:\n" << interpolatedV2 << std::endl;
-        std::cout << "alphas V2:\n" << alphas << std::endl;
-        std::cout << "alphas V2 indices:\n" << alphas_indices << std::endl;
+        //std::cout << "Parameterization for V1:\n" << paramV1 << std::endl;
+        //std::cout << "Interpolated V2:\n" << interpolatedV2 << std::endl;
+        //std::cout << "alphas V2:\n" << alphas << std::endl;
+        //std::cout << "alphas V2 indices:\n" << alphas_indices << std::endl;
 
         // Create NewV2 by interpolating between vertices of V2_equalized using alphas and indices
         Eigen::MatrixXd NewV2(interpolatedV2.size(), V2_equalized.cols());
@@ -819,6 +849,11 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
         // Break after the first pair of landmarks (to be adjusted as needed)
         //break;
+
+
+
+
+        createLineConnectionsAll(V1_equalized, NewV2, "connections___" + std::to_string(i), 0.0005 / 3);
     }
 
     std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;

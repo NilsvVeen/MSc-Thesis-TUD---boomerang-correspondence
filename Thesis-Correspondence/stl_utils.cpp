@@ -783,28 +783,31 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         std::cout << "alphas V2:\n" << alphas << std::endl;
         std::cout << "alphas V2 indices:\n" << alphas_indices << std::endl;
 
-        //// Create NewV2 by interpolating between vertices of V2_equalized using alphas and indices
-        //Eigen::MatrixXd NewV2(interpolatedV2.size(), V2_equalized.cols());
-        //for (int j = 0; j < interpolatedV2.size(); ++j) {
-        //    int idx = static_cast<int>(alphas_indices[j]);  // Get the base index
-        //    double alpha = alphas[j];  // Get the interpolation factor
+        // Create NewV2 by interpolating between vertices of V2_equalized using alphas and indices
+        Eigen::MatrixXd NewV2(interpolatedV2.size(), V2_equalized.cols());
+        for (int j = 0; j < interpolatedV2.size(); ++j) {
+            int idx = static_cast<int>(alphas_indices[j]);  // Get the base index
+            double alpha = alphas[j];  // Get the interpolation factor
 
-        //    // Ensure idx is valid for interpolation
-        //    if (idx + 1 < V2_equalized.rows()) {
-        //        // Linear interpolation between V2_equalized[idx] and V2_equalized[idx + 1]
-        //        NewV2.row(j) = (1.0 - alpha) * V2_equalized.row(idx) + alpha * V2_equalized.row(idx + 1);
-        //    }
-        //    else {
-        //        // Handle boundary condition where idx + 1 would be out of bounds
-        //        NewV2.row(j) = V2_equalized.row(idx);
-        //    }
-        //}
+            // Ensure idx is valid for interpolation
+            if (idx + 1 < V2_equalized.rows()) {
+                // Linear interpolation between V2_equalized[idx] and V2_equalized[idx + 1]
+                NewV2.row(j) = (1.0 - alpha) * V2_equalized.row(idx) + alpha * V2_equalized.row(idx + 1);
+            }
+            else {
+                // Handle boundary condition where idx + 1 would be out of bounds
+                NewV2.row(j) = V2_equalized.row(idx);
+            }
+        }
+
+
         // Register point clouds
-        polyscope::registerPointCloud("V1 Equalized", V1_equalized);
+        polyscope::registerPointCloud("V1 Equalized___" + std::to_string(i), V1_equalized);
         //polyscope::registerPointCloud("New V2", NewV2);
-        polyscope::registerPointCloud("V2 Equalized", V2_equalized);
-        polyscope::registerPointCloud("V1 Sub", V1_sub);
-        polyscope::registerPointCloud("V2 Sub", V2_sub);
+        //polyscope::registerPointCloud("V2 Equalized", V2_equalized);
+        //polyscope::registerPointCloud("V1 Sub", V1_sub);
+        //polyscope::registerPointCloud("V2 Sub", V2_sub);
+        polyscope::registerPointCloud("V2 new___" + std::to_string(i) + , NewV2);
 
 
         // Output NewV2 for inspection

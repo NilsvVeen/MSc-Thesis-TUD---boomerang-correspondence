@@ -160,7 +160,7 @@ void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<E
 }
 
 // Main function to fit plane, align mesh, and show results
-std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir) {
+Eigen::MatrixXd fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir ) {
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces
     Eigen::MatrixXd N; // Normals
@@ -250,5 +250,5 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
     // Show the registered meshes
     showMeshes();
 
-    return borderVertices;
+    return V_border;
 }

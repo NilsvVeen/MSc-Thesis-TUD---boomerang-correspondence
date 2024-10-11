@@ -39,7 +39,12 @@ int main()
         old_1(directoryName);
     }
 
-   
+    // Declare variables to hold the average coordinates
+    double avgX_outline1 = 0.0;
+    double avgY_outline1 = 0.0;
+    double avgX_outline2 = 0.0;
+    double avgY_outline2 = 0.0;
+
     // get 2d outline
     if (ProcessObjects) {
 
@@ -55,7 +60,11 @@ int main()
         //viewSTLObject(modelPath);
 
         // get outlining vertices of object
-        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
+        Eigen::MatrixXd Border_V = fitPlaneAndAlignMesh(modelPath, directoryName);
+
+        // Calculate averages for the first object directly
+        avgX_outline1 = Border_V.col(0).mean();
+        avgY_outline1 = Border_V.col(1).mean();
     }
 
     // get 2d outline
@@ -73,7 +82,11 @@ int main()
         //viewSTLObject(modelPath);
 
         // get outlining vertices of object
-        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2);
+        Eigen::MatrixXd  border_V = fitPlaneAndAlignMesh(modelPath, directoryName2);
+
+        // Calculate averages for the second object directly
+        avgX_outline2 = border_V.col(0).mean();
+        avgY_outline2 = border_V.col(1).mean();
     }
 
 
@@ -87,6 +100,8 @@ int main()
         Eigen::MatrixXd Mesh2_V;
         Eigen::MatrixXi Mesh2_F;
         readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V, Mesh2_F);
+
+        std::vector<double> avgs = { avgX_outline1, avgY_outline1, avgX_outline2, avgY_outline2 };
 
         // Display the two meshes side by side
         showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F);

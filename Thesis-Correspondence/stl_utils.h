@@ -54,5 +54,9 @@ void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V
 
 void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2);
 
+void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
+    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2);
+
+Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2);
 
 #endif // STL_UTILS_H

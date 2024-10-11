@@ -34,6 +34,8 @@
 #endif
 #include "parameterize.h"
 
+#include "stl_utils.h"
+
 
 
 
@@ -388,6 +390,28 @@ void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V
 
 
 
+void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
+    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2) {
+    // Initialize Polyscope
+    polyscope::init();
+
+    // Register the first surface mesh
+    auto* mesh1 = polyscope::registerSurfaceMesh("Mesh 1", V1, F1);
+
+    // Adjust the second mesh's position to be next to the first one
+    Eigen::MatrixXd V2_offset = calculateAndAdjustOffsets(V1, V2);
+
+    // Register the second surface mesh with the offset applied
+    auto* mesh2 = polyscope::registerSurfaceMesh("Mesh 2", V2_offset, F2);
+
+    // Show the Polyscope UI
+}
+
+
+
+
+
+
 void updateVertexColors(polyscope::PointCloud* pointCloud, const std::vector<int>& selectedVertices, const std::vector<std::array<double, 3>>& defaultColors) {
     // Create a copy of the current colors
     std::vector<std::array<double, 3>> updatedColors = defaultColors;
@@ -500,32 +524,40 @@ void createLineConnectionsAll(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 }
 
 
-
+// ISUE: now it uses 
 Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
-    // Calculate necessary offsets
+    // Calculate necessary offsets in X
     double maxX_V1 = V1.col(0).maxCoeff(); // Maximum X of V1
     double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
 
-    // Calculate the offset to ensure V2 starts after V1
+    // Calculate the offset to ensure V2 starts after V1 in the X direction
     double offsetX = maxX_V1 - minX_V2;
 
-    // Offset V2 to be next to V1, keeping the z-coordinates the same
+    // Offset V2 to be next to V1 in the X direction
     Eigen::MatrixXd V2_offset = V2;
+    V2_offset.col(0) = V2.col(0).array() + offsetX; // Shift V2 along the X-axis
 
-    // Adjust V2's X coordinates to be next to V1
-    V2_offset.col(0) = V2.col(0).array() + offsetX; // Shift in x-direction
-
-    // Keep z-coordinates the same for alignment
-    if (V2_offset.rows() <= V1.rows()) {
-        V2_offset.col(2) = V1.col(2).head(V2_offset.rows()); // Ensure z-coordinates are the same
-    }
-
-    // Align the Y-coordinates
+    // Align the Y-coordinates by centering V2 around the average Y of V1
     double averageY1 = V1.col(1).mean();
-    V2_offset.col(1) = V2.col(1).array() + (averageY1 - V2.col(1).mean()); // Center V2 around the average Y of V1
+    V2_offset.col(1) = V2.col(1).array() + (averageY1 - V2.col(1).mean()); // Center V2 around the Y-axis
+
+    // Adjust the Z-coordinates based on the furthest Z values
+    if (V1.cols() > 2 && V2.cols() > 2) {
+        // Find the furthest Z values in both V1 and V2
+        double maxZ_V1 = V1.col(2).maxCoeff();
+        double maxZ_V2 = V2.col(2).maxCoeff();
+
+        // Calculate the translation to move V2's furthest Z to match V1's furthest Z
+        double offsetZ = maxZ_V1 - maxZ_V2;
+
+        // Translate all Z-values of V2 so that its maximum Z matches V1's maximum Z
+        V2_offset.col(2) = V2.col(2).array() + offsetZ;
+    }
 
     return V2_offset;
 }
+
+
 
 void handleUserSelection(auto pointCloud1, auto pointCloud2,
     const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2_offset,

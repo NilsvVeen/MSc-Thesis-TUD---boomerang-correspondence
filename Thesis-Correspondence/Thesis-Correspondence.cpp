@@ -23,6 +23,7 @@ static const bool CircleElipFlag = false;
 static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = true;
 static const bool ReadCalculateSortedVertices = true;
+static const bool showOriginalRotatedMesh = true;
 
 int main()
 {
@@ -76,16 +77,38 @@ int main()
     }
 
 
+    if (showOriginalRotatedMesh) {
+        polyscope::init();
+
+        Eigen::MatrixXd Mesh1_V;
+        Eigen::MatrixXi Mesh1_F;
+        readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
+
+        Eigen::MatrixXd Mesh2_V;
+        Eigen::MatrixXi Mesh2_F;
+        readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V, Mesh2_F);
+
+        // Display the two meshes side by side
+        showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F);
+    }
+
+
+
 
     // view models and parameterize
     if (ParameterizeObjects) {
 
         // clear crap!
-        polyscope::removeAllGroups();
-        polyscope::removeAllStructures();
+        //polyscope::removeAllGroups();
+        //polyscope::removeAllStructures();
 
         Eigen::MatrixXd V;
         Eigen::MatrixXd V2;
+
+
+
+
+
 
         // Reading point cloud from PLY file
         if (readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V) 

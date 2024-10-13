@@ -39,6 +39,6 @@ double calculateAverageZ(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
 void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices, double& alpha);
 
 // Main function to fit plane, align mesh, and show results
-Eigen::MatrixXd fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir);
+std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir);
 
 #endif // MESH_PROCESSING_H

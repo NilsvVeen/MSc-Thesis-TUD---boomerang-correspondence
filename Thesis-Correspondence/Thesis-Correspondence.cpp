@@ -88,8 +88,13 @@ int main()
         Eigen::MatrixXi Mesh2_F;
         readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V, Mesh2_F);
 
+        Eigen::MatrixXd V1_border;
+        Eigen::MatrixXd V2_border;
+        readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
+        readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
+
         // Display the two meshes side by side
-        showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F);
+        showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border);
     }
 
 

@@ -35,6 +35,7 @@
 #include "parameterize.h"
 
 #include "stl_utils.h"
+#include "file_utils.h"
 
 
 
@@ -794,7 +795,7 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
 
 
 
-
+std::string correspondences_folder = "Corrspendences";
 
 void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2,
     const std::vector<int>& selectedVertices1,
@@ -809,6 +810,9 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         std::cerr << "Not enough landmarks to parameterize. At least 2 landmarks are required on both curves." << std::endl;
         return; // Exit if there are not enough landmarks
     }
+
+    clearDirectory(correspondences_folder);
+    createDirectory(correspondences_folder);
 
     // For each valid pair of consecutive landmarks, compute the parameterization for both curves
     for (int i = 0; i < numLandmarks; ++i) {
@@ -920,10 +924,16 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         // Break after the first pair of landmarks (to be adjusted as needed)
         //break;
 
-
-
-
         createLineConnectionsAll(V1_equalized, NewV2, "connections___" + std::to_string(i), 0.0005 / 3, false);
+
+
+        // Save V1_equalized and NewV2 to the output folder
+        std::string V1_filename = correspondences_folder + "/V1__" + std::to_string(i) + ".txt";
+        std::string NewV2_filename = correspondences_folder + "/V2_" + std::to_string(i) + ".txt";
+        savePointCloudToFile(V1_filename, V1_equalized);
+        savePointCloudToFile(NewV2_filename, NewV2);
+
+
     }
 
     std::cout << "Landmark-based parameterization complete (with wrap-around handling)." << std::endl;

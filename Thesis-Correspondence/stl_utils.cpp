@@ -795,11 +795,13 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
 
 
 
-std::string correspondences_folder = "Corrspendences";
+// Create default directory if none is provided
+const std::string DEFAULT_CORRESPONDENCES_FOLDER = "Correspondences";
 
+// Declaration of the function with a default argument for the folder
 void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2,
-    const std::vector<int>& selectedVertices1,
-    const std::vector<int>& selectedVertices2) {
+    const std::vector<int>& selectedVertices1, const std::vector<int>& selectedVertices2,
+    const std::string& correspondences_folder = DEFAULT_CORRESPONDENCES_FOLDER){
     std::cout << "Parameterization with landmarks called." << std::endl;
 
     int numLandmarks1 = selectedVertices1.size();

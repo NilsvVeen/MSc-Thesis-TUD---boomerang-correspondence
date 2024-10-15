@@ -21,9 +21,9 @@ const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
 static const bool CircleElipFlag = false;
 static const bool ProcessObjects = false;
-static const bool ParameterizeObjects = true;
+static const bool ParameterizeObjects = false;
 static const bool ReadCalculateSortedVertices = true;
-static const bool showOriginalRotatedMesh = true;
+static const bool showOriginalRotatedMesh = false;
 static const bool correspondences2dto3d = true;
 
 
@@ -171,6 +171,52 @@ int main()
 
 
     if (correspondences2dto3d) {
+        // Step 1: Read Meshes from DEFAULT_CORRESPONDENCES_meshes_FOLDER
+        Eigen::MatrixXd Mesh1_V, Mesh2_V;
+        Eigen::MatrixXi Mesh1_F, Mesh2_F;
+
+        std::string mesh1File = DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj";  // Example filenames
+        std::string mesh2File = DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/RightMesh.obj";
+
+        // Use utility functions to read meshes
+        if (!readMeshFromFile(mesh1File, Mesh1_V, Mesh1_F)) {
+            std::cerr << "Error reading mesh 1" << std::endl;
+            return -1;
+        }
+
+        if (!readMeshFromFile(mesh2File, Mesh2_V, Mesh2_F)) {
+            std::cerr << "Error reading mesh 2" << std::endl;
+            return -1;
+        }
+
+        // Step 2: Read Pointclouds from DEFAULT_CORRESPONDENCES_FOLDER
+        std::vector<Eigen::MatrixXd> V1_pointclouds;
+        std::vector<Eigen::MatrixXd> V2_pointclouds;
+
+        for (const auto& entry : std::filesystem::directory_iterator(DEFAULT_CORRESPONDENCES_FOLDER)) {
+            std::string filePath = entry.path().string();
+
+            if (filePath.find("V1__") != std::string::npos) {  // Read V1 point clouds
+                Eigen::MatrixXd V1;
+                if (readPointCloudFromFile(filePath, V1)) {
+                    V1_pointclouds.push_back(V1);
+                }
+                else {
+                    std::cerr << "Error reading point cloud: " << filePath << std::endl;
+                }
+            }
+            else if (filePath.find("V2_") != std::string::npos) {  // Read V2 point clouds
+                Eigen::MatrixXd V2;
+                if (readPointCloudFromFile(filePath, V2)) {
+                    V2_pointclouds.push_back(V2);
+                }
+                else {
+                    std::cerr << "Error reading point cloud: " << filePath << std::endl;
+                }
+            }
+        }
+         
+
 
     }
 

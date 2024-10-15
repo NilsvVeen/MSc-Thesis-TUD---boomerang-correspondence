@@ -77,6 +77,9 @@ int main()
     }
 
 
+    // Create default directory if none is provided
+    const std::string DEFAULT_CORRESPONDENCES_meshes_FOLDER = "models_for_correspondences";
+
     if (showOriginalRotatedMesh) {
         polyscope::init();
 
@@ -94,7 +97,7 @@ int main()
         readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
 
         // Display the two meshes side by side
-        showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border);
+        showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border, DEFAULT_CORRESPONDENCES_meshes_FOLDER);
     }
 
 

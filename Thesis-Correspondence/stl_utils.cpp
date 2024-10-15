@@ -392,7 +392,7 @@ void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V
 
 
 void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
-    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2, const Eigen::MatrixXd V1_border, const Eigen::MatrixXd V2_border) {
+    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2, const Eigen::MatrixXd V1_border, const Eigen::MatrixXd V2_border, const std::string& dir ) {
     // Initialize Polyscope
     polyscope::init();
 
@@ -404,6 +404,12 @@ void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
 
     // Register the second surface mesh with the offset applied
     auto* mesh2 = polyscope::registerSurfaceMesh("Mesh 2", V2_offset, F2);
+
+    clearDirectory(dir);
+    createDirectory(dir);
+
+    saveMeshToFile(dir + "/LeftMesh.obj", V1, F1);
+    saveMeshToFile(dir + "/RightMesh.obj", V2_offset, F2);
 
     // Show the Polyscope UI
 }

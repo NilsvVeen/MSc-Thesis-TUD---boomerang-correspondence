@@ -55,7 +55,7 @@ void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V
 void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2);
 
 void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
-    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2, const Eigen::MatrixXd V1_border, Eigen::MatrixXd V2_border);
+    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2, const Eigen::MatrixXd V1_border, Eigen::MatrixXd V2_border, const std::string& dir);
 
 Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2);
 

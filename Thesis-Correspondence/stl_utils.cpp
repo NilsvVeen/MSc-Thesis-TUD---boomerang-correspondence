@@ -389,7 +389,7 @@ void showSideBySideSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V
 
 
 
-
+const bool savesidebysidemesh = true;
 
 void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
     const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2, const Eigen::MatrixXd V1_border, const Eigen::MatrixXd V2_border, const std::string& dir ) {
@@ -405,11 +405,13 @@ void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
     // Register the second surface mesh with the offset applied
     auto* mesh2 = polyscope::registerSurfaceMesh("Mesh 2", V2_offset, F2);
 
-    clearDirectory(dir);
-    createDirectory(dir);
+    if (savesidebysidemesh) {
+        clearDirectory(dir);
+        createDirectory(dir);
 
-    saveMeshToFile(dir + "/LeftMesh.obj", V1, F1);
-    saveMeshToFile(dir + "/RightMesh.obj", V2_offset, F2);
+        saveMeshToFile(dir + "/LeftMesh.obj", V1, F1);
+        saveMeshToFile(dir + "/RightMesh.obj", V2_offset, F2);
+    }
 
     // Show the Polyscope UI
 }
@@ -802,12 +804,12 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
 
 
 // Create default directory if none is provided
-const std::string DEFAULT_CORRESPONDENCES_FOLDER = "Correspondences";
+//const std::string DEFAULT_CORRESPONDENCES_FOLDER = "Correspondences";
 
 // Declaration of the function with a default argument for the folder
 void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2,
     const std::vector<int>& selectedVertices1, const std::vector<int>& selectedVertices2,
-    const std::string& correspondences_folder = DEFAULT_CORRESPONDENCES_FOLDER){
+    const std::string& correspondences_folder){
     std::cout << "Parameterization with landmarks called." << std::endl;
 
     int numLandmarks1 = selectedVertices1.size();
@@ -950,7 +952,7 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
 
 // Main function with slider for rotation of both point clouds
-void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const std::string& dir) {
     polyscope::init();
 
     double radius_default = 0.0005 * 3;
@@ -1004,7 +1006,7 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         if (ImGui::Button("parameterize")) {
             // Call the parameterize function when the button is pressed
             //parameterizeWithControls(V1, V2_offset, selectedVertices1, selectedVertices2);
-            parameterizeWithControls(V1_rotated, V2_rotated, selectedVertices1, selectedVertices2);
+            parameterizeWithControls(V1_rotated, V2_rotated, selectedVertices1, selectedVertices2, dir);
         }
 
         // Add a button to reset selected points

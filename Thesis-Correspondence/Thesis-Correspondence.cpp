@@ -24,6 +24,8 @@ static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = true;
 static const bool ReadCalculateSortedVertices = true;
 static const bool showOriginalRotatedMesh = true;
+static const bool correspondences2dto3d = true;
+
 
 int main()
 {
@@ -102,7 +104,7 @@ int main()
 
 
 
-
+    const std::string DEFAULT_CORRESPONDENCES_FOLDER = "Correspondences";
     // view models and parameterize
     if (ParameterizeObjects) {
 
@@ -112,11 +114,6 @@ int main()
 
         Eigen::MatrixXd V;
         Eigen::MatrixXd V2;
-
-
-
-
-
 
         // Reading point cloud from PLY file
         if (readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V) 
@@ -159,7 +156,7 @@ int main()
 
             //showSelection(sortedVertices);
 
-            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2);
+            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER);
 
 
 
@@ -170,6 +167,11 @@ int main()
 
 
         }
+    }
+
+
+    if (correspondences2dto3d) {
+
     }
 
     return 0;

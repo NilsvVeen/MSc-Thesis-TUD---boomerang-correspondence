@@ -8,6 +8,9 @@
 #include <polyscope/surface_mesh.h>
 #include <polyscope/point_cloud.h>
 
+#include "stl_utils.h"
+#include "file_utils.h"
+
 
 // Function to read meshes and point clouds
 void readMeshesAndPointClouds(const std::string& meshesFolder,
@@ -151,4 +154,35 @@ void findClosestCorrespondences(const Eigen::MatrixXd& mesh2_V, Eigen::MatrixXd&
     std::cout << std::endl; // To move to the next line after the progress is complete
 }
 
+// Function to write outputs to a folder
+void writeOutputsToFolder(const std::string& outputFolder,
+    const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh1_F,
+    const Eigen::MatrixXd& Mesh2_V, const Eigen::MatrixXi& Mesh2_F,
+    const std::vector<Eigen::MatrixXd>& V1_pointclouds,
+    const std::vector<Eigen::MatrixXd>& V2_pointclouds) {
 
+    // Create the output folder if it doesn't exist
+    createDirectory(outputFolder);
+
+    // Optionally clear the directory first
+    clearDirectory(outputFolder);
+
+    // Define output filenames for the meshes
+    std::string mesh1Filename = outputFolder + "/Mesh1.obj";
+    std::string mesh2Filename = outputFolder + "/Mesh2.obj";
+
+    // Save Mesh1 and Mesh2 using the existing save function
+    saveMeshToFile(mesh1Filename, Mesh1_V, Mesh1_F);
+    saveMeshToFile(mesh2Filename, Mesh2_V, Mesh2_F);
+
+    // Write point clouds to files
+    for (size_t i = 0; i < V1_pointclouds.size(); ++i) {
+        std::string V1_filename = outputFolder + "/V1_pointcloud_" + std::to_string(i) + ".txt";
+        savePointCloudToFile(V1_filename, V1_pointclouds[i]);  // Use your existing function
+
+        std::string V2_filename = outputFolder + "/V2_pointcloud_" + std::to_string(i) + ".txt";
+        savePointCloudToFile(V2_filename, V2_pointclouds[i]);  // Use your existing function
+    }
+
+    std::cout << "Outputs saved to: " << outputFolder << std::endl;
+}

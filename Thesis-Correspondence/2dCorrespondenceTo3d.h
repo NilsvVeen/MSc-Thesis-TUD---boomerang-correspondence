@@ -27,3 +27,9 @@ void showInPolyscope(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh
 void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V1_pointcloud);
 
 void findClosestCorrespondences(const Eigen::MatrixXd& mesh2_V, Eigen::MatrixXd& V2_pointcloud);
+
+void writeOutputsToFolder(const std::string& outputFolder,
+    const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh1_F,
+    const Eigen::MatrixXd& Mesh2_V, const Eigen::MatrixXi& Mesh2_F,
+    const std::vector<Eigen::MatrixXd>& V1_pointclouds,
+    const std::vector<Eigen::MatrixXd>& V2_pointclouds);

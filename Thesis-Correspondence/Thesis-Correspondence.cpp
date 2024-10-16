@@ -176,6 +176,7 @@ int main()
     if (correspondences2dto3d) {
         const std::string meshesFolder = DEFAULT_CORRESPONDENCES_meshes_FOLDER;
         const std::string pointCloudsFolder = DEFAULT_CORRESPONDENCES_FOLDER;
+        const std::string Curve2dTo3dFolder = "2d_Curve_in_3d";
 
         // Declare variables to hold the data
         Eigen::MatrixXd Mesh1_V, Mesh2_V;
@@ -210,6 +211,7 @@ int main()
             return -1;
         }
 
+        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);
  
         // Show them in Polyscope with the common color
         showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);

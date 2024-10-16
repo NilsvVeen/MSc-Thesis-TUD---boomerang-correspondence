@@ -100,3 +100,55 @@ void showInPolyscope(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh
     polyscope::show();
 }
 
+
+// Helper function to find exact (x,y) matches in Mesh1 and add the corresponding z value
+void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V1_pointcloud) {
+    for (int i = 0; i < V1_pointcloud.rows(); ++i) {
+        for (int j = 0; j < mesh1_V.rows(); ++j) {
+            // Compare x, y coordinates
+            if (V1_pointcloud(i, 0) == mesh1_V(j, 0) && V1_pointcloud(i, 1) == mesh1_V(j, 1)) {
+                // Set z value from mesh1_V
+                V1_pointcloud(i, 2) = mesh1_V(j, 2);
+                break;  // Exit loop once a match is found
+            }
+        }
+
+        // Update progress
+        std::cout << "\rProcessing V1 point cloud: " << std::fixed << std::setprecision(2)
+            << (static_cast<double>(i + 1) / V1_pointcloud.rows()) * 100 << "% completed" << std::flush;
+    }
+    std::cout << std::endl; // To move to the next line after the progress is complete
+}
+
+
+// Helper function to find the closest (x,y) match in Mesh2
+void findClosestCorrespondences(const Eigen::MatrixXd& mesh2_V, Eigen::MatrixXd& V2_pointcloud) {
+    for (int i = 0; i < V2_pointcloud.rows(); ++i) {
+        double min_distance = std::numeric_limits<double>::max();
+        int closest_idx = -1;
+
+        for (int j = 0; j < mesh2_V.rows(); ++j) {
+            // Calculate Euclidean distance in 2D (x, y)
+            double distance = std::sqrt(std::pow(V2_pointcloud(i, 0) - mesh2_V(j, 0), 2) +
+                std::pow(V2_pointcloud(i, 1) - mesh2_V(j, 1), 2));
+            if (distance < min_distance) {
+                min_distance = distance;
+                closest_idx = j;
+            }
+        }
+
+        // Use the closest point from Mesh2 to update the x, y, z values
+        if (closest_idx != -1) {
+            V2_pointcloud(i, 0) = mesh2_V(closest_idx, 0);
+            V2_pointcloud(i, 1) = mesh2_V(closest_idx, 1);
+            V2_pointcloud(i, 2) = mesh2_V(closest_idx, 2);
+        }
+
+        // Update progress
+        std::cout << "\rProcessing V2 point cloud: " << std::fixed << std::setprecision(2)
+            << (static_cast<double>(i + 1) / V2_pointcloud.rows()) * 100 << "% completed" << std::flush;
+    }
+    std::cout << std::endl; // To move to the next line after the progress is complete
+}
+
+

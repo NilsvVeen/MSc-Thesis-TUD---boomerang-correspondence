@@ -189,6 +189,21 @@ int main()
             Mesh2_V, Mesh2_F,
             V1_pointclouds, V2_pointclouds);
 
+
+        std::cout << "match V1" << std::endl;
+        // Process correspondences for V1 (Exact match x, y, use z from Mesh1)
+        for (Eigen::MatrixXd& V1 : V1_pointclouds) {
+            findExactCorrespondences(Mesh1_V, V1);
+        }
+
+        std::cout << "match V2" << std::endl;
+
+        // Process correspondences for V2 (Closest x, y match, use x, y, z from Mesh2)
+        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
+            findClosestCorrespondences(Mesh2_V, V2);
+        }
+
+
         // Check if meshes were successfully read
         if (Mesh1_V.rows() == 0 || Mesh2_V.rows() == 0) {
             std::cerr << "Error: Meshes not successfully loaded." << std::endl;

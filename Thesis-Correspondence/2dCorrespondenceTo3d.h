@@ -23,4 +23,7 @@ void showInPolyscope(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh
     const std::vector<Eigen::MatrixXd>& V1_pointclouds,
     const std::vector<Eigen::MatrixXd>& V2_pointclouds, bool enableMeshes = true, bool enablePointClouds = true);
 
-glm::vec3 generateRandomColor();
+
+void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V1_pointcloud);
+
+void findClosestCorrespondences(const Eigen::MatrixXd& mesh2_V, Eigen::MatrixXd& V2_pointcloud);

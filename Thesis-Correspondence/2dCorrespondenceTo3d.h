@@ -1,3 +1,12 @@
+#include <iostream>
+#include <vector>
+#include <tuple>
+#include <Eigen/Core>
+#include <filesystem>
+#include "stl_utils.h"
+#include <polyscope/polyscope.h>
+#include <polyscope/surface_mesh.h>
+#include <polyscope/point_cloud.h>
 
 
 void readMeshesAndPointClouds(const std::string& meshesFolder,

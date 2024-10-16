@@ -195,10 +195,9 @@ int main()
             return -1;
         }
 
-
-        glm::vec3 color(1, 0, 0); 
+ 
         // Show them in Polyscope with the common color
-        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds, color);
+        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);
 
 
 

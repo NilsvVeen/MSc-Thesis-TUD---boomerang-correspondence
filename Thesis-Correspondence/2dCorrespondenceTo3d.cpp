@@ -60,40 +60,43 @@ void readMeshesAndPointClouds(const std::string& meshesFolder,
 void showInPolyscope(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh1_F,
     const Eigen::MatrixXd& Mesh2_V, const Eigen::MatrixXi& Mesh2_F,
     const std::vector<Eigen::MatrixXd>& V1_pointclouds,
-    const std::vector<Eigen::MatrixXd>& V2_pointclouds,
-    const glm::vec3& color, bool enableMeshes = true, bool enablePointClouds = true) {
+    const std::vector<Eigen::MatrixXd>& V2_pointclouds, bool enableMeshes = true, bool enablePointClouds = true) {
+
     // Initialize Polyscope
     polyscope::init();
 
-    // Set color for the meshes and point clouds
-    glm::vec3 meshColor = color;
-    glm::vec3 pointCloudColor = color;
+    // Set color for the meshes
+    glm::vec3 meshColor(1, 0, 0);
 
     // Register Mesh 1 (Surface Mesh) and set color
     auto mesh1_obj = polyscope::registerSurfaceMesh("Left Mesh", Mesh1_V, Mesh1_F);
     mesh1_obj->setSurfaceColor(meshColor);
-    mesh1_obj->setEnabled(enableMeshes);  // Control whether the mesh is initially visible
+    mesh1_obj->setEnabled(enableMeshes);
 
     // Register Mesh 2 (Surface Mesh) and set color
     auto mesh2_obj = polyscope::registerSurfaceMesh("Right Mesh", Mesh2_V, Mesh2_F);
     mesh2_obj->setSurfaceColor(meshColor);
     mesh2_obj->setEnabled(enableMeshes);
 
-    // Register and configure point clouds
+    // Register and configure point clouds, assigning different colors for each pair
     for (size_t i = 0; i < V1_pointclouds.size(); ++i) {
+        // Generate a unique color for each i (using HSV to RGB or some other method)
+        glm::vec3 pointCloudColor = glm::vec3(static_cast<float>(i) / V1_pointclouds.size(), 0.5f, 1.0f); // Example: color gradient
+
+        // Register and configure V1 point cloud
         auto obj1 = polyscope::registerPointCloud("V1 Pointcloud " + std::to_string(i + 1), V1_pointclouds[i]);
         obj1->setPointColor(pointCloudColor);
-        obj1->setPointRadius(0.005);  // You can adjust the radius if needed
-        obj1->setEnabled(enablePointClouds);  // Control whether the point cloud is initially visible
-    }
+        obj1->setPointRadius(0.005);
+        obj1->setEnabled(enablePointClouds);
 
-    for (size_t i = 0; i < V2_pointclouds.size(); ++i) {
+        // Register and configure V2 point cloud with the same color
         auto obj2 = polyscope::registerPointCloud("V2 Pointcloud " + std::to_string(i + 1), V2_pointclouds[i]);
         obj2->setPointColor(pointCloudColor);
-        obj2->setPointRadius(0.005);  // Adjust radius as needed
+        obj2->setPointRadius(0.005);
         obj2->setEnabled(enablePointClouds);
     }
 
     // Show Polyscope UI
     polyscope::show();
 }
+

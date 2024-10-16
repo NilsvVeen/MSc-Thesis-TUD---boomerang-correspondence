@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.8)
 project ("Thesis-Correspondence")
 
 # Add source to this project's executable.
-add_executable (Thesis-Correspondence "Thesis-Correspondence.cpp" "Thesis-Correspondence.h"  "geometry.cpp" "geometry.h" "file_utils.cpp" "file_utils.h" "sfml_utils.cpp" "sfml_utils.h" "stl_utils.cpp" "stl_utils.h" "border_vertex_extraction.cpp" "border_vertex_extraction.h" "parameterize.h" "parameterize.cpp")
+add_executable (Thesis-Correspondence "Thesis-Correspondence.cpp" "Thesis-Correspondence.h"  "geometry.cpp" "geometry.h" "file_utils.cpp" "file_utils.h" "sfml_utils.cpp" "sfml_utils.h" "stl_utils.cpp" "stl_utils.h" "border_vertex_extraction.cpp" "border_vertex_extraction.h" "parameterize.h" "parameterize.cpp" "2dCorrespondenceTo3d.h" "2dCorrespondenceTo3d.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Thesis-Correspondence PROPERTY CXX_STANDARD 20)

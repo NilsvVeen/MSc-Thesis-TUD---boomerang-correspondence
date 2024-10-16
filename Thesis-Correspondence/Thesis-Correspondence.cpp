@@ -12,6 +12,7 @@
 #include "stl_utils.h"
 #include "parameterize.h"
 #include <polyscope/polyscope.h>
+#include "2dCorrespondenceTo3d.h"
 
 #ifndef PI
 #define PI 3.14159265358979323846
@@ -171,51 +172,32 @@ int main()
 
 
     if (correspondences2dto3d) {
-        // Step 1: Read Meshes from DEFAULT_CORRESPONDENCES_meshes_FOLDER
+        const std::string meshesFolder = DEFAULT_CORRESPONDENCES_meshes_FOLDER;
+        const std::string pointCloudsFolder = DEFAULT_CORRESPONDENCES_FOLDER;
+
+        // Declare variables to hold the data
         Eigen::MatrixXd Mesh1_V, Mesh2_V;
         Eigen::MatrixXi Mesh1_F, Mesh2_F;
-
-        std::string mesh1File = DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj";  // Example filenames
-        std::string mesh2File = DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/RightMesh.obj";
-
-        // Use utility functions to read meshes
-        if (!readMeshFromFile(mesh1File, Mesh1_V, Mesh1_F)) {
-            std::cerr << "Error reading mesh 1" << std::endl;
-            return -1;
-        }
-
-        if (!readMeshFromFile(mesh2File, Mesh2_V, Mesh2_F)) {
-            std::cerr << "Error reading mesh 2" << std::endl;
-            return -1;
-        }
-
-        // Step 2: Read Pointclouds from DEFAULT_CORRESPONDENCES_FOLDER
         std::vector<Eigen::MatrixXd> V1_pointclouds;
         std::vector<Eigen::MatrixXd> V2_pointclouds;
 
-        for (const auto& entry : std::filesystem::directory_iterator(DEFAULT_CORRESPONDENCES_FOLDER)) {
-            std::string filePath = entry.path().string();
+        // Call the function to read the data directly into the variables
+        readMeshesAndPointClouds(meshesFolder, pointCloudsFolder,
+            Mesh1_V, Mesh1_F,
+            Mesh2_V, Mesh2_F,
+            V1_pointclouds, V2_pointclouds);
 
-            if (filePath.find("V1__") != std::string::npos) {  // Read V1 point clouds
-                Eigen::MatrixXd V1;
-                if (readPointCloudFromFile(filePath, V1)) {
-                    V1_pointclouds.push_back(V1);
-                }
-                else {
-                    std::cerr << "Error reading point cloud: " << filePath << std::endl;
-                }
-            }
-            else if (filePath.find("V2_") != std::string::npos) {  // Read V2 point clouds
-                Eigen::MatrixXd V2;
-                if (readPointCloudFromFile(filePath, V2)) {
-                    V2_pointclouds.push_back(V2);
-                }
-                else {
-                    std::cerr << "Error reading point cloud: " << filePath << std::endl;
-                }
-            }
+        // Check if meshes were successfully read
+        if (Mesh1_V.rows() == 0 || Mesh2_V.rows() == 0) {
+            std::cerr << "Error: Meshes not successfully loaded." << std::endl;
+            return -1;
         }
-         
+
+
+        glm::vec3 color(1, 0, 0); 
+        // Show them in Polyscope with the common color
+        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds, color);
+
 
 
     }

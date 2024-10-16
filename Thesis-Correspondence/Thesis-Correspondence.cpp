@@ -23,7 +23,7 @@ const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 static const bool CircleElipFlag = false;
 static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = false;
-static const bool ReadCalculateSortedVertices = true;
+static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
 static const bool correspondences2dto3d = true;
 
@@ -85,6 +85,8 @@ int main()
 
     if (showOriginalRotatedMesh) {
         polyscope::init();
+        polyscope::removeAllGroups();
+        polyscope::removeAllStructures();
 
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;

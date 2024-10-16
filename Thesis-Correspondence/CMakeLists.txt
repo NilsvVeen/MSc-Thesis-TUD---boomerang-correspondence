@@ -5,8 +5,23 @@ cmake_minimum_required (VERSION 3.8)
 
 project ("Thesis-Correspondence")
 
+
 # Add source to this project's executable.
 add_executable (Thesis-Correspondence "Thesis-Correspondence.cpp" "Thesis-Correspondence.h"  "geometry.cpp" "geometry.h" "file_utils.cpp" "file_utils.h" "sfml_utils.cpp" "sfml_utils.h" "stl_utils.cpp" "stl_utils.h" "border_vertex_extraction.cpp" "border_vertex_extraction.h" "parameterize.h" "parameterize.cpp" "2dCorrespondenceTo3d.h" "2dCorrespondenceTo3d.cpp")
+
+# Set default build type to Release if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Specify supported build types for multi-configuration systems (like Visual Studio)
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "Supported build configurations" FORCE)
+
+# Optionally, add compiler flags or specific settings for each build type
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+
+# Continue with the rest of the file...
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Thesis-Correspondence PROPERTY CXX_STANDARD 20)

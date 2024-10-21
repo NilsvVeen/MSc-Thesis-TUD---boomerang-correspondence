@@ -12,6 +12,7 @@
 #include <fstream>
 #include <vector>
 #include <CGAL/Polygon_mesh_processing/measure.h>
+#include <CGAL/Surface_mesh_parameterization/LSCM_parameterizer_3.h>
 
 // Typedefs
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
@@ -41,8 +42,7 @@ void convertEigenToSurfaceMesh(const Eigen::MatrixXd& V, const Eigen::MatrixXi& 
 
 
 
-
-// Function to parameterize surface
+// Function to parameterize surface using LSCM
 bool parameterizeSurface(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh1_F, const std::string& output_filename) {
     // Create CGAL surface mesh
     Surface_mesh mesh;
@@ -58,16 +58,26 @@ bool parameterizeSurface(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& 
     Surface_mesh::Property_map<Surface_mesh::Vertex_index, Kernel::Point_2> uvmap =
         mesh.add_property_map<Surface_mesh::Vertex_index, Kernel::Point_2>("v:uv").first;
 
+    // Property map for vertex indices
+    Surface_mesh::Property_map<Surface_mesh::Vertex_index, int> vertex_index_map =
+        mesh.add_property_map<Surface_mesh::Vertex_index, int>("v:index").first;
+
+    // Property map for parameterized vertices (not strictly necessary but can be useful)
+    Surface_mesh::Property_map<Surface_mesh::Vertex_index, bool> vertex_parameterized_map =
+        mesh.add_property_map<Surface_mesh::Vertex_index, bool>("v:parameterized").first;
+
     // Get a border halfedge
     halfedge_descriptor bhd = CGAL::Polygon_mesh_processing::longest_border(mesh).first;
 
-    // Define parameterizer types
-    typedef CGAL::Surface_mesh_parameterization::Circular_border_parameterizer_3<Surface_mesh> Border_parameterizer;
-    typedef CGAL::Surface_mesh_parameterization::Discrete_authalic_parameterizer_3<Surface_mesh, Border_parameterizer> Parameterizer;
+    // Define parameterizer type for LSCM
+    using LSCM_Parameterizer = CGAL::Surface_mesh_parameterization::LSCM_parameterizer_3<Surface_mesh>;
 
-    // Perform the parameterization
+    // Create the LSCM parameterizer instance
+    LSCM_Parameterizer parameterizer;
+
+    // Perform the LSCM parameterization
     CGAL::Surface_mesh_parameterization::Error_code status =
-        CGAL::Surface_mesh_parameterization::parameterize(mesh, bhd, uvmap);
+        parameterizer.parameterize(mesh, bhd, uvmap, vertex_index_map, vertex_parameterized_map);
 
     // Check for success
     if (status != CGAL::Surface_mesh_parameterization::OK) {
@@ -75,20 +85,8 @@ bool parameterizeSurface(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& 
         return false;
     }
 
-    // Debug output to check UV coordinates
-    std::cout << "UV coordinates after parameterization:\n";
-    for (auto v : mesh.vertices()) {
-        const Kernel::Point_2& uv = uvmap[v];
-        std::cout << "Vertex " << v << " has UV: (" << uv.x() << ", " << uv.y() << ")\n";
-    }
-
     // Output UV coordinates to file
     std::ofstream uv_output(output_filename);
-    if (!uv_output) {
-        std::cerr << "Failed to open output file: " << output_filename << std::endl;
-        return false;
-    }
-
     for (auto v : mesh.vertices()) {
         const Kernel::Point_2& uv = uvmap[v];
         uv_output << "vt " << uv.x() << " " << uv.y() << std::endl;
@@ -97,4 +95,8 @@ bool parameterizeSurface(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& 
     std::cout << "Parameterization successful, UV coordinates saved to '" << output_filename << "'.\n";
     return true;
 }
+
+
+
+
 

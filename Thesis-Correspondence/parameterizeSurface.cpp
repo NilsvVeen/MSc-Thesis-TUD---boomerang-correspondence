@@ -1,4 +1,4 @@
-// parameterizeSurface.cpp
+#include "parameterizeSurface.h"
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Surface_mesh.h>
@@ -7,34 +7,51 @@
 #include <CGAL/Surface_mesh_parameterization/parameterize.h>
 #include <CGAL/Polygon_mesh_processing/border.h>
 #include <CGAL/boost/graph/properties.h>
+#include <Eigen/Dense>
 #include <iostream>
 #include <fstream>
-#include "libraries/CGAL-5.6.1/include/CGAL/Polygon_mesh_processing/measure.h"
+#include <vector>
+#include <CGAL/Polygon_mesh_processing/measure.h>
 
 // Typedefs
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Surface_mesh<Kernel::Point_3> Surface_mesh;
 typedef boost::graph_traits<Surface_mesh>::halfedge_descriptor halfedge_descriptor;
 
-int main(int argc, char* argv[]) {
-    // Ensure file path is provided
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " input_mesh.obj\n";
-        return EXIT_FAILURE;
+void convertEigenToSurfaceMesh(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Surface_mesh& mesh) {
+    std::vector<Surface_mesh::Vertex_index> vertices;
+
+    // Add vertices
+    for (int i = 0; i < V.rows(); ++i) {
+        vertices.push_back(mesh.add_vertex(Kernel::Point_3(V(i, 0), V(i, 1), V(i, 2))));
+        //std::cout << "Added vertex " << i << ": (" << V(i, 0) << ", " << V(i, 1) << ", " << V(i, 2) << ")\n";
     }
 
-    // Create surface mesh and read from file
+    // Add faces
+    for (int i = 0; i < F.rows(); ++i) {
+        int v1 = F(i, 0), v2 = F(i, 1), v3 = F(i, 2);
+        if (v1 >= vertices.size() || v2 >= vertices.size() || v3 >= vertices.size()) {
+            std::cerr << "Invalid face index at row " << i << ": (" << v1 << ", " << v2 << ", " << v3 << ")\n";
+            return; // or handle the error
+        }
+        mesh.add_face(vertices[v1], vertices[v2], vertices[v3]);
+        //std::cout << "Added face " << i << ": (" << v1 << ", " << v2 << ", " << v3 << ")\n";
+    }
+}
+
+
+
+
+// Function to parameterize surface
+bool parameterizeSurface(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh1_F, const std::string& output_filename) {
+    // Create CGAL surface mesh
     Surface_mesh mesh;
-    std::ifstream input(argv[1]);
-    if (!input || !(input >> mesh) || !CGAL::is_triangle_mesh(mesh)) {
-        std::cerr << "Invalid mesh file.\n";
-        return EXIT_FAILURE;
-    }
+    convertEigenToSurfaceMesh(Mesh1_V, Mesh1_F, mesh);
 
-    // Ensure the mesh has a border (necessary for parameterization)
+    // Ensure the mesh has a border
     if (CGAL::Polygon_mesh_processing::longest_border(mesh).first == Surface_mesh::null_halfedge()) {
-        std::cerr << "Input mesh has no border.\n";
-        return EXIT_FAILURE;
+        std::cerr << "Mesh has no border.\n";
+        return false;
     }
 
     // Property map for UV coordinates
@@ -55,16 +72,29 @@ int main(int argc, char* argv[]) {
     // Check for success
     if (status != CGAL::Surface_mesh_parameterization::OK) {
         std::cerr << "Parameterization failed: " << status << std::endl;
-        return EXIT_FAILURE;
+        return false;
+    }
+
+    // Debug output to check UV coordinates
+    std::cout << "UV coordinates after parameterization:\n";
+    for (auto v : mesh.vertices()) {
+        const Kernel::Point_2& uv = uvmap[v];
+        std::cout << "Vertex " << v << " has UV: (" << uv.x() << ", " << uv.y() << ")\n";
     }
 
     // Output UV coordinates to file
-    std::ofstream uv_output("parameterized_mesh.obj");
+    std::ofstream uv_output(output_filename);
+    if (!uv_output) {
+        std::cerr << "Failed to open output file: " << output_filename << std::endl;
+        return false;
+    }
+
     for (auto v : mesh.vertices()) {
         const Kernel::Point_2& uv = uvmap[v];
         uv_output << "vt " << uv.x() << " " << uv.y() << std::endl;
     }
 
-    std::cout << "Parameterization successful, UV coordinates saved to 'parameterized_mesh.obj'.\n";
-    return EXIT_SUCCESS;
+    std::cout << "Parameterization successful, UV coordinates saved to '" << output_filename << "'.\n";
+    return true;
 }
+

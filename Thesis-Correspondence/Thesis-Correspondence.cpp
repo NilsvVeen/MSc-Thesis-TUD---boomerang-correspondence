@@ -14,6 +14,8 @@
 #include <polyscope/polyscope.h>
 #include "2dCorrespondenceTo3d.h"
 
+#include "parameterizeSurface.h"
+
 #ifndef PI
 #define PI 3.14159265358979323846
 #endif
@@ -26,7 +28,7 @@ static const bool ParameterizeObjects = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
 static const bool correspondences2dto3d = false;
-static const bool parameterizeSurface = false;
+static const bool parameterizeSurfaceBool = true;
 
 
 int main()
@@ -220,14 +222,26 @@ int main()
     }
 
 
-    if (parameterizeSurface) {
+    if (parameterizeSurfaceBool) {
+
+        std::cout << "surface Parameterization:" << std::endl;
+
         polyscope::init();
         polyscope::removeAllGroups();
         polyscope::removeAllStructures();
 
+        const std::string surfaceParam = "surfaceParameterize";
+        createDirectory(surfaceParam);
+        clearDirectory(surfaceParam);
+
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
         readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj", Mesh1_V, Mesh1_F);
+
+        if (!parameterizeSurface(Mesh1_V, Mesh1_F, surfaceParam + "/parameterized_mesh_LeftMesh.obj")) {
+            std::cerr << "Surface parameterization failed.\n";
+            return EXIT_FAILURE;
+        }
 
         Eigen::MatrixXd Mesh2_V;
         Eigen::MatrixXi Mesh2_F;

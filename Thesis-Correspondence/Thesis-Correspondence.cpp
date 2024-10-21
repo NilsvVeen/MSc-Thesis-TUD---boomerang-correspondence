@@ -25,7 +25,8 @@ static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
-static const bool correspondences2dto3d = true;
+static const bool correspondences2dto3d = false;
+static const bool parameterizeSurface = false;
 
 
 int main()
@@ -216,9 +217,32 @@ int main()
         // Show them in Polyscope with the common color
         showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);
 
-
-
     }
+
+
+    if (parameterizeSurface) {
+        polyscope::init();
+        polyscope::removeAllGroups();
+        polyscope::removeAllStructures();
+
+        Eigen::MatrixXd Mesh1_V;
+        Eigen::MatrixXi Mesh1_F;
+        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj", Mesh1_V, Mesh1_F);
+
+        Eigen::MatrixXd Mesh2_V;
+        Eigen::MatrixXi Mesh2_F;
+        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/RigthMesh.obj", Mesh2_V, Mesh2_F);
+
+        //Eigen::MatrixXd V1_border;
+        //Eigen::MatrixXd V2_border;
+        //readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
+        //readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
+
+        //// Display the two meshes side by side
+        //showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border, DEFAULT_CORRESPONDENCES_meshes_FOLDER);
+    }
+
+
 
     return 0;
 }

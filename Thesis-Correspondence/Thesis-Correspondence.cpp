@@ -226,9 +226,9 @@ int main()
 
         std::cout << "surface Parameterization:" << std::endl;
 
-        polyscope::init();
-        polyscope::removeAllGroups();
-        polyscope::removeAllStructures();
+        //polyscope::init();
+        //polyscope::removeAllGroups();
+        //polyscope::removeAllStructures();
 
         const std::string surfaceParam = "surfaceParameterize";
         createDirectory(surfaceParam);
@@ -236,16 +236,21 @@ int main()
 
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
-        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj", Mesh1_V, Mesh1_F);
+        Eigen::MatrixXd UV1;
+        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj", Mesh1_V, Mesh1_F);        
+        //readMeshFromFile("cube2.obj", Mesh1_V, Mesh1_F);
 
-        if (!parameterizeSurface(Mesh1_V, Mesh1_F, surfaceParam + "/parameterized_mesh_LeftMesh.obj")) {
+        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1)) {
             std::cerr << "Surface parameterization failed.\n";
             return EXIT_FAILURE;
         }
 
-        Eigen::MatrixXd Mesh2_V;
-        Eigen::MatrixXi Mesh2_F;
-        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/RigthMesh.obj", Mesh2_V, Mesh2_F);
+        std::cout << UV1 << std::endl;
+
+
+        //Eigen::MatrixXd Mesh2_V;
+        //Eigen::MatrixXi Mesh2_F;
+        //readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/RigthMesh.obj", Mesh2_V, Mesh2_F);
 
         //Eigen::MatrixXd V1_border;
         //Eigen::MatrixXd V2_border;

@@ -245,6 +245,10 @@ int main()
             return EXIT_FAILURE;
         }
 
+
+
+        saveMeshToFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "UV.obj", UV1, Mesh1_F);
+
         std::cout << UV1 << std::endl;
 
 

@@ -224,15 +224,24 @@ namespace SMP = CGAL::Surface_mesh_parameterization;
 
 
 #include <igl/readOFF.h>
-//#include <igl/opengl/glfw/Viewer.h>
 #include <igl/lscm.h>
+#include <polyscope/polyscope.h>
+#include <polyscope/surface_mesh.h>
 #include <iostream>
 
 // Function to compute UV parametrization and visualize the result
 bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV)
 {
+    // Print size of V and F
+    std::cout << "Input V size: " << V.rows() << " x " << V.cols() << std::endl;
+    std::cout << "Input F size: " << F.rows() << " x " << F.cols() << std::endl;
+
     // Perform LSCM parametrization
+    std::cout << "Performing LSCM parametrization..." << std::endl;
     igl::lscm(V, F, UV);
+
+    // Print size of UV matrix
+    std::cout << "UV matrix size after LSCM: " << UV.rows() << " x " << UV.cols() << std::endl;
 
     // Check if the UV matrix is valid (it shouldn't be empty)
     if (UV.size() == 0)
@@ -241,42 +250,67 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         return false;
     }
 
-    //// Set up the viewer
-    //igl::opengl::glfw::Viewer viewer;
+    std::cout << "UV parametrization computed successfully." << std::endl;
 
-    //// Callback for key press events
-    //viewer.callback_key_down = [&](igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier)
-    //{
-    //    if (key == '1')
-    //    {
-    //        // Plot the 3D mesh
-    //        viewer.data().set_mesh(V, F);
-    //        viewer.core().align_camera_center(V, F);
-    //    }
-    //    else if (key == '2')
-    //    {
-    //        // Plot the mesh in 2D using the UV coordinates as vertex coordinates
-    //        viewer.data().set_mesh(UV, F);
-    //        viewer.core().align_camera_center(UV, F);
-    //    }
+    if (true) {
+        std::cout << "Initializing Polyscope..." << std::endl;
+        // Initialize Polyscope
+        polyscope::init();
 
-    //    viewer.data().compute_normals();
-    //    return false;
-    //};
+        std::cout << "Registering 3D mesh in Polyscope..." << std::endl;
+        // Register the 3D mesh
+        auto* mesh3D = polyscope::registerSurfaceMesh("3D Mesh", V, F);
 
-    //// Initial mesh view (3D)
-    //viewer.data().set_mesh(V, F);
-    //viewer.data().set_uv(UV);
+        std::cout << "Registering UV-mapped mesh in Polyscope..." << std::endl;
+        // Register the UV-mapped 2D mesh
+        //auto* meshUV = polyscope::registerSurfaceMesh("UV Mapped Mesh", UV, F);
 
-    //// Disable wireframe
-    //viewer.data().show_lines = false;
+        mesh3D->addVertexParameterizationQuantity("LSCM parameterization", UV);
 
-    //// Draw checkerboard texture
-    //viewer.data().show_texture = true;
+        // Set some options for the 3D mesh visualization
+        std::cout << "Setting options for 3D mesh visualization..." << std::endl;
+        mesh3D->setEnabled(true);  // Start with the 3D mesh enabled
+        mesh3D->setSmoothShade(true);
+        mesh3D->setEdgeWidth(1.0); // Optional: control edge display for 3D mesh
 
-    //// Launch the viewer
-    //viewer.launch();
+        //// Set some options for the UV mesh visualization
+        //std::cout << "Setting options for UV mesh visualization..." << std::endl;
+        //meshUV->setEnabled(false);  // UV mesh is disabled initially
+        //meshUV->setEdgeWidth(1.0);  // Adjust edge width for the UV mesh visualization
+
+        //// Add the UV coordinates as a parameterization quantity
+        //std::cout << "Adding parameterization quantity for UV coordinates..." << std::endl;
+        //meshUV->addParameterizationQuantity("UV coordinates", UV);
+
+        // Add a callback to toggle between the 3D and UV mesh views
+        std::cout << "Setting up toggle button in GUI..." << std::endl;
+        polyscope::state::userCallback = [&]()
+        {
+            if (ImGui::Button("Show 3D Mesh"))
+            {
+                std::cout << "Showing 3D Mesh..." << std::endl;
+                mesh3D->setEnabled(true);
+                //meshUV->setEnabled(false);
+            }
+            if (ImGui::Button("Show UV Mapped Mesh"))
+            {
+                std::cout << "Showing UV Mapped Mesh..." << std::endl;
+                mesh3D->setEnabled(false);
+                //meshUV->setEnabled(true);
+            }
+        };
+
+        // Launch Polyscope's GUI
+        std::cout << "Launching Polyscope GUI..." << std::endl;
+        polyscope::show();
+    }
+
+    std::cout << "Finished processing." << std::endl;
 
     return true;
 }
+
+
+
+
 

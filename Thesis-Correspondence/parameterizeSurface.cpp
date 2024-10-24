@@ -229,7 +229,6 @@ namespace SMP = CGAL::Surface_mesh_parameterization;
 #include <polyscope/surface_mesh.h>
 #include <iostream>
 
-// Function to compute UV parametrization and visualize the result
 bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV)
 {
     // Print size of V and F
@@ -258,8 +257,6 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         std::cout << "]" << std::endl;
     }
 
-
-
     UV.resize(V.rows(), 2);  // UV coordinates need two dimensions (u, v)
 
     for (int i = 0; i < F.rows(); ++i) {
@@ -271,9 +268,6 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             }
         }
     }
-
-
-
 
     // Perform LSCM parametrization
     std::cout << "Performing LSCM parametrization..." << std::endl;
@@ -291,60 +285,53 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
     std::cout << "UV parametrization computed successfully." << std::endl;
 
-    if (true) {
-        std::cout << "Initializing Polyscope..." << std::endl;
-        // Initialize Polyscope
-        polyscope::init();
-
-        std::cout << "Registering 3D mesh in Polyscope..." << std::endl;
-        // Register the 3D mesh
-        auto* mesh3D = polyscope::registerSurfaceMesh("3D Mesh", V, F);
-
-        std::cout << "Registering UV-mapped mesh in Polyscope..." << std::endl;
-        // Register the UV-mapped 2D mesh
-        //auto* meshUV = polyscope::registerSurfaceMesh("UV Mapped Mesh", UV, F);
-
-        mesh3D->addVertexParameterizationQuantity("LSCM parameterization", UV);
-
-        // Set some options for the 3D mesh visualization
-        std::cout << "Setting options for 3D mesh visualization..." << std::endl;
-        mesh3D->setEnabled(true);  // Start with the 3D mesh enabled
-        mesh3D->setSmoothShade(true);
-        mesh3D->setEdgeWidth(1.0); // Optional: control edge display for 3D mesh
-
-        //// Set some options for the UV mesh visualization
-        //std::cout << "Setting options for UV mesh visualization..." << std::endl;
-        //meshUV->setEnabled(false);  // UV mesh is disabled initially
-        //meshUV->setEdgeWidth(1.0);  // Adjust edge width for the UV mesh visualization
-
-        //// Add the UV coordinates as a parameterization quantity
-        //std::cout << "Adding parameterization quantity for UV coordinates..." << std::endl;
-        //meshUV->addParameterizationQuantity("UV coordinates", UV);
-
-        // Add a callback to toggle between the 3D and UV mesh views
-        std::cout << "Setting up toggle button in GUI..." << std::endl;
-        polyscope::state::userCallback = [&]()
-        {
-            if (ImGui::Button("Show 3D Mesh"))
-            {
-                std::cout << "Showing 3D Mesh..." << std::endl;
-                mesh3D->setEnabled(true);
-                //meshUV->setEnabled(false);
-            }
-            if (ImGui::Button("Show UV Mapped Mesh"))
-            {
-                std::cout << "Showing UV Mapped Mesh..." << std::endl;
-                mesh3D->setEnabled(false);
-                //meshUV->setEnabled(true);
-            }
-        };
-
-        // Launch Polyscope's GUI
-        std::cout << "Launching Polyscope GUI..." << std::endl;
-        polyscope::show();
+    // Add a small constant z value to the UV coordinates to create a 3D version
+    Eigen::MatrixXd UV3D(UV.rows(), 3);
+    double z_value = 0.1; // Adjust this value for how far above the UV plane you want it
+    for (int i = 0; i < UV.rows(); ++i) {
+        UV3D(i, 0) = UV(i, 0); // u coordinate
+        UV3D(i, 1) = UV(i, 1); // v coordinate
+        UV3D(i, 2) = z_value;  // constant z value
     }
 
-    std::cout << "Finished processing." << std::endl;
+    // Initialize Polyscope
+    polyscope::init();
+
+    // Register the 3D mesh
+    auto* mesh3D = polyscope::registerSurfaceMesh("3D Mesh", V, F);
+
+    // Register the UV-mapped 3D mesh (with z-coordinate)
+    auto* meshUV = polyscope::registerSurfaceMesh("UV Mapped Mesh", UV3D, F);
+
+    // Add vertex parameterization to the 3D mesh
+    mesh3D->addVertexParameterizationQuantity("LSCM parameterization", UV);
+
+    // Set some options for the 3D mesh visualization
+    mesh3D->setEnabled(true);  // Start with the 3D mesh enabled
+    mesh3D->setSmoothShade(true);
+    mesh3D->setEdgeWidth(1.0); // Optional: control edge display for 3D mesh
+
+    // Set options for the UV mesh visualization
+    meshUV->setEnabled(false);  // UV mesh is disabled initially
+    meshUV->setEdgeWidth(1.0);  // Adjust edge width for the UV mesh visualization
+
+    // Add a callback to toggle between the 3D and UV mesh views
+    polyscope::state::userCallback = [&]()
+    {
+        if (ImGui::Button("Show 3D Mesh"))
+        {
+            mesh3D->setEnabled(true);
+            meshUV->setEnabled(false);
+        }
+        if (ImGui::Button("Show UV Mapped Mesh"))
+        {
+            mesh3D->setEnabled(false);
+            meshUV->setEnabled(true);
+        }
+    };
+
+    // Launch Polyscope's GUI
+    polyscope::show();
 
     return true;
 }

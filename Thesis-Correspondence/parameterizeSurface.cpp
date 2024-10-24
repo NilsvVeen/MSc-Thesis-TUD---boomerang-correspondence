@@ -236,6 +236,45 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     std::cout << "Input V size: " << V.rows() << " x " << V.cols() << std::endl;
     std::cout << "Input F size: " << F.rows() << " x " << F.cols() << std::endl;
 
+    // Print the first 5 rows of V (if there are at least 5)
+    std::cout << "First 5 rows of V:" << std::endl;
+    for (int i = 0; i < std::min(5, static_cast<int>(V.rows())); ++i) {
+        std::cout << "V(" << i << ") = [";
+        for (int j = 0; j < V.cols(); ++j) {
+            std::cout << V(i, j);
+            if (j < V.cols() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+    }
+
+    // Print the first 5 rows of F (if there are at least 5)
+    std::cout << "First 5 rows of F:" << std::endl;
+    for (int i = 0; i < std::min(5, static_cast<int>(F.rows())); ++i) {
+        std::cout << "F(" << i << ") = [";
+        for (int j = 0; j < F.cols(); ++j) {
+            std::cout << F(i, j);
+            if (j < F.cols() - 1) std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+    }
+
+
+
+    UV.resize(V.rows(), 2);  // UV coordinates need two dimensions (u, v)
+
+    for (int i = 0; i < F.rows(); ++i) {
+        for (int j = 0; j < F.cols(); ++j) {
+            if (F(i, j) < 0 || F(i, j) >= V.rows()) {
+                std::cout << "F(" << i << ", " << j << ") = " << F(i, j) << std::endl;
+                std::cerr << "Error: Invalid face index at F(" << i << ", " << j << ")." << std::endl;
+                return false;
+            }
+        }
+    }
+
+
+
+
     // Perform LSCM parametrization
     std::cout << "Performing LSCM parametrization..." << std::endl;
     igl::lscm(V, F, UV);

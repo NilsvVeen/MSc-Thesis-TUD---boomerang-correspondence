@@ -237,17 +237,24 @@ int main()
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
         Eigen::MatrixXd UV1;
-        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/LeftMesh.obj", Mesh1_V, Mesh1_F);        
+        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/original.obj", Mesh1_V, Mesh1_F);        
+
+        saveMeshToFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/original_saved.obj", Mesh1_V, Mesh1_F);
         //readMeshFromFile("cube2.obj", Mesh1_V, Mesh1_F);
 
-        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1)) {
+        Eigen::MatrixXd Mesh2_V;
+        Eigen::MatrixXi Mesh2_F;
+        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/original.obj", Mesh2_V, Mesh2_F);
+
+
+        if (!paramsurface5(Mesh2_V, Mesh2_F, UV1)) {
             std::cerr << "Surface parameterization failed.\n";
             return EXIT_FAILURE;
         }
 
 
 
-        saveMeshToFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "UV.obj", UV1, Mesh1_F);
+        //saveMeshToFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "UV.obj", UV1, Mesh1_F);
 
         std::cout << UV1 << std::endl;
 

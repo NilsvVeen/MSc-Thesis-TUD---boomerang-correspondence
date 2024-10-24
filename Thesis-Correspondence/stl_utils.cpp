@@ -197,11 +197,19 @@ bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Ma
         }
         else if (type == "f") {
             Eigen::Vector3i face;
-            int idx;
-            for (int i = 0; i < 3; ++i) {
-                iss >> idx;
-                face[i] = idx - 1;  // OBJ format uses 1-based indexing
-            }
+            std::string v1, v2, v3;
+            iss >> v1 >> v2 >> v3;
+
+            // Parse each vertex face component (v//vn)
+            auto parseFaceComponent = [](const std::string& component) -> int {
+                size_t firstSlash = component.find('/');
+                return std::stoi(component.substr(0, firstSlash)) - 1;  // Convert from 1-based to 0-based
+            };
+
+            face[0] = parseFaceComponent(v1);
+            face[1] = parseFaceComponent(v2);
+            face[2] = parseFaceComponent(v3);
+
             faces.push_back(face);
         }
     }
@@ -219,6 +227,7 @@ bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Ma
     file.close();
     return true;
 }
+
 
 
 

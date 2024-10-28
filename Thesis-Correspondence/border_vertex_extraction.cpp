@@ -169,12 +169,20 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
     // Process STL file
     processSTLFile(filename, V, F, N);
 
+    //std::cout << "calculate rotated V" << std::endl;
+    //std::cout << "Mesh:\n";
+    //std::cout << "Vertices: " << V.rows() << " x " << V.cols() << "\n";
+    //std::cout << "Faces: " << F.rows() << " x " << F.cols() << "\n";
+
+
     // Fit plane and align mesh
     Eigen::MatrixXd rotatedV;
     Eigen::MatrixXi rotatedF;
     fitPlaneAndAlignMesh(V, F, rotatedV, rotatedF);
 
-
+    //std::cout << "Mesh after :\n";
+    //std::cout << "Vertices: " << rotatedV.rows() << " x " << rotatedV.cols() << "\n";
+    //std::cout << "Faces: " << rotatedF.rows() << " x " << rotatedF.cols() << "\n";
 
     // Define file paths for saving the meshes
     std::string rotatedMeshFile = outputDir + "/rotated_mesh.obj";

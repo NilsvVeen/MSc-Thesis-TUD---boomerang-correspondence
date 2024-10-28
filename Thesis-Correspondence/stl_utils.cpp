@@ -156,7 +156,11 @@ void showMeshes() {
     polyscope::show();
 }
 
-// Function to handle STL file loading and processing
+#include <igl/readSTL.h>
+#include <igl/remove_duplicate_vertices.h>
+#include <iostream>
+#include <fstream>
+
 void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& N) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
@@ -164,13 +168,34 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
         return;
     }
 
+    // Load STL file with igl::readSTL
     if (!igl::readSTL(file, V, F, N)) {
         std::cerr << "Failed to load STL file: " << filename << std::endl;
+        file.close();
         return;
     }
-
     file.close();
+
+    // Remove duplicate vertices
+    Eigen::MatrixXd uniqueV;
+    Eigen::VectorXi SVI, SVJ;
+    igl::remove_duplicate_vertices(V, 1e-6, uniqueV, SVI, SVJ);
+
+    // Update face indices to point to the unique vertices
+    Eigen::MatrixXi uniqueF(F.rows(), F.cols());
+    for (int i = 0; i < F.rows(); ++i) {
+        for (int j = 0; j < F.cols(); ++j) {
+            uniqueF(i, j) = SVJ[F(i, j)];
+        }
+    }
+
+    V = uniqueV;
+    F = uniqueF;
+
+    std::cout << "Processed STL file: " << filename << std::endl;
+    std::cout << "Vertices: " << V.rows() << ", Faces: " << F.rows() << std::endl;
 }
+
 
 
 

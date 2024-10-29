@@ -320,14 +320,34 @@ int main()
 
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
-        Eigen::MatrixXd UV1;
         readMeshFromFile( "2d_Curve_in_3d/Mesh1.obj", Mesh1_V, Mesh1_F);
 
 
 
-        Eigen::MatrixXd V = readVerticesFromPLY("2d_Curve_in_3d/V1_pointcloud_0.txt");
 
-        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V)) {
+        Eigen::MatrixXd UV1;
+
+        Eigen::MatrixXd V = readVerticesFromPLY("2d_Curve_in_3d/V1_pointcloud_0.txt");
+        Eigen::MatrixXd V2 = readVerticesFromPLY("2d_Curve_in_3d/V1_pointcloud_1.txt");
+
+        Eigen::MatrixXd V3(V.rows() + V2.rows(), V.cols());
+
+
+
+        if (V.cols() == V2.cols()) {
+            // Create V3 with enough rows to hold both V and V2, and the same number of columns
+
+            // Assign V and V2 to the appropriate blocks of V3
+            V3.topRows(V.rows()) = V;
+            V3.bottomRows(V2.rows()) = V2;
+
+            std::cout << "V3:\n" << V3 << std::endl;
+        }
+        else {
+            std::cerr << "Error: V and V2 must have the same number of columns to concatenate." << std::endl;
+        }
+
+        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3)) {
             std::cerr << "Surface parameterization failed.\n";
             return EXIT_FAILURE;
         }

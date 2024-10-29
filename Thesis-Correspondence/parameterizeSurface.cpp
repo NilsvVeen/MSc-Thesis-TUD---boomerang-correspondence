@@ -269,6 +269,9 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         }
     }
 
+    std::cout << "vertices input for boudnary " << boundary_vertices.rows() << std::endl;
+
+
     // Find boundary vertex indices in V
     Eigen::VectorXi B(boundary_vertices.rows());
     Eigen::MatrixXd BC(boundary_vertices.rows(), 2);
@@ -312,7 +315,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     }
 
 
-
+    
 
 
     std::cout << "poutncloud " << boundary_vertices.rows() << std::endl;

@@ -197,6 +197,42 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
 }
 
 
+Eigen::MatrixXd readVerticesFromPLY(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return Eigen::MatrixXd(0, 3);  // Return an empty matrix on error
+    }
+
+    std::string line;
+    // Skip header
+    while (std::getline(file, line)) {
+        if (line == "end_header") {
+            break;
+        }
+    }
+
+    // Read vertices
+    std::vector<Eigen::Vector3d> vertices;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        double x, y, z;
+        if (iss >> x >> y >> z) {
+            vertices.emplace_back(x, y, z);
+        }
+    }
+
+    file.close();
+
+    // Copy vertices to Eigen::MatrixXd
+    Eigen::MatrixXd V(vertices.size(), 3);
+    for (int i = 0; i < vertices.size(); ++i) {
+        V.row(i) = vertices[i];
+    }
+
+    return V;
+}
+
 
 
 bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F) {

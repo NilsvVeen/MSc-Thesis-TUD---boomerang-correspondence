@@ -27,8 +27,8 @@ static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
-static const bool correspondences2dto3d = true;
-static const bool parameterizeSurfaceBool = false;
+static const bool correspondences2dto3d = false;
+static const bool parameterizeSurfaceBool = true;
 
 
 int main()
@@ -321,9 +321,13 @@ int main()
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
         Eigen::MatrixXd UV1;
-        readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/original.obj", Mesh1_V, Mesh1_F);        
+        readMeshFromFile( "2d_Curve_in_3d/Mesh1.obj", Mesh1_V, Mesh1_F);
 
-        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1)) {
+
+
+        Eigen::MatrixXd V = readVerticesFromPLY("2d_Curve_in_3d/V1_pointcloud_0.txt");
+
+        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V)) {
             std::cerr << "Surface parameterization failed.\n";
             return EXIT_FAILURE;
         }

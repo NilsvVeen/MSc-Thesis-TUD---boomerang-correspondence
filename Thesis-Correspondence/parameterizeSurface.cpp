@@ -229,7 +229,7 @@ namespace SMP = CGAL::Surface_mesh_parameterization;
 #include <polyscope/surface_mesh.h>
 #include <iostream>
 
-bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV)
+bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV, const Eigen::MatrixXd& boundary_vertices)
 {
     // Print size of V and F
     std::cout << "Input V size: " << V.rows() << " x " << V.cols() << std::endl;
@@ -269,9 +269,57 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         }
     }
 
+    // Find boundary vertex indices in V
+    Eigen::VectorXi B(boundary_vertices.rows());
+    Eigen::MatrixXd BC(boundary_vertices.rows(), 2);
+
+    for (int i = 0; i < boundary_vertices.rows(); ++i) {
+        bool found = false;
+        for (int j = 0; j < V.rows(); ++j) {
+            double distance = (V.row(j) - boundary_vertices.row(i)).norm();
+
+            // Print details if the distance is within 0.01
+            if (distance < 0.01) {
+                std::cout << "Close match for boundary vertex " << i << " (" << boundary_vertices.row(i)
+                    << ") with V vertex " << j << " (" << V.row(j)
+                    << "), distance: " << distance << std::endl;
+            }
+
+            // Check if distance is within a larger tolerance for debugging
+            if (distance < 1e-4) {
+                if (distance >= 1e-8) {
+                    std::cout << "Boundary vertex " << i << " (" << boundary_vertices.row(i)
+                        << ") almost matches V vertex " << j << " (" << V.row(j)
+                        << "), but within tolerance of 1e-4 only. Distance: " << distance << std::endl;
+                }
+                B(i) = j;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            std::cerr << "Error: Boundary vertex at index " << i
+                << " (" << boundary_vertices.row(i)
+                << ") not found in V." << std::endl;
+            return false;  // Early exit if a boundary vertex is missing
+        }
+
+        // Set the UV coordinates in BC for the boundary
+        double angle = 2.0 * 3.14159265358979323846 * i / boundary_vertices.rows();
+        BC(i, 0) = std::cos(angle);  // u-coordinate
+        BC(i, 1) = std::sin(angle);  // v-coordinate
+    }
+
+
+
+
+
+    std::cout << "poutncloud " << boundary_vertices.rows() << std::endl;
+
     // Perform LSCM parametrization
     std::cout << "Performing LSCM parametrization..." << std::endl;
-    igl::lscm(V, F, UV);
+    igl::lscm(V, F, B, BC, UV);
 
     // Print size of UV matrix
     std::cout << "UV matrix size after LSCM: " << UV.rows() << " x " << UV.cols() << std::endl;

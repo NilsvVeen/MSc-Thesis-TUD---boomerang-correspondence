@@ -42,6 +42,8 @@ void showMeshes();
 // Function to handle STL file loading and processing
 void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& N);
 
+Eigen::MatrixXd readVerticesFromPLY(const std::string& filename);
+
 bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F);
 
 bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V);

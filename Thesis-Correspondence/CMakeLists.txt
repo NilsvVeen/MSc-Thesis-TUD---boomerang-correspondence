@@ -7,7 +7,7 @@ project ("Thesis-Correspondence")
 
 
 # Add source to this project's executable.
-add_executable (Thesis-Correspondence "Thesis-Correspondence.cpp" "Thesis-Correspondence.h"  "geometry.cpp" "geometry.h" "file_utils.cpp" "file_utils.h" "sfml_utils.cpp" "sfml_utils.h" "stl_utils.cpp" "stl_utils.h" "border_vertex_extraction.cpp" "border_vertex_extraction.h" "parameterize.h" "parameterize.cpp" "2dCorrespondenceTo3d.h" "2dCorrespondenceTo3d.cpp" "parameterizeSurface.cpp" "parameterizeSurface.h")
+add_executable (Thesis-Correspondence "Thesis-Correspondence.cpp" "Thesis-Correspondence.h"  "geometry.cpp" "geometry.h" "file_utils.cpp" "file_utils.h" "sfml_utils.cpp" "sfml_utils.h" "stl_utils.cpp" "stl_utils.h" "border_vertex_extraction.cpp" "border_vertex_extraction.h" "parameterize.h" "parameterize.cpp" "2dCorrespondenceTo3d.h" "2dCorrespondenceTo3d.cpp" "parameterizeSurface.cpp" "parameterizeSurface.h" "random_files.cpp")
 
 # Set default build type to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)

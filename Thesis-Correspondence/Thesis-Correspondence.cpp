@@ -19,6 +19,7 @@
 #ifndef PI
 #define PI 3.14159265358979323846
 #endif
+#include <regex>
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
@@ -259,11 +260,11 @@ int main()
         }
     }
 
-
+    const std::string DEFAULT_2dto3d_FOLDER = "2d_Curve_in_3d";
     if (correspondences2dto3d) {
         const std::string meshesFolder = DEFAULT_CORRESPONDENCES_meshes_FOLDER;
         const std::string pointCloudsFolder = DEFAULT_CORRESPONDENCES_FOLDER;
-        const std::string Curve2dTo3dFolder = "2d_Curve_in_3d";
+        const std::string Curve2dTo3dFolder = DEFAULT_2dto3d_FOLDER;
 
         // Declare variables to hold the data
         Eigen::MatrixXd Mesh1_V, Mesh2_V;
@@ -310,10 +311,6 @@ int main()
 
         std::cout << "surface Parameterization:" << std::endl;
 
-        //polyscope::init();
-        //polyscope::removeAllGroups();
-        //polyscope::removeAllStructures();
-
         const std::string surfaceParam = "surfaceParameterize";
         createDirectory(surfaceParam);
         clearDirectory(surfaceParam);
@@ -323,30 +320,13 @@ int main()
         readMeshFromFile( "2d_Curve_in_3d/Mesh1.obj", Mesh1_V, Mesh1_F);
 
 
+        std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
+        std::string V2_regex = "V1_pointcloud_(\\d+)\\.txt";
+
+        Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
 
 
         Eigen::MatrixXd UV1;
-
-        Eigen::MatrixXd V = readVerticesFromPLY("2d_Curve_in_3d/V1_pointcloud_0.txt");
-        Eigen::MatrixXd V2 = readVerticesFromPLY("2d_Curve_in_3d/V1_pointcloud_1.txt");
-
-        Eigen::MatrixXd V3(V.rows() + V2.rows(), V.cols());
-
-
-
-        if (V.cols() == V2.cols()) {
-            // Create V3 with enough rows to hold both V and V2, and the same number of columns
-
-            // Assign V and V2 to the appropriate blocks of V3
-            V3.topRows(V.rows()) = V;
-            V3.bottomRows(V2.rows()) = V2;
-
-            std::cout << "V3:\n" << V3 << std::endl;
-        }
-        else {
-            std::cerr << "Error: V and V2 must have the same number of columns to concatenate." << std::endl;
-        }
-
         if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3)) {
             std::cerr << "Surface parameterization failed.\n";
             return EXIT_FAILURE;
@@ -356,7 +336,6 @@ int main()
 
         //saveMeshToFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "UV.obj", UV1, Mesh1_F);
 
-        std::cout << UV1 << std::endl;
 
 
         //Eigen::MatrixXd Mesh2_V;

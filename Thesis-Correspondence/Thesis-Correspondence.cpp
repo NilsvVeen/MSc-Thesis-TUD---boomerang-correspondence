@@ -257,6 +257,9 @@ int main()
 
             Eigen::MatrixXd border_V = getBorderVerticesMatrix(MeshA_V, MeshA_F);
 
+            showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
+
+
             Eigen::MatrixXd removed_V;
             removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V);
             countConnectedComponents(MeshB_F);

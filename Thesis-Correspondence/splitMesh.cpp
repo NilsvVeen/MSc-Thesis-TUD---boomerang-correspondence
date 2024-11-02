@@ -29,133 +29,46 @@
 void removeVerticesWithTwoFacesAndBorderEdges(
     const Eigen::MatrixXd& MeshA_V,
     const Eigen::MatrixXi& MeshA_F,
-    Eigen::MatrixXd& border_V, // Change border_V to Eigen::MatrixXd
+    Eigen::MatrixXd& border_V, // Matrix of border vertices
     Eigen::MatrixXd& MeshB_V,
     Eigen::MatrixXi& MeshB_F,
-    Eigen::MatrixXd& removed_V // Changed to Eigen::MatrixXd
+    Eigen::MatrixXd& removed_V // Matrix of removed vertices
 ) {
-    std::cout << "Starting vertex removal..." << std::flush;
+    // Create a map to count the number of faces each vertex belongs to
+    std::unordered_map<int, int> vertexFaceCount;
 
-    // Step 1: Create an adjacency list to keep track of vertex connectivity
-    std::vector<std::vector<int>> vertexFaces(MeshA_V.rows());
+    // Count the faces for each vertex in MeshA_F
     for (int f = 0; f < MeshA_F.rows(); ++f) {
         for (int j = 0; j < 3; ++j) {
-            vertexFaces[MeshA_F(f, j)].push_back(f);
+            vertexFaceCount[MeshA_F(f, j)]++;
         }
     }
-    std::cout << "\rAdjacency list created." << std::flush;
 
-    // Convert border_V to a set for fast lookups
-    std::unordered_set<int> borderSet;
+    // Use a set to keep track of printed border vertices
+    std::unordered_set<int> printedVertices;
+
+    // Loop over border vertices and check their face count
     for (int i = 0; i < border_V.rows(); ++i) {
-        borderSet.insert(static_cast<int>(border_V(i, 0))); // Assuming border_V contains vertex indices in the first column
-    }
-    std::cout << "\rBorder set created with " << borderSet.size() << " vertices." << std::flush;
+        int borderVertexIndex = static_cast<int>(border_V(i, 0)); // Assuming the first column has the vertex indices
 
-    // Step 2: Find vertices to remove
-    std::unordered_set<int> toRemove;
-    for (int v = 0; v < MeshA_V.rows(); ++v) {
-        if (vertexFaces[v].size() == 2) {
-            int face1 = vertexFaces[v][0];
-            int face2 = vertexFaces[v][1];
+        // Check if the border vertex is part of exactly 2 faces
+        if (vertexFaceCount[borderVertexIndex] == 2) {
+            // Check if this vertex has already been printed
+            if (printedVertices.find(borderVertexIndex) == printedVertices.end()) {
+                // Retrieve the vertex coordinates from MeshA_V
+                Eigen::RowVector3d vertexCoordinates = MeshA_V.row(borderVertexIndex);
 
-            // Get the other vertices of the two faces
-            std::unordered_set<int> neighboringVertices;
-            for (int j = 0; j < 3; ++j) {
-                if (MeshA_F(face1, j) != v) neighboringVertices.insert(MeshA_F(face1, j));
-                if (MeshA_F(face2, j) != v) neighboringVertices.insert(MeshA_F(face2, j));
-            }
+                // Print the border vertex index and its coordinates
+                std::cout << "Border vertex " << borderVertexIndex
+                    << " (MeshA_V index) at coordinates "
+                    << vertexCoordinates.transpose()
+                    << " is part of 2 faces." << std::endl;
 
-            // Check if both neighboring vertices are in the border set
-            if (neighboringVertices.size() == 2) {
-                bool bothInBorder = true;
-                for (int nv : neighboringVertices) {
-                    if (borderSet.find(nv) == borderSet.end()) {
-                        bothInBorder = false;
-                        break;
-                    }
-                }
-                if (bothInBorder) {
-                    toRemove.insert(v);
-                }
+                printedVertices.insert(borderVertexIndex); // Add to printed set
             }
         }
-
-        // Update progress in the same line
-        if (v % 100 == 0 || v == MeshA_V.rows() - 1) { // Show progress every 100 vertices or at the end
-            std::cout << "\rChecking vertices: " << v + 1 << "/" << MeshA_V.rows() << std::flush;
-        }
     }
-    std::cout << "\rVertex removal check completed. Found " << toRemove.size() << " vertices to remove." << std::flush;
-
-    // Step 3: Construct new mesh and list of removed vertices
-    std::unordered_map<int, int> oldToNewIndex; // Map old vertex indices to new indices
-    std::vector<Eigen::RowVector3d> removedVertices; // To collect removed vertices
-    for (int v = 0; v < MeshA_V.rows(); ++v) {
-        if (toRemove.find(v) == toRemove.end()) { // Not marked for removal
-            int newIndex = MeshB_V.rows();
-            MeshB_V.conservativeResize(newIndex + 1, 3);
-            MeshB_V.row(newIndex) = MeshA_V.row(v);
-            oldToNewIndex[v] = newIndex;
-        }
-        else {
-            // Collect the removed vertex
-            removedVertices.push_back(MeshA_V.row(v));
-        }
-
-        // Print progress within this step
-        if (v % 100 == 0 || v == MeshA_V.rows() - 1) { // Show progress every 100 vertices or at the end
-            std::cout << "\rProcessing vertex: " << v + 1 << "/" << MeshA_V.rows() << " (Removed: " << removedVertices.size() << ")" << std::flush;
-        }
-    }
-    std::cout << "\rNew mesh constructed. " << removedVertices.size() << " vertices removed." << std::flush;
-
-    // Convert to Eigen matrix for removed vertices
-    removed_V.resize(removedVertices.size(), 3);
-    for (size_t i = 0; i < removedVertices.size(); ++i) {
-        removed_V.row(i) = removedVertices[i];
-    }
-    std::cout << "\rRemoved vertices stored." << std::flush;
-
-    // Step 4: Create new faces for MeshB
-    std::vector<Eigen::RowVector3i> newFaces;
-    for (int f = 0; f < MeshA_F.rows(); ++f) {
-        if (toRemove.find(MeshA_F(f, 0)) == toRemove.end() &&
-            toRemove.find(MeshA_F(f, 1)) == toRemove.end() &&
-            toRemove.find(MeshA_F(f, 2)) == toRemove.end()) {
-            Eigen::RowVector3i newFace;
-            for (int j = 0; j < 3; ++j) {
-                newFace(j) = oldToNewIndex[MeshA_F(f, j)];
-            }
-            newFaces.push_back(newFace);
-        }
-    }
-    // Convert to Eigen matrix for faces
-    MeshB_F.resize(newFaces.size(), 3);
-    for (size_t i = 0; i < newFaces.size(); ++i) {
-        MeshB_F.row(i) = newFaces[i];
-    }
-    std::cout << "\rNew faces created for MeshB." << std::flush;
-
-    // Step 5: Remove the vertices from border_V
-    std::vector<int> newBorderVertices;
-    for (int i = 0; i < border_V.rows(); ++i) {
-        if (toRemove.find(static_cast<int>(border_V(i, 0))) == toRemove.end()) {
-            newBorderVertices.push_back(static_cast<int>(border_V(i, 0)));
-        }
-    }
-
-    // Resize border_V to contain only the new border vertices
-    border_V.resize(newBorderVertices.size(), 1);
-    for (size_t i = 0; i < newBorderVertices.size(); ++i) {
-        border_V(i, 0) = newBorderVertices[i];
-    }
-    std::cout << "\rBorder vertices updated. New border size: " << border_V.rows() << std::flush;
-
-    std::cout << "\rFinished removing vertices. Removed border vertices: " << removed_V.rows()
-        << ", New border vertices: " << border_V.rows() << std::endl;
 }
-
 
 
 void showMeshAndPointCloud(const Eigen::MatrixXd& meshV, const Eigen::MatrixXi& meshF, const Eigen::MatrixXd& pointCloud) {

@@ -20,6 +20,7 @@
 #define PI 3.14159265358979323846
 #endif
 #include <regex>
+#include "splitMesh.h"
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
@@ -235,11 +236,61 @@ int main()
 
         Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
 
+        if (true) {
 
-        Eigen::MatrixXd UV1;
-        if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3)) {
-            std::cerr << "Surface parameterization failed.\n";
-            return EXIT_FAILURE;
+            std::cout << "split Meshes" << std::endl;
+
+            const std::string splitmesh = "SplitMeshes";
+            createDirectory(splitmesh);
+            clearDirectory(splitmesh);
+
+
+            Eigen::MatrixXd MeshA_V;
+            Eigen::MatrixXi MeshA_F;
+            Eigen::MatrixXd MeshB_V;
+            Eigen::MatrixXi MeshB_F;
+
+            
+
+            RemoveVerticesAndFaces(Mesh1_V, Mesh1_F, V3, MeshA_V, MeshA_F);
+            countConnectedComponents(MeshA_F);
+
+            Eigen::MatrixXd border_V = getBorderVerticesMatrix(MeshA_V, MeshA_F);
+
+            Eigen::MatrixXd removed_V;
+            removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V);
+            countConnectedComponents(MeshB_F);
+
+
+
+            showMeshAndPointCloud(MeshB_V, MeshB_F, border_V);
+
+
+
+
+
+
+
+
+            saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
+
+
+            //splitMeshByVerticesOnEdges(Mesh1_V,
+            //    Mesh1_F, V3, MeshA_V, MeshA_F, MeshB_V, MeshB_F);
+
+            //saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
+            //saveMeshToFile(splitmesh + "/B.obj", MeshB_V, MeshB_F);
+
+        }
+
+
+        // parameterize whole surface
+        if (false) {
+            Eigen::MatrixXd UV1;
+            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3)) {
+                std::cerr << "Surface parameterization failed.\n";
+                return EXIT_FAILURE;
+            }
         }
 
 

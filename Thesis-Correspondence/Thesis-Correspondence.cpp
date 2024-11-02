@@ -35,9 +35,9 @@ int main()
 {
 
     //// Create a directory for output files
-    std::string directoryName = "output_files_1";
+    std::string directoryName = "output_files_3";
     createDirectory(directoryName);
-    std::string directoryName2 = "output_files_2";
+    std::string directoryName2 = "output_files_4";
     createDirectory(directoryName2);
 
 
@@ -50,7 +50,7 @@ int main()
         // Print files in the global models directory
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_02.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -68,7 +68,7 @@ int main()
         // Print files in the global models directory
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_03.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);

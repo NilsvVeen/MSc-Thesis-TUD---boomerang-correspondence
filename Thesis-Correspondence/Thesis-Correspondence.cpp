@@ -261,7 +261,8 @@ int main()
 
 
             Eigen::MatrixXd removed_V;
-            removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V);
+            Eigen::MatrixXd border_V_new;
+            removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V, border_V_new);
             countConnectedComponents(MeshB_F);
 
 
@@ -273,6 +274,7 @@ int main()
 
 
 
+            showMeshAndPointCloud(MeshB_V, MeshB_F, border_V_new);
 
 
             Eigen::MatrixXd Mesh_V_Split1;
@@ -283,11 +285,10 @@ int main()
             splitMeshIn2(MeshB_V,
                 MeshB_F, Mesh_V_Split1, Mesh_F_Split1, Mesh_V_Split2, Mesh_F_Split2);
 
-            showMeshAndPointCloud(Mesh_V_Split1, Mesh_F_Split1, border_V);
 
 
-            saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
-            saveMeshToFile(splitmesh + "/B.obj", MeshB_V, MeshB_F);
+            saveMeshToFile(splitmesh + "/A.obj", Mesh_V_Split1, Mesh_F_Split1);
+            saveMeshToFile(splitmesh + "/B.obj", Mesh_V_Split2, Mesh_F_Split2);
 
 
 

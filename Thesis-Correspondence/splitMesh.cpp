@@ -32,7 +32,8 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     Eigen::MatrixXd& border_V, // Matrix of border vertices
     Eigen::MatrixXd& MeshB_V,
     Eigen::MatrixXi& MeshB_F,
-    Eigen::MatrixXd& removed_V // Matrix of removed vertices
+    Eigen::MatrixXd& removed_V, // Matrix of removed vertices
+    Eigen::MatrixXd& border_V_new // Matrix of border vertices excluding removed ones
 ) {
     // Print input sizes
     std::cout << "Input MeshA_V size: " << MeshA_V.rows() << " vertices" << std::endl;
@@ -177,24 +178,30 @@ void removeVerticesWithTwoFacesAndBorderEdges(
         removed_V.row(index++) = MeshA_V.row(vertexIndex);
     }
 
-    // Update border_V to exclude the removed vertices
+    // Update border_V_new to include only the border vertices that were not removed
     std::vector<Eigen::RowVector3d> newBorderVertices;
     for (int i = 0; i < border_V.rows(); ++i) {
-        int borderVertexIndex = static_cast<int>(border_V(i, 0));
-        if (verticesToRemove.find(borderVertexIndex) == verticesToRemove.end()) {
+        bool isRemoved = false;
+        for (int j = 0; j < removed_V.rows(); ++j) {
+            if ((border_V.row(i) - removed_V.row(j)).norm() < tolerance) {
+                isRemoved = true;
+                break;
+            }
+        }
+        if (!isRemoved) {
             newBorderVertices.push_back(border_V.row(i));
         }
     }
-    border_V.resize(newBorderVertices.size(), 3);
+    border_V_new.resize(newBorderVertices.size(), 3);
     for (size_t j = 0; j < newBorderVertices.size(); ++j) {
-        border_V.row(j) = newBorderVertices[j];
+        border_V_new.row(j) = newBorderVertices[j];
     }
 
     // Print output sizes
     std::cout << "Output MeshB_V size: " << MeshB_V.rows() << " vertices" << std::endl;
     std::cout << "Output MeshB_F size: " << MeshB_F.rows() << " faces" << std::endl;
     std::cout << "Output removed_V size: " << removed_V.rows() << " removed vertices" << std::endl;
-    std::cout << "Output border_V size: " << border_V.rows() << " border vertices" << std::endl;
+    std::cout << "Output border_V_new size: " << border_V_new.rows() << " border vertices (excluding removed)" << std::endl;
 }
 
 void showMeshAndPointCloud(const Eigen::MatrixXd& meshV, const Eigen::MatrixXi& meshF, const Eigen::MatrixXd& pointCloud) {

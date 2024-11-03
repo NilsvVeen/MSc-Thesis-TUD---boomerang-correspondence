@@ -60,62 +60,96 @@ void removeVerticesWithTwoFacesAndBorderEdges(
         }
     }
 
-    // Map to keep track of vertices to remove based on connection criteria
+    // Set to keep track of vertices to remove based on the conditions
     std::unordered_set<int> verticesToRemove;
 
     // Iterate over each border vertex index
     for (const int borderVertexIndex : borderVertexIndices) {
-        std::unordered_map<int, std::unordered_set<int>> faceToBorderVertices;
-        std::unordered_set<int> uniqueConnectedBorderVertices;
+        std::vector<int> facesContainingVertex;
 
-        // Gather all border vertices in faces containing the border vertex (excluding itself)
+        // Collect all faces containing this border vertex
         for (int f = 0; f < MeshA_F.rows(); ++f) {
-            bool faceContainsBorderVertex = false;
-
-            // Check if the face contains the border vertex
             for (int j = 0; j < 3; ++j) {
                 if (MeshA_F(f, j) == borderVertexIndex) {
-                    faceContainsBorderVertex = true;
+                    facesContainingVertex.push_back(f);
                     break;
-                }
-            }
-
-            // If face contains the border vertex, check each vertex in the face
-            if (faceContainsBorderVertex) {
-                std::unordered_set<int> currentFaceBorderVertices;
-
-                for (int j = 0; j < 3; ++j) {
-                    int vertexIndex = MeshA_F(f, j);
-                    // If this vertex is also a border vertex and not the current border vertex
-                    if (vertexIndex != borderVertexIndex && borderVertexIndices.count(vertexIndex)) {
-                        currentFaceBorderVertices.insert(vertexIndex);
-                    }
-                }
-
-                // Check if this face has shared vertices with any previous face
-                bool hasSharedVertices = false;
-                for (const auto& [face, faceBorderVertices] : faceToBorderVertices) {
-                    for (int v : currentFaceBorderVertices) {
-                        if (faceBorderVertices.count(v) > 0) {
-                            hasSharedVertices = true;
-                            break;
-                        }
-                    }
-                    if (hasSharedVertices) break;
-                }
-
-                // If there are no shared border vertices, add to unique count
-                if (!hasSharedVertices) {
-                    uniqueConnectedBorderVertices.insert(
-                        currentFaceBorderVertices.begin(), currentFaceBorderVertices.end()
-                    );
-                    faceToBorderVertices[f] = std::move(currentFaceBorderVertices);
                 }
             }
         }
 
-        // Only remove the vertex if the count of unique, non-shared border vertices is exactly 4
-        if (uniqueConnectedBorderVertices.size() == 4) {
+        // Apply the rules based on the number of faces containing this vertex
+        int faceCount = facesContainingVertex.size();
+        bool shouldRemove = false;
+
+        // Rule based on unique border vertices count
+        int uniqueBorderVertexCount = 0;
+        std::unordered_set<int> uniqueBorderVertices;
+        for (int face : facesContainingVertex) {
+            for (int j = 0; j < 3; ++j) {
+                int vertexIndex = MeshA_F(face, j);
+                if (vertexIndex != borderVertexIndex && borderVertexIndices.count(vertexIndex) > 0) {
+                    uniqueBorderVertices.insert(vertexIndex);
+                }
+            }
+        }
+        uniqueBorderVertexCount = uniqueBorderVertices.size();
+
+        // Ensure that the sum of the unique vertices in faces containing border vertex x is exactly 4
+        if (uniqueBorderVertexCount == 4) {
+            // Additional conditions based on the face count
+            if (faceCount == 2) {
+                // Rule 1: All vertices in both faces must be border vertices
+                shouldRemove = true;
+                for (int face : facesContainingVertex) {
+                    for (int j = 0; j < 3; ++j) {
+                        int vertexIndex = MeshA_F(face, j);
+                        if (vertexIndex != borderVertexIndex && borderVertexIndices.find(vertexIndex) == borderVertexIndices.end()) {
+                            shouldRemove = false;
+                            break;
+                        }
+                    }
+                    if (!shouldRemove) break;
+                }
+            }
+            else if (faceCount == 3) {
+                // Rule 2: One face should have 3 border vertices, two should have 2
+                int facesWithThreeBorderVertices = 0;
+                int facesWithTwoBorderVertices = 0;
+
+                for (int face : facesContainingVertex) {
+                    int borderVertexCount = 0;
+                    for (int j = 0; j < 3; ++j) {
+                        int vertexIndex = MeshA_F(face, j);
+                        if (vertexIndex == borderVertexIndex || borderVertexIndices.count(vertexIndex) > 0) {
+                            borderVertexCount++;
+                        }
+                    }
+                    if (borderVertexCount == 3) facesWithThreeBorderVertices++;
+                    if (borderVertexCount == 2) facesWithTwoBorderVertices++;
+                }
+                shouldRemove = (facesWithThreeBorderVertices == 1 && facesWithTwoBorderVertices == 2);
+            }
+            else if (faceCount == 4) {
+                // Rule 3: Each of the 4 faces must have exactly 2 border vertices (including x)
+                shouldRemove = true;
+                for (int face : facesContainingVertex) {
+                    int borderVertexCount = 0;
+                    for (int j = 0; j < 3; ++j) {
+                        int vertexIndex = MeshA_F(face, j);
+                        if (vertexIndex == borderVertexIndex || borderVertexIndices.count(vertexIndex) > 0) {
+                            borderVertexCount++;
+                        }
+                    }
+                    if (borderVertexCount != 2) {
+                        shouldRemove = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // If all conditions are met, mark this vertex for removal
+        if (shouldRemove) {
             verticesToRemove.insert(borderVertexIndex);
         }
     }

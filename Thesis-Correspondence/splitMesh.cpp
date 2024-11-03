@@ -25,7 +25,6 @@
 #include <polyscope/point_cloud.h>
 #include <Eigen/Dense>
 
-// Function to remove vertices with specific conditions
 void removeVerticesWithTwoFacesAndBorderEdges(
     const Eigen::MatrixXd& MeshA_V,
     const Eigen::MatrixXi& MeshA_F,
@@ -34,48 +33,65 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     Eigen::MatrixXi& MeshB_F,
     Eigen::MatrixXd& removed_V // Matrix of removed vertices
 ) {
-
     // Print input sizes
     std::cout << "Input MeshA_V size: " << MeshA_V.rows() << " vertices" << std::endl;
     std::cout << "Input MeshA_F size: " << MeshA_F.rows() << " faces" << std::endl;
     std::cout << "Input border_V size: " << border_V.rows() << " border vertices" << std::endl;
 
+    // Set to store indices of border vertices in MeshA_V based on coordinate matching
+    std::unordered_set<int> borderVertexIndices;
+    double tolerance = 1e-4;
 
-    // Create a map to count the number of faces each vertex belongs to
-    std::unordered_map<int, int> vertexFaceCount;
-
-    // Count the faces for each vertex in MeshA_F
-    for (int f = 0; f < MeshA_F.rows(); ++f) {
-        for (int j = 0; j < 3; ++j) {
-            vertexFaceCount[MeshA_F(f, j)]++;
+    // Match each vertex in border_V to a corresponding vertex in MeshA_V by coordinates
+    for (int i = 0; i < border_V.rows(); ++i) {
+        bool found = false;
+        for (int j = 0; j < MeshA_V.rows(); ++j) {
+            double distance = (MeshA_V.row(j) - border_V.row(i)).norm();
+            if (distance < tolerance) {
+                borderVertexIndices.insert(j);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            std::cout << "Warning: No close match found in MeshA_V for border vertex at "
+                << border_V.row(i) << std::endl;
         }
     }
 
-    // Use a set to keep track of vertices to remove
+    // Set to keep track of vertices to remove
     std::unordered_set<int> verticesToRemove;
-    // Use a set to keep track of printed border vertices
-    std::unordered_set<int> printedVertices;
 
-    // Loop over border vertices and check their face count
-    for (int i = 0; i < border_V.rows(); ++i) {
-        int borderVertexIndex = static_cast<int>(border_V(i, 0)); // Assuming the first column has the vertex indices
+    // Iterate over each border vertex matched index in MeshA_V
+    for (const int borderVertexIndex : borderVertexIndices) {
+        bool allFacesContainBorderVertices = true;
 
-        // Check if the border vertex is part of exactly 2 faces
-        if (vertexFaceCount[borderVertexIndex] == 2) {
-            // Check if this vertex has already been printed
-            if (printedVertices.find(borderVertexIndex) == printedVertices.end()) {
-                // Retrieve the vertex coordinates from MeshA_V
-                Eigen::RowVector3d vertexCoordinates = MeshA_V.row(borderVertexIndex);
-
-                // Print the border vertex index and its coordinates
-                std::cout << "Border vertex " << borderVertexIndex
-                    << " (MeshA_V index) at coordinates "
-                    << vertexCoordinates.transpose()
-                    << " is part of 2 faces." << std::endl;
-
-                printedVertices.insert(borderVertexIndex); // Add to printed set
-                verticesToRemove.insert(borderVertexIndex); // Mark this vertex for removal
+        // Go through each face to check for faces containing the border vertex
+        for (int f = 0; f < MeshA_F.rows(); ++f) {
+            bool faceContainsVertex = false;
+            for (int j = 0; j < 3; ++j) {
+                if (MeshA_F(f, j) == borderVertexIndex) {
+                    faceContainsVertex = true;
+                    break;
+                }
             }
+
+            if (faceContainsVertex) {
+                // Check if all vertices of this face are in borderVertexIndices
+                for (int j = 0; j < 3; ++j) {
+                    if (borderVertexIndices.find(MeshA_F(f, j)) == borderVertexIndices.end()) {
+                        allFacesContainBorderVertices = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!allFacesContainBorderVertices) break;
+        }
+
+        // If all faces with this vertex have vertices entirely within borderVertexIndices, mark for removal
+        if (allFacesContainBorderVertices) {
+            verticesToRemove.insert(borderVertexIndex);
         }
     }
 

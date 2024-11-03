@@ -131,30 +131,7 @@ void removeVerticesWithTwoFacesAndBorderEdges(
             }
             else if (faceCount == 4) {
                 // todo fix this add conditions
-                // todo fix this add conditions
-                // todo fix this add conditions
-                // todo fix this add conditions
-                // todo fix this add conditions
-                // todo fix this add conditions
-                // todo fix this add conditions
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                // todo fix this 
-                shouldRemove = true; 
+                shouldRemove = true;
             }
         }
 
@@ -165,29 +142,27 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     }
 
     // Create new vertex list for MeshB_V excluding the vertices to remove
-    std::vector<Eigen::RowVector3d> newVertices;
+    MeshB_V.resize(MeshA_V.rows() - verticesToRemove.size(), MeshA_V.cols());
+    int newIndex = 0;
+    std::vector<int> oldToNewIndex(MeshA_V.rows(), -1);
     for (int v = 0; v < MeshA_V.rows(); ++v) {
         if (verticesToRemove.find(v) == verticesToRemove.end()) {
-            newVertices.push_back(MeshA_V.row(v));
+            MeshB_V.row(newIndex) = MeshA_V.row(v);
+            oldToNewIndex[v] = newIndex++;
         }
-    }
-    MeshB_V = Eigen::MatrixXd(newVertices.size(), 3);
-    for (size_t j = 0; j < newVertices.size(); ++j) {
-        MeshB_V.row(j) = newVertices[j];
     }
 
     // Create new face list for MeshB_F excluding faces that reference removed vertices
     std::vector<Eigen::Vector3i> newFaces;
     for (int f = 0; f < MeshA_F.rows(); ++f) {
-        bool faceValid = true;
-        for (int j = 0; j < 3; ++j) {
-            if (verticesToRemove.find(MeshA_F(f, j)) != verticesToRemove.end()) {
-                faceValid = false;
-                break;
-            }
-        }
-        if (faceValid) {
-            newFaces.push_back(MeshA_F.row(f));
+        int v0 = MeshA_F(f, 0);
+        int v1 = MeshA_F(f, 1);
+        int v2 = MeshA_F(f, 2);
+
+        if (verticesToRemove.find(v0) == verticesToRemove.end() &&
+            verticesToRemove.find(v1) == verticesToRemove.end() &&
+            verticesToRemove.find(v2) == verticesToRemove.end()) {
+            newFaces.emplace_back(oldToNewIndex[v0], oldToNewIndex[v1], oldToNewIndex[v2]);
         }
     }
     MeshB_F = Eigen::MatrixXi(newFaces.size(), 3);
@@ -199,8 +174,7 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     removed_V.resize(verticesToRemove.size(), 3);
     int index = 0;
     for (const auto& vertexIndex : verticesToRemove) {
-        removed_V.row(index) = MeshA_V.row(vertexIndex);
-        index++;
+        removed_V.row(index++) = MeshA_V.row(vertexIndex);
     }
 
     // Update border_V to exclude the removed vertices
@@ -222,7 +196,6 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     std::cout << "Output removed_V size: " << removed_V.rows() << " removed vertices" << std::endl;
     std::cout << "Output border_V size: " << border_V.rows() << " border vertices" << std::endl;
 }
-
 
 void showMeshAndPointCloud(const Eigen::MatrixXd& meshV, const Eigen::MatrixXi& meshF, const Eigen::MatrixXd& pointCloud) {
     // Initialize Polyscope

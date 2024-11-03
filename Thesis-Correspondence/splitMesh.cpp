@@ -25,6 +25,7 @@
 #include <polyscope/point_cloud.h>
 #include <Eigen/Dense>
 
+
 void removeVerticesWithTwoFacesAndBorderEdges(
     const Eigen::MatrixXd& MeshA_V,
     const Eigen::MatrixXi& MeshA_F,
@@ -59,11 +60,27 @@ void removeVerticesWithTwoFacesAndBorderEdges(
         }
     }
 
+    // Map to keep track of the number of faces each border vertex is part of
+    std::unordered_map<int, int> faceCount;
+
+    // Count the number of faces each border vertex is part of
+    for (int f = 0; f < MeshA_F.rows(); ++f) {
+        for (int j = 0; j < 3; ++j) {
+            int vertexIndex = MeshA_F(f, j);
+            if (borderVertexIndices.find(vertexIndex) != borderVertexIndices.end()) {
+                faceCount[vertexIndex]++;
+            }
+        }
+    }
+
     // Set to keep track of vertices to remove
     std::unordered_set<int> verticesToRemove;
 
     // Iterate over each border vertex matched index in MeshA_V
     for (const int borderVertexIndex : borderVertexIndices) {
+        // Check if the vertex is part of at least two faces
+        if (faceCount[borderVertexIndex] < 2) continue;
+
         bool allFacesContainBorderVertices = true;
 
         // Go through each face to check for faces containing the border vertex

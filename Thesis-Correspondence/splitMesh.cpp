@@ -34,6 +34,13 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     Eigen::MatrixXi& MeshB_F,
     Eigen::MatrixXd& removed_V // Matrix of removed vertices
 ) {
+
+    // Print input sizes
+    std::cout << "Input MeshA_V size: " << MeshA_V.rows() << " vertices" << std::endl;
+    std::cout << "Input MeshA_F size: " << MeshA_F.rows() << " faces" << std::endl;
+    std::cout << "Input border_V size: " << border_V.rows() << " border vertices" << std::endl;
+
+
     // Create a map to count the number of faces each vertex belongs to
     std::unordered_map<int, int> vertexFaceCount;
 
@@ -44,6 +51,8 @@ void removeVerticesWithTwoFacesAndBorderEdges(
         }
     }
 
+    // Use a set to keep track of vertices to remove
+    std::unordered_set<int> verticesToRemove;
     // Use a set to keep track of printed border vertices
     std::unordered_set<int> printedVertices;
 
@@ -65,9 +74,68 @@ void removeVerticesWithTwoFacesAndBorderEdges(
                     << " is part of 2 faces." << std::endl;
 
                 printedVertices.insert(borderVertexIndex); // Add to printed set
+                verticesToRemove.insert(borderVertexIndex); // Mark this vertex for removal
             }
         }
     }
+
+    // Create new vertex list for MeshB_V excluding the vertices to remove
+    std::vector<Eigen::RowVector3d> newVertices;
+    for (int v = 0; v < MeshA_V.rows(); ++v) {
+        if (verticesToRemove.find(v) == verticesToRemove.end()) {
+            newVertices.push_back(MeshA_V.row(v));
+        }
+    }
+    MeshB_V = Eigen::MatrixXd(newVertices.size(), 3);
+    for (size_t j = 0; j < newVertices.size(); ++j) {
+        MeshB_V.row(j) = newVertices[j];
+    }
+
+    // Create new face list for MeshB_F excluding faces that reference removed vertices
+    std::vector<Eigen::Vector3i> newFaces;
+    for (int f = 0; f < MeshA_F.rows(); ++f) {
+        bool faceValid = true;
+        for (int j = 0; j < 3; ++j) {
+            if (verticesToRemove.find(MeshA_F(f, j)) != verticesToRemove.end()) {
+                faceValid = false;
+                break;
+            }
+        }
+        if (faceValid) {
+            newFaces.push_back(MeshA_F.row(f));
+        }
+    }
+    MeshB_F = Eigen::MatrixXi(newFaces.size(), 3);
+    for (size_t j = 0; j < newFaces.size(); ++j) {
+        MeshB_F.row(j) = newFaces[j];
+    }
+
+    // Update removed_V with the coordinates of the removed vertices
+    removed_V.resize(verticesToRemove.size(), 3);
+    int index = 0;
+    for (const auto& vertexIndex : verticesToRemove) {
+        removed_V.row(index) = MeshA_V.row(vertexIndex);
+        index++;
+    }
+
+    // Update border_V to exclude the removed vertices
+    std::vector<Eigen::RowVector3d> newBorderVertices;
+    for (int i = 0; i < border_V.rows(); ++i) {
+        int borderVertexIndex = static_cast<int>(border_V(i, 0));
+        if (verticesToRemove.find(borderVertexIndex) == verticesToRemove.end()) {
+            newBorderVertices.push_back(border_V.row(i));
+        }
+    }
+    border_V.resize(newBorderVertices.size(), 3);
+    for (size_t j = 0; j < newBorderVertices.size(); ++j) {
+        border_V.row(j) = newBorderVertices[j];
+    }
+
+    // Print output sizes
+    std::cout << "Output MeshB_V size: " << MeshB_V.rows() << " vertices" << std::endl;
+    std::cout << "Output MeshB_F size: " << MeshB_F.rows() << " faces" << std::endl;
+    std::cout << "Output removed_V size: " << removed_V.rows() << " removed vertices" << std::endl;
+    std::cout << "Output border_V size: " << border_V.rows() << " border vertices" << std::endl;
 }
 
 

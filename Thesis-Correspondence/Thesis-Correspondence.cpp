@@ -265,8 +265,10 @@ int main()
             countConnectedComponents(MeshB_F);
 
 
-
-            showMeshAndPointCloud(MeshB_V, MeshB_F, border_V);
+            polyscope::init();
+            polyscope::registerPointCloud("V issues", removed_V);
+            //showMeshAndPointCloud(MeshB_V, MeshB_F, border_V);
+            showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
 
 
 

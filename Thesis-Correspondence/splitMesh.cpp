@@ -65,7 +65,8 @@ void removeVerticesWithTwoFacesAndBorderEdges(
 
     // Iterate over each border vertex index
     for (const int borderVertexIndex : borderVertexIndices) {
-        std::unordered_set<int> connectedBorderVertices;
+        std::unordered_map<int, std::unordered_set<int>> faceToBorderVertices;
+        std::unordered_set<int> uniqueConnectedBorderVertices;
 
         // Gather all border vertices in faces containing the border vertex (excluding itself)
         for (int f = 0; f < MeshA_F.rows(); ++f) {
@@ -81,18 +82,40 @@ void removeVerticesWithTwoFacesAndBorderEdges(
 
             // If face contains the border vertex, check each vertex in the face
             if (faceContainsBorderVertex) {
+                std::unordered_set<int> currentFaceBorderVertices;
+
                 for (int j = 0; j < 3; ++j) {
                     int vertexIndex = MeshA_F(f, j);
-                    // If this vertex is also a border vertex and not the current border vertex, add it
+                    // If this vertex is also a border vertex and not the current border vertex
                     if (vertexIndex != borderVertexIndex && borderVertexIndices.count(vertexIndex)) {
-                        connectedBorderVertices.insert(vertexIndex);
+                        currentFaceBorderVertices.insert(vertexIndex);
                     }
+                }
+
+                // Check if this face has shared vertices with any previous face
+                bool hasSharedVertices = false;
+                for (const auto& [face, faceBorderVertices] : faceToBorderVertices) {
+                    for (int v : currentFaceBorderVertices) {
+                        if (faceBorderVertices.count(v) > 0) {
+                            hasSharedVertices = true;
+                            break;
+                        }
+                    }
+                    if (hasSharedVertices) break;
+                }
+
+                // If there are no shared border vertices, add to unique count
+                if (!hasSharedVertices) {
+                    uniqueConnectedBorderVertices.insert(
+                        currentFaceBorderVertices.begin(), currentFaceBorderVertices.end()
+                    );
+                    faceToBorderVertices[f] = std::move(currentFaceBorderVertices);
                 }
             }
         }
 
-        // Only remove the vertex if the count of connected border vertices is exactly 4
-        if (connectedBorderVertices.size() == 4) {
+        // Only remove the vertex if the count of unique, non-shared border vertices is exactly 4
+        if (uniqueConnectedBorderVertices.size() == 4) {
             verticesToRemove.insert(borderVertexIndex);
         }
     }

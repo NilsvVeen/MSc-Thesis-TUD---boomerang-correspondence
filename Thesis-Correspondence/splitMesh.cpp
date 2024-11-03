@@ -60,54 +60,39 @@ void removeVerticesWithTwoFacesAndBorderEdges(
         }
     }
 
-    // Map to keep track of the number of faces each border vertex is part of
-    std::unordered_map<int, int> faceCount;
-
-    // Count the number of faces each border vertex is part of
-    for (int f = 0; f < MeshA_F.rows(); ++f) {
-        for (int j = 0; j < 3; ++j) {
-            int vertexIndex = MeshA_F(f, j);
-            if (borderVertexIndices.find(vertexIndex) != borderVertexIndices.end()) {
-                faceCount[vertexIndex]++;
-            }
-        }
-    }
-
-    // Set to keep track of vertices to remove
+    // Map to keep track of vertices to remove based on connection criteria
     std::unordered_set<int> verticesToRemove;
 
-    // Iterate over each border vertex matched index in MeshA_V
+    // Iterate over each border vertex index
     for (const int borderVertexIndex : borderVertexIndices) {
-        // Check if the vertex is part of at least two faces
-        if (faceCount[borderVertexIndex] < 2) continue;
+        std::unordered_set<int> connectedBorderVertices;
 
-        bool allFacesContainBorderVertices = true;
-
-        // Go through each face to check for faces containing the border vertex
+        // Gather all border vertices in faces containing the border vertex (excluding itself)
         for (int f = 0; f < MeshA_F.rows(); ++f) {
-            bool faceContainsVertex = false;
+            bool faceContainsBorderVertex = false;
+
+            // Check if the face contains the border vertex
             for (int j = 0; j < 3; ++j) {
                 if (MeshA_F(f, j) == borderVertexIndex) {
-                    faceContainsVertex = true;
+                    faceContainsBorderVertex = true;
                     break;
                 }
             }
 
-            if (faceContainsVertex) {
-                // Check if all vertices of this face are in borderVertexIndices
+            // If face contains the border vertex, check each vertex in the face
+            if (faceContainsBorderVertex) {
                 for (int j = 0; j < 3; ++j) {
-                    if (borderVertexIndices.find(MeshA_F(f, j)) == borderVertexIndices.end()) {
-                        allFacesContainBorderVertices = false;
-                        break;
+                    int vertexIndex = MeshA_F(f, j);
+                    // If this vertex is also a border vertex and not the current border vertex, add it
+                    if (vertexIndex != borderVertexIndex && borderVertexIndices.count(vertexIndex)) {
+                        connectedBorderVertices.insert(vertexIndex);
                     }
                 }
             }
-
-            if (!allFacesContainBorderVertices) break;
         }
 
-        // If all faces with this vertex have vertices entirely within borderVertexIndices, mark for removal
-        if (allFacesContainBorderVertices) {
+        // Only remove the vertex if the count of connected border vertices is exactly 4
+        if (connectedBorderVertices.size() == 4) {
             verticesToRemove.insert(borderVertexIndex);
         }
     }

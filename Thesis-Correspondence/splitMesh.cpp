@@ -130,21 +130,31 @@ void removeVerticesWithTwoFacesAndBorderEdges(
                 shouldRemove = (facesWithThreeBorderVertices == 1 && facesWithTwoBorderVertices == 2);
             }
             else if (faceCount == 4) {
-                // Rule 3: Each of the 4 faces must have exactly 2 border vertices (including x)
-                shouldRemove = true;
-                for (int face : facesContainingVertex) {
-                    int borderVertexCount = 0;
-                    for (int j = 0; j < 3; ++j) {
-                        int vertexIndex = MeshA_F(face, j);
-                        if (vertexIndex == borderVertexIndex || borderVertexIndices.count(vertexIndex) > 0) {
-                            borderVertexCount++;
-                        }
-                    }
-                    if (borderVertexCount != 2) {
-                        shouldRemove = false;
-                        break;
-                    }
-                }
+                // todo fix this add conditions
+                // todo fix this add conditions
+                // todo fix this add conditions
+                // todo fix this add conditions
+                // todo fix this add conditions
+                // todo fix this add conditions
+                // todo fix this add conditions
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                // todo fix this 
+                shouldRemove = true; 
             }
         }
 

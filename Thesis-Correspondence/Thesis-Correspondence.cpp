@@ -291,15 +291,15 @@ int main()
             saveMeshToFile(splitmesh + "/B.obj", Mesh_V_Split2, Mesh_F_Split2);
 
 
-
-            //saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
-
-
-            //splitMeshByVerticesOnEdges(Mesh1_V,
-            //    Mesh1_F, V3, MeshA_V, MeshA_F, MeshB_V, MeshB_F);
-
-            //saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
-            //saveMeshToFile(splitmesh + "/B.obj", MeshB_V, MeshB_F);
+            // parameterize whole surface
+            if (true) {
+                Eigen::MatrixXd UV_split1;
+                Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
+                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
+            }
 
         }
 

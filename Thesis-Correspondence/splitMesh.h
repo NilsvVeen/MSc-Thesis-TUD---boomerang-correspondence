@@ -57,11 +57,22 @@ void showMeshAndPointCloud(const Eigen::MatrixXd& meshV, const Eigen::MatrixXi& 
 void removeVerticesWithTwoFacesAndBorderEdges(
     const Eigen::MatrixXd& MeshA_V,
     const Eigen::MatrixXi& MeshA_F,
-    Eigen::MatrixXd& border_V, // Change border_V to Eigen::MatrixXd
+    Eigen::MatrixXd& border_V, // Matrix of border vertices
     Eigen::MatrixXd& MeshB_V,
     Eigen::MatrixXi& MeshB_F,
-    Eigen::MatrixXd& removed_V // Changed to Eigen::MatrixXd
+    Eigen::MatrixXd& removed_V, // Matrix of removed vertices
+    Eigen::MatrixXd& border_V_new // Matrix of removed vertices
 );
+
+void splitMeshIn2(
+    const Eigen::MatrixXd& V, // Input vertices
+    const Eigen::MatrixXi& F, // Input faces
+    Eigen::MatrixXd& V1,      // Output vertices for first component
+    Eigen::MatrixXi& F1,      // Output faces for first component
+    Eigen::MatrixXd& V2,      // Output vertices for second component
+    Eigen::MatrixXi& F2       // Output faces for second component
+);
+
 
 
 #endif // SPLIT_MESH_H

@@ -475,77 +475,183 @@ void findConnectedComponents(
     std::cout << "Found " << components.size() << " connected components.\n";
 }
 
-// Main function to split mesh by vertices on edges
-void splitMeshByVerticesOnEdges(
-    Eigen::MatrixXd& Mesh1_V,
-    Eigen::MatrixXi& Mesh1_F,
-    const Eigen::MatrixXd& V3,
-    Eigen::MatrixXd& MeshA_V,
-    Eigen::MatrixXi& MeshA_F,
-    Eigen::MatrixXd& MeshB_V,
-    Eigen::MatrixXi& MeshB_F
+//// Main function to split mesh by vertices on edges
+//void splitMeshByVerticesOnEdges(
+//    Eigen::MatrixXd& Mesh1_V,
+//    Eigen::MatrixXi& Mesh1_F,
+//    const Eigen::MatrixXd& V3,
+//    Eigen::MatrixXd& MeshA_V,
+//    Eigen::MatrixXi& MeshA_F,
+//    Eigen::MatrixXd& MeshB_V,
+//    Eigen::MatrixXi& MeshB_F
+//) {
+//    std::cout << "Starting mesh splitting...\n";
+//    std::cout << "Original mesh has " << Mesh1_V.rows() << " vertices and " << Mesh1_F.rows() << " faces.\n";
+//
+//    // Step 1: Prepare containers for the new vertices and faces
+//    Eigen::MatrixXd newVertices = Mesh1_V;
+//    std::vector<Eigen::RowVector3i> newFaces;
+//    std::set<int> splitVertices;
+//
+//    // Step 2: Iterate over each face in Mesh1_F to find edges that intersect with V3 vertices
+//    for (int f = 0; f < Mesh1_F.rows(); ++f) {
+//        Eigen::RowVector3i face = Mesh1_F.row(f);
+//        for (int e = 0; e < 3; ++e) {
+//            int v1 = face(e);
+//            int v2 = face((e + 1) % 3);
+//
+//            Eigen::RowVector3d edgeStart = Mesh1_V.row(v1);
+//            Eigen::RowVector3d edgeEnd = Mesh1_V.row(v2);
+//
+//            for (int v3Idx = 0; v3Idx < V3.rows(); ++v3Idx) {
+//                Eigen::RowVector3d pointV3 = V3.row(v3Idx);
+//                Eigen::RowVector3d closestPoint = closestPointOnEdge(edgeStart, edgeEnd, pointV3);
+//                double distance = (closestPoint - pointV3).norm();
+//
+//                if (distance < 1e-6) {
+//                    int newIndex = newVertices.rows();
+//                    newVertices.conservativeResize(newVertices.rows() + 1, 3);
+//                    newVertices.row(newIndex) = closestPoint;
+//                    splitVertices.insert(newIndex);
+//
+//                    Eigen::RowVector3i newFace1, newFace2;
+//                    newFace1 << v1, newIndex, face((e + 2) % 3);
+//                    newFace2 << newIndex, v2, face((e + 2) % 3);
+//                    newFaces.push_back(newFace1);
+//                    newFaces.push_back(newFace2);
+//
+//                    std::cout << "Added split vertex at (" << closestPoint << ") between vertices " << v1 << " and " << v2 << ".\n";
+//                    break;
+//                }
+//            }
+//        }
+//    }
+//
+//    // Step 3: Create new face matrix from updated face list
+//    Mesh1_F.resize(newFaces.size(), 3);
+//    for (int i = 0; i < newFaces.size(); ++i) {
+//        Mesh1_F.row(i) = newFaces[i];
+//    }
+//    Mesh1_V = newVertices;
+//    std::cout << "Updated mesh now has " << Mesh1_V.rows() << " vertices and " << Mesh1_F.rows() << " faces.\n";
+//
+//    // Step 4: Find connected components using DFS
+//    std::vector<std::vector<int>> components;
+//    findConnectedComponents(Mesh1_F, components);
+//
+//    // Step 5: Split into two submeshes based on component labels
+//    if (components.size() >= 2) {
+//        extractSubmesh(Mesh1_V, Mesh1_F, components[0], MeshA_V, MeshA_F);
+//        extractSubmesh(Mesh1_V, Mesh1_F, components[1], MeshB_V, MeshB_F);
+//        std::cout << "Mesh split into two components with " << MeshA_V.rows() << " and " << MeshB_V.rows() << " vertices.\n";
+//    }
+//    else {
+//        std::cout << "Insufficient components found. Cannot split mesh into two parts.\n";
+//    }
+//}
+
+
+
+// Function to split a mesh into two connected components
+void splitMeshIn2(
+    const Eigen::MatrixXd& V, // Input vertices
+    const Eigen::MatrixXi& F, // Input faces
+    Eigen::MatrixXd& V1,      // Output vertices for first component
+    Eigen::MatrixXi& F1,      // Output faces for first component
+    Eigen::MatrixXd& V2,      // Output vertices for second component
+    Eigen::MatrixXi& F2       // Output faces for second component
 ) {
-    std::cout << "Starting mesh splitting...\n";
-    std::cout << "Original mesh has " << Mesh1_V.rows() << " vertices and " << Mesh1_F.rows() << " faces.\n";
+    // Step 1: Build adjacency list from faces
+    std::vector<std::unordered_set<int>> adjacency(V.rows());
+    for (int i = 0; i < F.rows(); ++i) {
+        for (int j = 0; j < 3; ++j) {
+            int v1 = F(i, j);
+            int v2 = F(i, (j + 1) % 3);
+            adjacency[v1].insert(v2);
+            adjacency[v2].insert(v1);
+        }
+    }
 
-    // Step 1: Prepare containers for the new vertices and faces
-    Eigen::MatrixXd newVertices = Mesh1_V;
-    std::vector<Eigen::RowVector3i> newFaces;
-    std::set<int> splitVertices;
+    // Step 2: Initialize a visited array to mark which vertices have been processed
+    std::vector<int> component(V.rows(), -1); // -1 indicates unvisited
 
-    // Step 2: Iterate over each face in Mesh1_F to find edges that intersect with V3 vertices
-    for (int f = 0; f < Mesh1_F.rows(); ++f) {
-        Eigen::RowVector3i face = Mesh1_F.row(f);
-        for (int e = 0; e < 3; ++e) {
-            int v1 = face(e);
-            int v2 = face((e + 1) % 3);
+    // Step 3: Helper function for BFS to collect a component
+    auto bfs_component = [&](int start, int comp_id) -> std::vector<int> {
+        std::vector<int> vertices;
+        std::queue<int> queue;
+        queue.push(start);
+        component[start] = comp_id;
 
-            Eigen::RowVector3d edgeStart = Mesh1_V.row(v1);
-            Eigen::RowVector3d edgeEnd = Mesh1_V.row(v2);
+        while (!queue.empty()) {
+            int v = queue.front();
+            queue.pop();
+            vertices.push_back(v);
 
-            for (int v3Idx = 0; v3Idx < V3.rows(); ++v3Idx) {
-                Eigen::RowVector3d pointV3 = V3.row(v3Idx);
-                Eigen::RowVector3d closestPoint = closestPointOnEdge(edgeStart, edgeEnd, pointV3);
-                double distance = (closestPoint - pointV3).norm();
-
-                if (distance < 1e-6) {
-                    int newIndex = newVertices.rows();
-                    newVertices.conservativeResize(newVertices.rows() + 1, 3);
-                    newVertices.row(newIndex) = closestPoint;
-                    splitVertices.insert(newIndex);
-
-                    Eigen::RowVector3i newFace1, newFace2;
-                    newFace1 << v1, newIndex, face((e + 2) % 3);
-                    newFace2 << newIndex, v2, face((e + 2) % 3);
-                    newFaces.push_back(newFace1);
-                    newFaces.push_back(newFace2);
-
-                    std::cout << "Added split vertex at (" << closestPoint << ") between vertices " << v1 << " and " << v2 << ".\n";
-                    break;
+            for (int neighbor : adjacency[v]) {
+                if (component[neighbor] == -1) { // Not visited
+                    component[neighbor] = comp_id;
+                    queue.push(neighbor);
                 }
+            }
+        }
+        return vertices;
+    };
+
+    // Step 4: Find the two components
+    std::vector<int> comp1, comp2;
+    for (int i = 0; i < V.rows(); ++i) {
+        if (component[i] == -1) {
+            if (comp1.empty()) {
+                comp1 = bfs_component(i, 0);
+            }
+            else {
+                comp2 = bfs_component(i, 1);
+                break; // We only need two components
             }
         }
     }
 
-    // Step 3: Create new face matrix from updated face list
-    Mesh1_F.resize(newFaces.size(), 3);
-    for (int i = 0; i < newFaces.size(); ++i) {
-        Mesh1_F.row(i) = newFaces[i];
-    }
-    Mesh1_V = newVertices;
-    std::cout << "Updated mesh now has " << Mesh1_V.rows() << " vertices and " << Mesh1_F.rows() << " faces.\n";
+    // Step 5: Separate vertices and faces for each component
+    std::unordered_map<int, int> map1, map2;
+    std::vector<Eigen::RowVector3d> vertices1, vertices2;
+    std::vector<Eigen::Vector3i> faces1, faces2;
 
-    // Step 4: Find connected components using DFS
-    std::vector<std::vector<int>> components;
-    findConnectedComponents(Mesh1_F, components);
+    // Fill component 1 vertices and faces
+    for (int v : comp1) {
+        map1[v] = vertices1.size();
+        vertices1.push_back(V.row(v));
+    }
+    for (int i = 0; i < F.rows(); ++i) {
+        int v0 = F(i, 0), v1 = F(i, 1), v2 = F(i, 2);
+        if (component[v0] == 0 && component[v1] == 0 && component[v2] == 0) {
+            faces1.emplace_back(map1[v0], map1[v1], map1[v2]);
+        }
+    }
 
-    // Step 5: Split into two submeshes based on component labels
-    if (components.size() >= 2) {
-        extractSubmesh(Mesh1_V, Mesh1_F, components[0], MeshA_V, MeshA_F);
-        extractSubmesh(Mesh1_V, Mesh1_F, components[1], MeshB_V, MeshB_F);
-        std::cout << "Mesh split into two components with " << MeshA_V.rows() << " and " << MeshB_V.rows() << " vertices.\n";
+    // Fill component 2 vertices and faces
+    for (int v : comp2) {
+        map2[v] = vertices2.size();
+        vertices2.push_back(V.row(v));
     }
-    else {
-        std::cout << "Insufficient components found. Cannot split mesh into two parts.\n";
+    for (int i = 0; i < F.rows(); ++i) {
+        int v0 = F(i, 0), v1 = F(i, 1), v2 = F(i, 2);
+        if (component[v0] == 1 && component[v1] == 1 && component[v2] == 1) {
+            faces2.emplace_back(map2[v0], map2[v1], map2[v2]);
+        }
     }
+
+    // Step 6: Convert to Eigen matrices
+    V1.resize(vertices1.size(), 3);
+    for (size_t i = 0; i < vertices1.size(); ++i) V1.row(i) = vertices1[i];
+
+    F1.resize(faces1.size(), 3);
+    for (size_t i = 0; i < faces1.size(); ++i) F1.row(i) = faces1[i];
+
+    V2.resize(vertices2.size(), 3);
+    for (size_t i = 0; i < vertices2.size(); ++i) V2.row(i) = vertices2[i];
+
+    F2.resize(faces2.size(), 3);
+    for (size_t i = 0; i < faces2.size(); ++i) F2.row(i) = faces2[i];
+
+    std::cout << "Mesh successfully split into two components." << std::endl;
 }

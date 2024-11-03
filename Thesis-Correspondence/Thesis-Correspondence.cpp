@@ -257,7 +257,7 @@ int main()
 
             Eigen::MatrixXd border_V = getBorderVerticesMatrix(MeshA_V, MeshA_F);
 
-            showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
+            //showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
 
 
             Eigen::MatrixXd removed_V;
@@ -265,19 +265,33 @@ int main()
             countConnectedComponents(MeshB_F);
 
 
-            polyscope::init();
-            polyscope::registerPointCloud("V issues", removed_V);
+            //polyscope::init();
+            //polyscope::registerPointCloud("V issues", removed_V);
+            //showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
+            
             //showMeshAndPointCloud(MeshB_V, MeshB_F, border_V);
-            showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
 
 
 
 
 
+            Eigen::MatrixXd Mesh_V_Split1;
+            Eigen::MatrixXi Mesh_F_Split1;
+            Eigen::MatrixXd Mesh_V_Split2;
+            Eigen::MatrixXi Mesh_F_Split2;
 
+            splitMeshIn2(MeshB_V,
+                MeshB_F, Mesh_V_Split1, Mesh_F_Split1, Mesh_V_Split2, Mesh_F_Split2);
+
+            showMeshAndPointCloud(Mesh_V_Split1, Mesh_F_Split1, border_V);
 
 
             saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
+            saveMeshToFile(splitmesh + "/B.obj", MeshB_V, MeshB_F);
+
+
+
+            //saveMeshToFile(splitmesh + "/A.obj", MeshA_V, MeshA_F);
 
 
             //splitMeshByVerticesOnEdges(Mesh1_V,

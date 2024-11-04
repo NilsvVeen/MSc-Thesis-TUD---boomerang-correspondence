@@ -295,7 +295,7 @@ int main()
             if (true) {
                 Eigen::MatrixXd UV_split1;
                 Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
-                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1)) {
+                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, false)) {
                     std::cerr << "Surface parameterization failed.\n";
                     return EXIT_FAILURE;
                 }
@@ -307,7 +307,7 @@ int main()
         // parameterize whole surface
         if (false) {
             Eigen::MatrixXd UV1;
-            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3)) {
+            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }

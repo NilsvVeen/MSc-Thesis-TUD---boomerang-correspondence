@@ -251,7 +251,7 @@ int main()
             Eigen::MatrixXi MeshB_F;
 
             
-
+            std::cout << "Step 1: remove lifted curve vertices and faces" << std::endl;
             RemoveVerticesAndFaces(Mesh1_V, Mesh1_F, V3, MeshA_V, MeshA_F);
             countConnectedComponents(MeshA_F);
 
@@ -263,6 +263,9 @@ int main()
             Eigen::MatrixXd removed_V;
             Eigen::MatrixXi removed_F;
             Eigen::MatrixXd border_V_new;
+
+
+            std::cout << "Step 2: remove leftover Bridges" << std::endl;
             removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V, removed_F, border_V_new);
             countConnectedComponents(MeshB_F);
 
@@ -301,15 +304,15 @@ int main()
                     return EXIT_FAILURE;
                 }
             }
-            // parameterize whole surface
-            if (true) {
-                Eigen::MatrixXd UV_split2;
-                Eigen::MatrixXd V_border_split2 = getBorderVerticesMatrix(Mesh_V_Split2, Mesh_F_Split2);
-                if (!paramsurface5(Mesh_V_Split2, Mesh_F_Split2, UV_split2, V_border_split2, false)) {
-                    std::cerr << "Surface parameterization failed.\n";
-                    return EXIT_FAILURE;
-                }
-            }
+            //// parameterize whole surface
+            //if (true) {
+            //    Eigen::MatrixXd UV_split2;
+            //    Eigen::MatrixXd V_border_split2 = getBorderVerticesMatrix(Mesh_V_Split2, Mesh_F_Split2);
+            //    if (!paramsurface5(Mesh_V_Split2, Mesh_F_Split2, UV_split2, V_border_split2, false)) {
+            //        std::cerr << "Surface parameterization failed.\n";
+            //        return EXIT_FAILURE;
+            //    }
+            //}
 
         }
 

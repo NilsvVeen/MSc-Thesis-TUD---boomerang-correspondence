@@ -32,8 +32,8 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     Eigen::MatrixXd& border_V, // Matrix of border vertices
     Eigen::MatrixXd& MeshB_V,
     Eigen::MatrixXi& MeshB_F,
-    Eigen::MatrixXd& removed_V, // Matrix of removed vertices,
-    Eigen::MatrixXi& removed_F,
+    Eigen::MatrixXd& removed_V, // Matrix of removed vertices
+    Eigen::MatrixXi& removed_F, // Matrix of removed faces
     Eigen::MatrixXd& border_V_new // Matrix of border vertices excluding removed ones
 ) {
     // Print input sizes
@@ -64,6 +64,7 @@ void removeVerticesWithTwoFacesAndBorderEdges(
 
     // Set to keep track of vertices to remove based on the conditions
     std::unordered_set<int> verticesToRemove;
+    std::vector<Eigen::Vector3i> removedFacesList;
 
     // Iterate over each border vertex index
     for (const int borderVertexIndex : borderVertexIndices) {
@@ -137,10 +138,19 @@ void removeVerticesWithTwoFacesAndBorderEdges(
             }
         }
 
-        // If all conditions are met, mark this vertex for removal
+        // If all conditions are met, mark this vertex for removal and add its faces to removed_F
         if (shouldRemove) {
             verticesToRemove.insert(borderVertexIndex);
+            for (int face : facesContainingVertex) {
+                removedFacesList.emplace_back(MeshA_F.row(face));
+            }
         }
+    }
+
+    // Update removed_F with the faces associated with removed vertices
+    removed_F.resize(removedFacesList.size(), 3);
+    for (size_t i = 0; i < removedFacesList.size(); ++i) {
+        removed_F.row(i) = removedFacesList[i];
     }
 
     // Create new vertex list for MeshB_V excluding the vertices to remove
@@ -202,8 +212,10 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     std::cout << "Output MeshB_V size: " << MeshB_V.rows() << " vertices" << std::endl;
     std::cout << "Output MeshB_F size: " << MeshB_F.rows() << " faces" << std::endl;
     std::cout << "Output removed_V size: " << removed_V.rows() << " removed vertices" << std::endl;
+    std::cout << "Output removed_F size: " << removed_F.rows() << " removed faces" << std::endl;
     std::cout << "Output border_V_new size: " << border_V_new.rows() << " border vertices (excluding removed)" << std::endl;
 }
+
 
 void showMeshAndPointCloud(const Eigen::MatrixXd& meshV, const Eigen::MatrixXi& meshF, const Eigen::MatrixXd& pointCloud) {
     // Initialize Polyscope

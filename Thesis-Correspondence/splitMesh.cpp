@@ -677,7 +677,6 @@ void splitMeshIn2(
 }
 
 
-
 #include <unordered_set>
 #include <Eigen/Core>
 #include <iostream>
@@ -694,9 +693,9 @@ void FindMatchingEdges(
     const Eigen::MatrixXi& mesh_F,             // Faces of the original mesh
     const Eigen::MatrixXd& removed_V,          // Vertex positions of the removed mesh
     const Eigen::MatrixXi& removed_F,          // Faces of the removed mesh
-    double tolerance     ,             // Tolerance for vertex matching,
-     Eigen::MatrixXd& mesh_V_restore,             // Vertex positions of the original mesh
-     Eigen::MatrixXi& mesh_F_restore
+    double tolerance,                           // Tolerance for vertex matching
+    Eigen::MatrixXd& mesh_V_restore,           // Vertex positions of the restored mesh
+    Eigen::MatrixXi& mesh_F_restore             // Faces of the restored mesh
 ) {
     // Step 1: Build a set of edges from mesh_F
     std::set<std::pair<int, int>> meshEdges;
@@ -719,19 +718,65 @@ void FindMatchingEdges(
 
         // Check each edge in removed_F to see if it exists in mesh_F's edges
         bool foundMatch = false;
+
+        // Define a lambda function to find corresponding vertex in mesh_V_restore
+        auto findClosestVertex = [&](int vertexIndex) {
+            for (int j = 0; j < mesh_V_restore.rows(); ++j) {
+                if ((mesh_V.row(vertexIndex) - mesh_V_restore.row(j)).norm() < tolerance) {
+                    return j; // Return the index in mesh_V_restore if within tolerance
+                }
+            }
+            return -1; // Return -1 if no match is found
+        };
+
+        // Check edges between rv0 and rv1
         if (meshEdges.find(createEdge(rv0, rv1)) != meshEdges.end()) {
             std::cout << "Matching edge found: (" << rv0 << ", " << rv1 << ")" << std::endl;
-            std::cout << "Coordinates: [" << mesh_V.row(rv0) << "] - [" << mesh_V.row(rv1) << "]" << std::endl;
+            std::cout << "Coordinates in original mesh: [" << mesh_V.row(rv0) << "] - [" << mesh_V.row(rv1) << "]" << std::endl;
+
+            // Find corresponding vertices in mesh_V_restore
+            int idx0 = findClosestVertex(rv0);
+            int idx1 = findClosestVertex(rv1);
+            if (idx0 != -1 && idx1 != -1) {
+                std::cout << "Coordinates in restored mesh: [" << mesh_V_restore.row(idx0) << "] - [" << mesh_V_restore.row(idx1) << "]" << std::endl;
+            }
+            else {
+                std::cout << "One of the vertices does not exist in the restored mesh." << std::endl;
+            }
             foundMatch = true;
         }
+
+        // Check edges between rv1 and rv2
         if (meshEdges.find(createEdge(rv1, rv2)) != meshEdges.end()) {
             std::cout << "Matching edge found: (" << rv1 << ", " << rv2 << ")" << std::endl;
-            std::cout << "Coordinates: [" << mesh_V.row(rv1) << "] - [" << mesh_V.row(rv2) << "]" << std::endl;
+            std::cout << "Coordinates in original mesh: [" << mesh_V.row(rv1) << "] - [" << mesh_V.row(rv2) << "]" << std::endl;
+
+            // Find corresponding vertices in mesh_V_restore
+            int idx1 = findClosestVertex(rv1);
+            int idx2 = findClosestVertex(rv2);
+            if (idx1 != -1 && idx2 != -1) {
+                std::cout << "Coordinates in restored mesh: [" << mesh_V_restore.row(idx1) << "] - [" << mesh_V_restore.row(idx2) << "]" << std::endl;
+            }
+            else {
+                std::cout << "One of the vertices does not exist in the restored mesh." << std::endl;
+            }
             foundMatch = true;
         }
+
+        // Check edges between rv2 and rv0
         if (meshEdges.find(createEdge(rv2, rv0)) != meshEdges.end()) {
             std::cout << "Matching edge found: (" << rv2 << ", " << rv0 << ")" << std::endl;
-            std::cout << "Coordinates: [" << mesh_V.row(rv2) << "] - [" << mesh_V.row(rv0) << "]" << std::endl;
+            std::cout << "Coordinates in original mesh: [" << mesh_V.row(rv2) << "] - [" << mesh_V.row(rv0) << "]" << std::endl;
+
+            // Find corresponding vertices in mesh_V_restore
+            int idx2 = findClosestVertex(rv2);
+            int idx0 = findClosestVertex(rv0);
+            if (idx2 != -1 && idx0 != -1) {
+                std::cout << "Coordinates in restored mesh: [" << mesh_V_restore.row(idx2) << "] - [" << mesh_V_restore.row(idx0) << "]" << std::endl;
+            }
+            else {
+                std::cout << "One of the vertices does not exist in the restored mesh." << std::endl;
+            }
             foundMatch = true;
         }
 

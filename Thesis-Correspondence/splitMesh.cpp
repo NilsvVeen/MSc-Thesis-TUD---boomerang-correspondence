@@ -675,3 +675,70 @@ void splitMeshIn2(
 
     std::cout << "Mesh successfully split into two components." << std::endl;
 }
+
+
+
+#include <unordered_set>
+#include <Eigen/Core>
+#include <iostream>
+#include <utility>
+#include <set>
+
+// Helper function to create a consistent representation of an edge
+std::pair<int, int> createEdge(int v1, int v2) {
+    return (v1 < v2) ? std::make_pair(v1, v2) : std::make_pair(v2, v1);
+}
+
+void FindMatchingEdges(
+    const Eigen::MatrixXd& mesh_V,             // Vertex positions of the original mesh
+    const Eigen::MatrixXi& mesh_F,             // Faces of the original mesh
+    const Eigen::MatrixXd& removed_V,          // Vertex positions of the removed mesh
+    const Eigen::MatrixXi& removed_F,          // Faces of the removed mesh
+    double tolerance     ,             // Tolerance for vertex matching,
+     Eigen::MatrixXd& mesh_V_restore,             // Vertex positions of the original mesh
+     Eigen::MatrixXi& mesh_F_restore
+) {
+    // Step 1: Build a set of edges from mesh_F
+    std::set<std::pair<int, int>> meshEdges;
+    for (int i = 0; i < mesh_F.rows(); ++i) {
+        int v0 = mesh_F(i, 0);
+        int v1 = mesh_F(i, 1);
+        int v2 = mesh_F(i, 2);
+
+        // Insert edges as ordered pairs
+        meshEdges.insert(createEdge(v0, v1));
+        meshEdges.insert(createEdge(v1, v2));
+        meshEdges.insert(createEdge(v2, v0));
+    }
+
+    // Step 2: Find matching edges in removed_F and print coordinates
+    for (int i = 0; i < removed_F.rows(); ++i) {
+        int rv0 = removed_F(i, 0);
+        int rv1 = removed_F(i, 1);
+        int rv2 = removed_F(i, 2);
+
+        // Check each edge in removed_F to see if it exists in mesh_F's edges
+        bool foundMatch = false;
+        if (meshEdges.find(createEdge(rv0, rv1)) != meshEdges.end()) {
+            std::cout << "Matching edge found: (" << rv0 << ", " << rv1 << ")" << std::endl;
+            std::cout << "Coordinates: [" << mesh_V.row(rv0) << "] - [" << mesh_V.row(rv1) << "]" << std::endl;
+            foundMatch = true;
+        }
+        if (meshEdges.find(createEdge(rv1, rv2)) != meshEdges.end()) {
+            std::cout << "Matching edge found: (" << rv1 << ", " << rv2 << ")" << std::endl;
+            std::cout << "Coordinates: [" << mesh_V.row(rv1) << "] - [" << mesh_V.row(rv2) << "]" << std::endl;
+            foundMatch = true;
+        }
+        if (meshEdges.find(createEdge(rv2, rv0)) != meshEdges.end()) {
+            std::cout << "Matching edge found: (" << rv2 << ", " << rv0 << ")" << std::endl;
+            std::cout << "Coordinates: [" << mesh_V.row(rv2) << "] - [" << mesh_V.row(rv0) << "]" << std::endl;
+            foundMatch = true;
+        }
+
+        if (!foundMatch) {
+            std::cout << "No matching edge found for face " << i << " in removed_F." << std::endl;
+        }
+    }
+}
+
+

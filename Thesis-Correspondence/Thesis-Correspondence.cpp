@@ -269,15 +269,6 @@ int main()
             removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V, removed_F, border_V_new);
             countConnectedComponents(MeshB_F);
 
-
-            //polyscope::init();
-            //polyscope::registerPointCloud("V issues", removed_V);
-            //showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
-            
-            //showMeshAndPointCloud(MeshB_V, MeshB_F, border_V);
-
-
-
             showMeshAndPointCloud(MeshB_V, MeshB_F, border_V_new);
 
 
@@ -285,25 +276,36 @@ int main()
             Eigen::MatrixXi Mesh_F_Split1;
             Eigen::MatrixXd Mesh_V_Split2;
             Eigen::MatrixXi Mesh_F_Split2;
-
+            //split into 2 meshes
             splitMeshIn2(MeshB_V,
                 MeshB_F, Mesh_V_Split1, Mesh_F_Split1, Mesh_V_Split2, Mesh_F_Split2);
 
 
+            std::cout << "revmoedV" << std::endl;
+            std::cout << removed_V << std::endl;
+            std::cout << "removedF" << std::endl;
 
-            saveMeshToFile(splitmesh + "/A.obj", Mesh_V_Split1, Mesh_F_Split1);
-            saveMeshToFile(splitmesh + "/B.obj", Mesh_V_Split2, Mesh_F_Split2);
+            std::cout << removed_F << std::endl;
+
+            std::cout << "----------------- Add back faces to 1" << std::endl;
+            //AddBackFace(Mesh_V_Split1, Mesh_F_Split1, removed_V, removed_F);
+            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
 
 
-            // parameterize whole surface
-            if (true) {
-                Eigen::MatrixXd UV_split1;
-                Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
-                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, false)) {
-                    std::cerr << "Surface parameterization failed.\n";
-                    return EXIT_FAILURE;
-                }
-            }
+
+            //saveMeshToFile(splitmesh + "/A.obj", Mesh_V_Split1, Mesh_F_Split1);
+            //saveMeshToFile(splitmesh + "/B.obj", Mesh_V_Split2, Mesh_F_Split2);
+
+
+            //// parameterize whole surface
+            //if (true) {
+            //    Eigen::MatrixXd UV_split1;
+            //    Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
+            //    if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, false)) {
+            //        std::cerr << "Surface parameterization failed.\n";
+            //        return EXIT_FAILURE;
+            //    }
+            //}
             //// parameterize whole surface
             //if (true) {
             //    Eigen::MatrixXd UV_split2;

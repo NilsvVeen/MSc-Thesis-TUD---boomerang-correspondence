@@ -74,6 +74,21 @@ void splitMeshIn2(
     Eigen::MatrixXi& F2       // Output faces for second component
 );
 
+void AddBackFace(
+    Eigen::MatrixXd& mesh_V,                  // Original vertex positions (will be modified in-place)
+    Eigen::MatrixXi& mesh_F,                  // Original faces (will be modified in-place)
+    const Eigen::MatrixXd& removed_V,         // Removed vertices
+    const Eigen::MatrixXi& removed_F          // Removed faces
+);
 
+void FindMatchingEdges(
+    const Eigen::MatrixXd& mesh_V,             // Vertex positions of the original mesh
+    const Eigen::MatrixXi& mesh_F,             // Faces of the original mesh
+    const Eigen::MatrixXd& removed_V,          // Vertex positions of the removed mesh
+    const Eigen::MatrixXi& removed_F,          // Faces of the removed mesh
+    double tolerance,             // Tolerance for vertex matching,
+    Eigen::MatrixXd& mesh_V_restore,             // Vertex positions of the original mesh
+    Eigen::MatrixXi& mesh_F_restore
+    );
 
 #endif // SPLIT_MESH_H

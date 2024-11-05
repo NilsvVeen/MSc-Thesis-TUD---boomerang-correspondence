@@ -60,8 +60,9 @@ void removeVerticesWithTwoFacesAndBorderEdges(
     Eigen::MatrixXd& border_V, // Matrix of border vertices
     Eigen::MatrixXd& MeshB_V,
     Eigen::MatrixXi& MeshB_F,
-    Eigen::MatrixXd& removed_V, // Matrix of removed vertices
-    Eigen::MatrixXd& border_V_new // Matrix of removed vertices
+    Eigen::MatrixXd& removed_V, // Matrix of removed vertices,
+    Eigen::MatrixXi& removed_F,
+    Eigen::MatrixXd& border_V_new // Matrix of border vertices excluding removed ones
 );
 
 void splitMeshIn2(

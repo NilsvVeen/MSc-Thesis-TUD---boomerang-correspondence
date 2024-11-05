@@ -261,8 +261,9 @@ int main()
 
 
             Eigen::MatrixXd removed_V;
+            Eigen::MatrixXi removed_F;
             Eigen::MatrixXd border_V_new;
-            removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V, border_V_new);
+            removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V, removed_F, border_V_new);
             countConnectedComponents(MeshB_F);
 
 
@@ -296,6 +297,15 @@ int main()
                 Eigen::MatrixXd UV_split1;
                 Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
                 if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, false)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
+            }
+            // parameterize whole surface
+            if (true) {
+                Eigen::MatrixXd UV_split2;
+                Eigen::MatrixXd V_border_split2 = getBorderVerticesMatrix(Mesh_V_Split2, Mesh_F_Split2);
+                if (!paramsurface5(Mesh_V_Split2, Mesh_F_Split2, UV_split2, V_border_split2, false)) {
                     std::cerr << "Surface parameterization failed.\n";
                     return EXIT_FAILURE;
                 }

@@ -741,7 +741,8 @@ void FindMatchingEdges(
                 if (std::abs(diff.x()) < tolerance &&
                     std::abs(diff.y()) < tolerance &&
                     std::abs(diff.z()) < tolerance) {
-                    std::cout << "compared and accepted : " << mesh_V.row(vertexIndex) << " to " << mesh_V_restore.row(j) << std::endl;
+                    std::cout << "compared and accepted : " << mesh_V.row(vertexIndex) << " to " << mesh_V_restore.row(j)  << 
+                        "at j: " << j << std::endl;
                     return j;
                 }
             }
@@ -772,6 +773,7 @@ void FindMatchingEdges(
 
         // Process each edge
         if (meshEdges.find(createEdge(rv0, rv1)) != meshEdges.end()) {
+            std::cout << "1||| rv0, rv1, rv2 " << rv0 << ", " << rv1 << ", " << rv2 << std::endl;
             int idx0 = findClosestVertex(rv0);
             int idx1 = findClosestVertex(rv1);
             int idx2 = findClosestVertex(rv2);
@@ -780,6 +782,8 @@ void FindMatchingEdges(
         }
 
         if (meshEdges.find(createEdge(rv1, rv2)) != meshEdges.end()) {
+            std::cout << "2 |||| rv0, rv1, rv2 " << rv0 << ", " << rv1 << ", " << rv2 << std::endl;
+
             int idx1 = findClosestVertex(rv1);
             int idx2 = findClosestVertex(rv2);
             int idx0 = findClosestVertex(rv0);
@@ -788,6 +792,8 @@ void FindMatchingEdges(
         }
 
         if (meshEdges.find(createEdge(rv2, rv0)) != meshEdges.end()) {
+            std::cout << "3 ||| rv0, rv1, rv2 " << rv0 << ", " << rv1 << ", " << rv2 << std::endl;
+
             int idx2 = findClosestVertex(rv2);
             int idx0 = findClosestVertex(rv0);
             int idx1 = findClosestVertex(rv1);

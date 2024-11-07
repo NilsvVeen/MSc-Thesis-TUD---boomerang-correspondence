@@ -278,7 +278,7 @@ int main()
             Eigen::MatrixXi Mesh_F_Split2;
             //split into 2 meshes
             splitMeshIn2(MeshB_V,
-                MeshB_F, Mesh_V_Split1, Mesh_F_Split1, Mesh_V_Split1, Mesh_F_Split1);
+                MeshB_F, Mesh_V_Split1, Mesh_F_Split1, Mesh_V_Split2, Mesh_F_Split2);
 
 
             std::cout << "revmoedV" << std::endl;
@@ -289,7 +289,7 @@ int main()
 
             std::cout << "----------------- Add back faces to 1" << std::endl;
             //AddBackFace(Mesh_V_Split1, Mesh_F_Split1, removed_V, removed_F);
-            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
+            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
 
 
 

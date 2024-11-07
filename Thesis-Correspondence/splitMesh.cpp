@@ -687,6 +687,31 @@ std::pair<int, int> createEdge(int v1, int v2) {
     return (v1 < v2) ? std::make_pair(v1, v2) : std::make_pair(v2, v1);
 }
 
+bool isVertexInRemoved(const Eigen::MatrixXd& removed_V, const Eigen::MatrixXd& mesh_V, int vertexIndex, double tolerance) {
+    // Extract the vertex from mesh_V at the given vertexIndex
+    Eigen::Vector3d vertex = mesh_V.row(vertexIndex);
+
+    // Loop through all the vertices in removed_V to find a match
+    for (int i = 0; i < removed_V.rows(); ++i) {
+        // Extract the current vertex from removed_V
+        Eigen::Vector3d removedVertex = removed_V.row(i);
+
+        // Compare the difference for each coordinate, using the tolerance
+        Eigen::Vector3d diff = vertex - removedVertex;
+
+        // If all coordinates are within the tolerance, consider it a match
+        if (std::abs(diff.x()) < tolerance &&
+            std::abs(diff.y()) < tolerance &&
+            std::abs(diff.z()) < tolerance) {
+            return true;  // Vertex found in removed_V within tolerance
+        }
+    }
+
+    // If no match was found, return false
+    return false;
+}
+
+
 void FindMatchingEdges(
     const Eigen::MatrixXd& mesh_V,             // Vertex positions of the original mesh
     const Eigen::MatrixXi& mesh_F,             // Faces of the original mesh
@@ -753,13 +778,21 @@ void FindMatchingEdges(
         auto processEdge = [&](int idx0, int idx1, int idx2, int rv2) {
             if (idx0 != -1 && idx1 != -1) {
                 if (idx2 == -1) {
-                    // Add missing vertex
-                    mesh_V_restore.conservativeResize(mesh_V_restore.rows() + 1, Eigen::NoChange);
-                    mesh_V_restore.row(mesh_V_restore.rows() - 1) = mesh_V.row(rv2);
-                    idx2 = mesh_V_restore.rows() - 1;
-                    added_V.conservativeResize(added_V.rows() + 1, Eigen::NoChange);
-                    added_V.row(added_V.rows() - 1) = mesh_V.row(rv2);
-                    std::cout << "Added vertex " << idx2 << " to mesh_V_restore: " << mesh_V_restore.row(idx2).transpose() << std::endl;
+                    // Check if the vertex is in removed_V before adding
+                    if (isVertexInRemoved(removed_V, mesh_V, rv2, tolerance)) {
+                        // Add missing vertex
+                        mesh_V_restore.conservativeResize(mesh_V_restore.rows() + 1, Eigen::NoChange);
+                        mesh_V_restore.row(mesh_V_restore.rows() - 1) = mesh_V.row(rv2);
+                        idx2 = mesh_V_restore.rows() - 1;
+                        added_V.conservativeResize(added_V.rows() + 1, Eigen::NoChange);
+                        added_V.row(added_V.rows() - 1) = mesh_V.row(rv2);
+                        std::cout << "Added vertex " << idx2 << " to mesh_V_restore: " << mesh_V_restore.row(idx2).transpose() << std::endl;
+                    }
+                    else {
+                        // Vertex not found in removed_V, skip adding face
+                        std::cout << "Skipped adding vertex " << rv2 << " and corresponding face as it is not in removed_V." << std::endl;
+                        return;
+                    }
                 }
 
                 // Add new face
@@ -811,6 +844,8 @@ void FindMatchingEdges(
     std::cout << "mesh_V_restore (final): " << mesh_V_restore.rows() << " vertices" << std::endl;
     std::cout << "mesh_F_restore (final): " << mesh_F_restore.rows() << " faces" << std::endl;
     std::cout << "Vertices added during restoration:\n" << added_V << std::endl;
+    std::cout << "Vertices added during restoration (length):" << added_V.rows() << std::endl;
+    std::cout << "Faces added during restoration: (length)" << added_F.rows() << std::endl;
     std::cout << "Faces added during restoration:\n" << added_F << std::endl;
     std::cout << "Restoration complete." << std::endl;
 }

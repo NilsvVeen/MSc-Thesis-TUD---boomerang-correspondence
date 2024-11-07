@@ -291,6 +291,9 @@ int main()
             //AddBackFace(Mesh_V_Split1, Mesh_F_Split1, removed_V, removed_F);
             FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
             FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
+            //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
+            //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
+            //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
             FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
             FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
 

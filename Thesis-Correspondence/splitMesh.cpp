@@ -677,11 +677,10 @@ void splitMeshIn2(
 }
 
 
-#include <unordered_set>
-#include <Eigen/Core>
 #include <iostream>
-#include <utility>
 #include <set>
+#include <utility>
+#include <Eigen/Dense>
 
 // Helper function to create a consistent representation of an edge
 std::pair<int, int> createEdge(int v1, int v2) {
@@ -697,6 +696,15 @@ void FindMatchingEdges(
     Eigen::MatrixXd& mesh_V_restore,           // Vertex positions of the restored mesh
     Eigen::MatrixXi& mesh_F_restore             // Faces of the restored mesh
 ) {
+    // Print input sizes
+    std::cout << "Input Sizes:" << std::endl;
+    std::cout << "mesh_V (original): " << mesh_V.rows() << " vertices" << std::endl;
+    std::cout << "mesh_F (original): " << mesh_F.rows() << " faces" << std::endl;
+    std::cout << "mesh_F (part): " << mesh_V_restore.rows() << " vertices" << std::endl;
+    std::cout << "mesh_F (part): " << mesh_F_restore.rows() << " faces" << std::endl;
+    std::cout << "removed_V: " << removed_V.rows() << " vertices" << std::endl;
+    std::cout << "removed_F: " << removed_F.rows() << " faces" << std::endl;
+
     // Step 1: Build a set of edges from mesh_F
     std::set<std::pair<int, int>> meshEdges;
     for (int i = 0; i < mesh_F.rows(); ++i) {
@@ -719,7 +727,7 @@ void FindMatchingEdges(
         // Check each edge in removed_F to see if it exists in mesh_F's edges
         bool foundMatch = false;
 
-        // Define a lambda function to find corresponding vertex in mesh_V_restore
+        // Define a lambda function to find the closest vertex in mesh_V_restore
         auto findClosestVertex = [&](int vertexIndex) {
             for (int j = 0; j < mesh_V_restore.rows(); ++j) {
                 if ((mesh_V.row(vertexIndex) - mesh_V_restore.row(j)).norm() < tolerance) {
@@ -739,6 +747,20 @@ void FindMatchingEdges(
             int idx1 = findClosestVertex(rv1);
             if (idx0 != -1 && idx1 != -1) {
                 std::cout << "Coordinates in restored mesh: [" << mesh_V_restore.row(idx0) << "] - [" << mesh_V_restore.row(idx1) << "]" << std::endl;
+
+                // Add the third vertex (rv2) to mesh_V_restore if it doesn't already exist
+                int idx2 = findClosestVertex(rv2);
+                if (idx2 == -1) {
+                    mesh_V_restore.conservativeResize(mesh_V_restore.rows() + 1, Eigen::NoChange);
+                    mesh_V_restore.row(mesh_V_restore.rows() - 1) = mesh_V.row(rv2); // Add new vertex
+                    idx2 = mesh_V_restore.rows() - 1; // Update idx2 to the new index
+                    std::cout << "Added vertex " << idx2 << " to mesh_V_restore: " << mesh_V_restore.row(idx2).transpose() << std::endl;
+                }
+
+                // Add the face to mesh_F_restore
+                mesh_F_restore.conservativeResize(mesh_F_restore.rows() + 1, Eigen::NoChange);
+                mesh_F_restore.row(mesh_F_restore.rows() - 1) << idx0, idx1, idx2;
+                std::cout << "Added face [" << idx0 << ", " << idx1 << ", " << idx2 << "] to mesh_F_restore." << std::endl;
             }
             else {
                 std::cout << "One of the vertices does not exist in the restored mesh." << std::endl;
@@ -756,6 +778,20 @@ void FindMatchingEdges(
             int idx2 = findClosestVertex(rv2);
             if (idx1 != -1 && idx2 != -1) {
                 std::cout << "Coordinates in restored mesh: [" << mesh_V_restore.row(idx1) << "] - [" << mesh_V_restore.row(idx2) << "]" << std::endl;
+
+                // Add the third vertex (rv0) to mesh_V_restore if it doesn't already exist
+                int idx0 = findClosestVertex(rv0);
+                if (idx0 == -1) {
+                    mesh_V_restore.conservativeResize(mesh_V_restore.rows() + 1, Eigen::NoChange);
+                    mesh_V_restore.row(mesh_V_restore.rows() - 1) = mesh_V.row(rv0); // Add new vertex
+                    idx0 = mesh_V_restore.rows() - 1; // Update idx0 to the new index
+                    std::cout << "Added vertex " << idx0 << " to mesh_V_restore: " << mesh_V_restore.row(idx0).transpose() << std::endl;
+                }
+
+                // Add the face to mesh_F_restore
+                mesh_F_restore.conservativeResize(mesh_F_restore.rows() + 1, Eigen::NoChange);
+                mesh_F_restore.row(mesh_F_restore.rows() - 1) << idx1, idx2, idx0;
+                std::cout << "Added face [" << idx1 << ", " << idx2 << ", " << idx0 << "] to mesh_F_restore." << std::endl;
             }
             else {
                 std::cout << "One of the vertices does not exist in the restored mesh." << std::endl;
@@ -773,6 +809,20 @@ void FindMatchingEdges(
             int idx0 = findClosestVertex(rv0);
             if (idx2 != -1 && idx0 != -1) {
                 std::cout << "Coordinates in restored mesh: [" << mesh_V_restore.row(idx2) << "] - [" << mesh_V_restore.row(idx0) << "]" << std::endl;
+
+                // Add the third vertex (rv1) to mesh_V_restore if it doesn't already exist
+                int idx1 = findClosestVertex(rv1);
+                if (idx1 == -1) {
+                    mesh_V_restore.conservativeResize(mesh_V_restore.rows() + 1, Eigen::NoChange);
+                    mesh_V_restore.row(mesh_V_restore.rows() - 1) = mesh_V.row(rv1); // Add new vertex
+                    idx1 = mesh_V_restore.rows() - 1; // Update idx1 to the new index
+                    std::cout << "Added vertex " << idx1 << " to mesh_V_restore: " << mesh_V_restore.row(idx1).transpose() << std::endl;
+                }
+
+                // Add the face to mesh_F_restore
+                mesh_F_restore.conservativeResize(mesh_F_restore.rows() + 1, Eigen::NoChange);
+                mesh_F_restore.row(mesh_F_restore.rows() - 1) << idx2, idx0, idx1;
+                std::cout << "Added face [" << idx2 << ", " << idx0 << ", " << idx1 << "] to mesh_F_restore." << std::endl;
             }
             else {
                 std::cout << "One of the vertices does not exist in the restored mesh." << std::endl;
@@ -781,9 +831,20 @@ void FindMatchingEdges(
         }
 
         if (!foundMatch) {
-            std::cout << "No matching edge found for face " << i << " in removed_F." << std::endl;
+            std::cout << "No matching edge found for removed face " << i << std::endl;
         }
     }
+
+    std::cout << "OUTPUT Sizes:" << std::endl;
+    std::cout << "mesh_V (original): " << mesh_V.rows() << " vertices" << std::endl;
+    std::cout << "mesh_F (original): " << mesh_F.rows() << " faces" << std::endl;
+    std::cout << "mesh_F (part): " << mesh_V_restore.rows() << " vertices" << std::endl;
+    std::cout << "mesh_F (part): " << mesh_F_restore.rows() << " faces" << std::endl;
+    std::cout << "removed_V: " << removed_V.rows() << " vertices" << std::endl;
+    std::cout << "removed_F: " << removed_F.rows() << " faces" << std::endl;
+
+    std::cout << "Restoration complete." << std::endl;
 }
+
 
 

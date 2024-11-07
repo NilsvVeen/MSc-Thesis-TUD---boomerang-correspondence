@@ -779,7 +779,7 @@ void FindMatchingEdges(
             if (idx0 != -1 && idx1 != -1) {
                 if (idx2 == -1) {
                     // Check if the vertex is in removed_V before adding
-                    if (isVertexInRemoved(removed_V, mesh_V, rv2, tolerance)) {
+                    if (isVertexInRemoved(removed_V, mesh_V, rv2, tolerance) || true) {
                         // Add missing vertex
                         mesh_V_restore.conservativeResize(mesh_V_restore.rows() + 1, Eigen::NoChange);
                         mesh_V_restore.row(mesh_V_restore.rows() - 1) = mesh_V.row(rv2);

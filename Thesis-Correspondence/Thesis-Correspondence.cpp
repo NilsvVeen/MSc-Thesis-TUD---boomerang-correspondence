@@ -269,7 +269,7 @@ int main()
             removeVerticesWithTwoFacesAndBorderEdges(MeshA_V, MeshA_F, border_V, MeshB_V, MeshB_F, removed_V, removed_F, border_V_new);
             countConnectedComponents(MeshB_F);
 
-            showMeshAndPointCloud(MeshB_V, MeshB_F, border_V_new);
+            //showMeshAndPointCloud(MeshB_V, MeshB_F, border_V_new);
 
 
             Eigen::MatrixXd Mesh_V_Split1;
@@ -289,8 +289,19 @@ int main()
 
             std::cout << "----------------- Add back faces to 1" << std::endl;
             //AddBackFace(Mesh_V_Split1, Mesh_F_Split1, removed_V, removed_F);
+            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
             FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
 
+            polyscope::init();
+            polyscope::registerSurfaceMesh("Mesh INput", Mesh1_V, Mesh1_F);
+            polyscope::registerSurfaceMesh("Mesh AAA", MeshA_V, MeshA_F);
+            polyscope::registerSurfaceMesh("Mesh BBB", MeshB_V, MeshB_F);
+            polyscope::registerSurfaceMesh("Mesh P1", Mesh_V_Split1, Mesh_F_Split1);
+            polyscope::registerSurfaceMesh("Mesh P2", Mesh_V_Split2, Mesh_F_Split2);
+            polyscope::registerPointCloud("INput lifted curve", V3);
+            polyscope::registerPointCloud("Removed A to B", removed_V);
+            polyscope::registerPointCloud("Border A to B", border_V_new);
+            polyscope::show();
 
 
             //saveMeshToFile(splitmesh + "/A.obj", Mesh_V_Split1, Mesh_F_Split1);

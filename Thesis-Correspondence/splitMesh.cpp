@@ -311,12 +311,13 @@ void RemoveVerticesAndFaces(
     const Eigen::MatrixXi& Mesh1_F,   // Original faces
     const Eigen::MatrixXd& V3,        // Vertices to remove
     Eigen::MatrixXd& out_V,           // Output vertices after removal
-    Eigen::MatrixXi& out_F            // Output faces after removal
+    Eigen::MatrixXi& out_F,           // Output faces after removal
+    Eigen::MatrixXd& removed_V,       // Removed vertices
+    Eigen::MatrixXi& removed_F        // Removed faces
 ) {
-
-    std::cout << "input Vertices: " << Mesh1_V.rows() << std::endl;
-    std::cout << "input Faces: " << Mesh1_F.rows() << std::endl;
-    std::cout << "input border vertices: " << V3.rows() << std::endl;
+    std::cout << "Input Vertices: " << Mesh1_V.rows() << std::endl;
+    std::cout << "Input Faces: " << Mesh1_F.rows() << std::endl;
+    std::cout << "Input Border Vertices: " << V3.rows() << std::endl;
 
     // Step 1: Identify indices of vertices to remove
     std::unordered_set<int> verticesToRemove;
@@ -331,6 +332,7 @@ void RemoveVerticesAndFaces(
 
     // Step 2: Filter out faces that contain any of the vertices in `verticesToRemove`
     std::vector<Eigen::RowVector3i> newFaces;
+    std::vector<Eigen::RowVector3i> removedFaces;
     for (int i = 0; i < Mesh1_F.rows(); ++i) {
         Eigen::RowVector3i face = Mesh1_F.row(i);
         if (verticesToRemove.count(face(0)) == 0 &&
@@ -338,16 +340,23 @@ void RemoveVerticesAndFaces(
             verticesToRemove.count(face(2)) == 0) {
             newFaces.push_back(face);
         }
+        else {
+            removedFaces.push_back(face);
+        }
     }
 
     // Step 3: Build new vertex list, reindex faces
     std::unordered_map<int, int> vertexMap; // Maps old index to new index
     std::vector<Eigen::RowVector3d> newVertices;
+    std::vector<Eigen::RowVector3d> removedVertices;
     for (int i = 0; i < Mesh1_V.rows(); ++i) {
         if (verticesToRemove.count(i) == 0) {
             int newIndex = newVertices.size();
             newVertices.push_back(Mesh1_V.row(i));
             vertexMap[i] = newIndex;
+        }
+        else {
+            removedVertices.push_back(Mesh1_V.row(i));
         }
     }
 
@@ -369,10 +378,22 @@ void RemoveVerticesAndFaces(
         out_F.row(i) = newFaces[i];
     }
 
+    removed_V.resize(removedVertices.size(), 3);
+    for (int i = 0; i < removedVertices.size(); ++i) {
+        removed_V.row(i) = removedVertices[i];
+    }
 
-    std::cout << "output Vertices: " << out_V.rows() << std::endl;
-    std::cout << "output Faces: " << out_F.rows() << std::endl;
+    removed_F.resize(removedFaces.size(), 3);
+    for (int i = 0; i < removedFaces.size(); ++i) {
+        removed_F.row(i) = removedFaces[i];
+    }
+
+    std::cout << "Output Vertices: " << out_V.rows() << std::endl;
+    std::cout << "Output Faces: " << out_F.rows() << std::endl;
+    std::cout << "Removed Vertices: " << removed_V.rows() << std::endl;
+    std::cout << "Removed Faces: " << removed_F.rows() << std::endl;
 }
+
 
 
 

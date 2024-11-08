@@ -45,7 +45,9 @@ void RemoveVerticesAndFaces(
     const Eigen::MatrixXi& Mesh1_F,   // Original faces
     const Eigen::MatrixXd& V3,        // Vertices to remove
     Eigen::MatrixXd& out_V,           // Output vertices after removal
-    Eigen::MatrixXi& out_F            // Output faces after removal
+    Eigen::MatrixXi& out_F,            // Output faces after removal
+    Eigen::MatrixXd& removed_V,           // Output vertices after removal
+    Eigen::MatrixXi& removed_F            // Output faces after 
 );
 
 

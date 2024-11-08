@@ -247,12 +247,12 @@ int main()
 
             Eigen::MatrixXd MeshA_V;
             Eigen::MatrixXi MeshA_F;
-            Eigen::MatrixXd MeshB_V;
-            Eigen::MatrixXi MeshB_F;
+            Eigen::MatrixXd Mesh1_A_Removed_V;
+            Eigen::MatrixXi Mesh1_A_Removed_F;
 
             
             std::cout << "Step 1: remove lifted curve vertices and faces" << std::endl;
-            RemoveVerticesAndFaces(Mesh1_V, Mesh1_F, V3, MeshA_V, MeshA_F);
+            RemoveVerticesAndFaces(Mesh1_V, Mesh1_F, V3, MeshA_V, MeshA_F, Mesh1_A_Removed_V, Mesh1_A_Removed_F);
             countConnectedComponents(MeshA_F);
 
             Eigen::MatrixXd border_V = getBorderVerticesMatrix(MeshA_V, MeshA_F);
@@ -260,6 +260,8 @@ int main()
             //showMeshAndPointCloud(MeshA_V, MeshA_F, border_V);
 
 
+            Eigen::MatrixXd MeshB_V;
+            Eigen::MatrixXi MeshB_F;
             Eigen::MatrixXd removed_V;
             Eigen::MatrixXi removed_F;
             Eigen::MatrixXd border_V_new;

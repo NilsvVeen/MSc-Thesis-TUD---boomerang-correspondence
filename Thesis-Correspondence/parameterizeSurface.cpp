@@ -13,6 +13,7 @@
 #include <regex>
 #include <Eigen/Dense>
 #include <algorithm>
+#include <igl/harmonic.h>
 
 // Function to read and concatenate point clouds in numeric order from files matching a pattern
 Eigen::MatrixXd readAndConcatenatePointClouds(const std::string& folderPath, const std::string& filePatternStr) {
@@ -123,20 +124,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             for (int j = 0; j < V.rows(); ++j) {
                 double distance = (V.row(j) - boundary_vertices.row(i)).norm();
 
-                //// Print details if the distance is within 0.01
-                //if (distance < 0.01) {
-                //    std::cout << "Close match for boundary vertex " << i << " (" << boundary_vertices.row(i)
-                //        << ") with V vertex " << j << " (" << V.row(j)
-                //        << "), distance: " << distance << std::endl;
-                //}
-
-                // Check if distance is within a larger tolerance for debugging
                 if (distance < 1e-4) {
-                    //if (distance >= 1e-8) {
-                    //    std::cout << "Boundary vertex " << i << " (" << boundary_vertices.row(i)
-                    //        << ") almost matches V vertex " << j << " (" << V.row(j)
-                    //        << "), but within tolerance of 1e-4 only. Distance: " << distance << std::endl;
-                    //}
                     B(i) = j;
                     found = true;
                     break;
@@ -150,13 +138,24 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
                 return false;  // Early exit if a boundary vertex is missing
             }
 
-            // Set the UV coordinates in BC for the boundary
-            double angle = 2.0 * 3.14159265358979323846 * i / boundary_vertices.rows();
-            BC(i, 0) = std::cos(angle);  // u-coordinate
-            BC(i, 1) = std::sin(angle);  // v-coordinate
+            bool CircleUV = false;
+            if (CircleUV) {
+                // Set the UV coordinates in BC for the boundary
+                double angle = 2.0 * 3.14159265358979323846 * i / boundary_vertices.rows();
+                BC(i, 0) = std::cos(angle);  // u-coordinate
+                BC(i, 1) = std::sin(angle);  // v-coordinate
+
+            }
+            bool ProjectionUV = true;
+            if (ProjectionUV) {
+                // Set the boundary constraints directly to the boundary_vertices coordinates
+                BC(i, 0) = boundary_vertices(i, 0);  // u-coordinate
+                BC(i, 1) = boundary_vertices(i, 1);  // v-coordinate
+            }
         }
 
         igl::lscm(V, F, B, BC, UV);
+        //igl::harmonic(V, F, B, BC, 1, UV);
         //igl::lscm(V, F, UV);
     }
     else {
@@ -185,8 +184,8 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     Eigen::MatrixXd UV3D(UV.rows(), 3);
     double z_value = 0.1; // Adjust this value for how far above the UV plane you want it
     for (int i = 0; i < UV.rows(); ++i) {
-        UV3D(i, 0) = UV(i, 0) * 10; // u coordinate
-        UV3D(i, 1) = UV(i, 1) * 10; // v coordinate
+        UV3D(i, 0) = UV(i, 0) ; // u coordinate
+        UV3D(i, 1) = UV(i, 1) ; // v coordinate
         UV3D(i, 2) = z_value;  // constant z value
     }
 

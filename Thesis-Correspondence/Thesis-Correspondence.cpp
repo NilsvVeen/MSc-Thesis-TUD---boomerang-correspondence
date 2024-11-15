@@ -234,7 +234,22 @@ int main()
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
         std::string V2_regex = "V1_pointcloud_(\\d+)\\.txt";
 
-        Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
+        //Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
+
+        Eigen::MatrixXd V3 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj" );
+
+        findExactCorrespondences(Mesh1_V, V3);
+
+        if (true) {
+            std::cout << "surface parameterization using LCSM without splititng the mesh into 2" << std::endl;
+            Eigen::MatrixXd UV_map;
+            polyscope::options::programName = "No Split Mesh LCSM, projection";
+            if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true)) {
+                std::cerr << "Surface parameterization failed.\n";
+                return EXIT_FAILURE;
+            }
+        }
+
 
         if (true) {
 
@@ -291,24 +306,21 @@ int main()
 
             std::cout << "----------------- Add back faces to 1" << std::endl;
             //AddBackFace(Mesh_V_Split1, Mesh_F_Split1, removed_V, removed_F);
-            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
-            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
             //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
             //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
-            //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split1, Mesh_F_Split1);
-            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
-            FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
+            //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
+            //FindMatchingEdges(MeshA_V, MeshA_F, removed_V, removed_F, 1e-4, Mesh_V_Split2, Mesh_F_Split2);
 
-            polyscope::init();
-            polyscope::registerSurfaceMesh("Mesh INput", Mesh1_V, Mesh1_F);
-            polyscope::registerSurfaceMesh("Mesh AAA", MeshA_V, MeshA_F);
-            polyscope::registerSurfaceMesh("Mesh BBB", MeshB_V, MeshB_F);
-            polyscope::registerSurfaceMesh("Mesh P1", Mesh_V_Split1, Mesh_F_Split1);
-            polyscope::registerSurfaceMesh("Mesh P2", Mesh_V_Split2, Mesh_F_Split2);
-            polyscope::registerPointCloud("INput lifted curve", V3);
-            polyscope::registerPointCloud("Removed A to B", removed_V);
-            polyscope::registerPointCloud("Border A to B", border_V_new);
-            polyscope::show();
+            //polyscope::init();
+            //polyscope::registerSurfaceMesh("Mesh INput", Mesh1_V, Mesh1_F);
+            //polyscope::registerSurfaceMesh("Mesh AAA", MeshA_V, MeshA_F);
+            //polyscope::registerSurfaceMesh("Mesh BBB", MeshB_V, MeshB_F);
+            //polyscope::registerSurfaceMesh("Mesh P1", Mesh_V_Split1, Mesh_F_Split1);
+            //polyscope::registerSurfaceMesh("Mesh P2", Mesh_V_Split2, Mesh_F_Split2);
+            //polyscope::registerPointCloud("INput lifted curve", V3);
+            //polyscope::registerPointCloud("Removed A to B", removed_V);
+            //polyscope::registerPointCloud("Border A to B", border_V_new);
+            //polyscope::show();
 
 
             //saveMeshToFile(splitmesh + "/A.obj", Mesh_V_Split1, Mesh_F_Split1);
@@ -316,14 +328,17 @@ int main()
 
 
             //// parameterize whole surface
-            //if (true) {
-            //    Eigen::MatrixXd UV_split1;
-            //    Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
-            //    if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, false)) {
-            //        std::cerr << "Surface parameterization failed.\n";
-            //        return EXIT_FAILURE;
-            //    }
-            //}
+            if (true) {
+                Eigen::MatrixXd UV_split1;
+                Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
+                polyscope::options::programName = "Split Mesh (one side) LCSM, projection";
+                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, true)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
+            }
+
+
             //// parameterize whole surface
             //if (true) {
             //    Eigen::MatrixXd UV_split2;
@@ -340,7 +355,8 @@ int main()
         // parameterize whole surface
         if (false) {
             Eigen::MatrixXd UV1;
-            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, true)) {
+            polyscope::options::programName = "Split Mesh LCSM, default map";
+            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, false)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }

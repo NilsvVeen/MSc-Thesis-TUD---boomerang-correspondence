@@ -242,9 +242,13 @@ int main()
         Eigen::MatrixXi Mesh1_F;
         readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/Mesh1.obj", Mesh1_V, Mesh1_F);
 
+        Eigen::MatrixXd Mesh2_V;
+        Eigen::MatrixXi Mesh2_F;
+        readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/Mesh2.obj", Mesh2_V, Mesh2_F);
+
 
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
-        std::string V2_regex = "V1_pointcloud_(\\d+)\\.txt";
+        std::string V2_regex = "V2_pointcloud_(\\d+)\\.txt";
 
         //Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
 
@@ -254,8 +258,15 @@ int main()
         Eigen::MatrixXd V3 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj");
 
 
+
+        Eigen::MatrixXd V3_obj2 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V2_regex);
+
+
+        //Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
+
+
         if (true) {
-            std::cout << "surface parameterization using LCSM without splititng the mesh into 2" << std::endl;
+            std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true)) {
@@ -263,6 +274,17 @@ int main()
                 return EXIT_FAILURE;
             }
         }
+
+        if (true) {
+            std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
+            Eigen::MatrixXd UV_map;
+            polyscope::options::programName = "No Split Mesh LCSM, projection";
+            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
+                std::cerr << "Surface parameterization failed.\n";
+                return EXIT_FAILURE;
+            }
+        }
+
 
 
         if (false) {
@@ -367,7 +389,7 @@ int main()
 
 
         // parameterize whole surface
-        if (true) {
+        if (false) {
             Eigen::MatrixXd UV1;
             polyscope::options::programName = "Split Mesh LCSM, default map";
             if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, false)) {

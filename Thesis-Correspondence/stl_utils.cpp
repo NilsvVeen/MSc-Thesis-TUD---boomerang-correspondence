@@ -501,7 +501,9 @@ void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
     auto* mesh1 = polyscope::registerSurfaceMesh("Mesh 1", V1, F1);
 
     // Adjust the second mesh's position to be next to the first one
-    Eigen::MatrixXd V2_offset = calculateAndAdjustOffsetsFromBorders(V1, V2, V1_border, V2_border);
+    auto offsets = calculateAndAdjustOffsetsFromBorders(V1, V2, V1_border, V2_border);
+    auto V2_offset = offsets.first;
+    auto V2_border_offset = offsets.second;
 
     // Register the second surface mesh with the offset applied
     auto* mesh2 = polyscope::registerSurfaceMesh("Mesh 2", V2_offset, F2);
@@ -512,6 +514,8 @@ void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
 
         saveMeshToFile(dir + "/LeftMesh.obj", V1, F1);
         saveMeshToFile(dir + "/RightMesh.obj", V2_offset, F2);
+        writeVerticesToPLY(dir + "/border_Left.obj", V1_border);
+        writeVerticesToPLY(dir + "/border_Right.obj", V2_border_offset);
     }
 
     // Show the Polyscope UI
@@ -667,8 +671,12 @@ Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen
     return V2_offset;
 }
 
-// ISUE: now it uses 
-Eigen::MatrixXd calculateAndAdjustOffsetsFromBorders(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const Eigen::MatrixXd& V1_border, const Eigen::MatrixXd& V2_border) {
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculateAndAdjustOffsetsFromBorders(
+    const Eigen::MatrixXd& V1,
+    const Eigen::MatrixXd& V2,
+    const Eigen::MatrixXd& V1_border,
+    const Eigen::MatrixXd& V2_border)
+{
     // Calculate necessary offsets in X
     double maxX_V1 = V1.col(0).maxCoeff(); // Maximum X of V1
     double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
@@ -680,9 +688,17 @@ Eigen::MatrixXd calculateAndAdjustOffsetsFromBorders(const Eigen::MatrixXd& V1, 
     Eigen::MatrixXd V2_offset = V2;
     V2_offset.col(0) = V2.col(0).array() + offsetX; // Shift V2 along the X-axis
 
+    // Offset V2_border in the X direction
+    Eigen::MatrixXd V2_border_offset = V2_border;
+    V2_border_offset.col(0) = V2_border.col(0).array() + offsetX;
+
     // Align the Y-coordinates by centering V2 around the average Y of V1
     double averageY1 = V1_border.col(1).mean();
-    V2_offset.col(1) = V2.col(1).array() + (averageY1 - V2_border.col(1).mean()); // Center V2 around the Y-axis
+    double offsetY = averageY1 - V2_border.col(1).mean();
+
+    // Apply Y offset
+    V2_offset.col(1) = V2.col(1).array() + offsetY;
+    V2_border_offset.col(1) = V2_border.col(1).array() + offsetY;
 
     // Adjust the Z-coordinates based on the furthest Z values
     if (V1.cols() > 2 && V2.cols() > 2) {
@@ -693,12 +709,15 @@ Eigen::MatrixXd calculateAndAdjustOffsetsFromBorders(const Eigen::MatrixXd& V1, 
         // Calculate the translation to move V2's furthest Z to match V1's furthest Z
         double offsetZ = maxZ_V1 - maxZ_V2;
 
-        // Translate all Z-values of V2 so that its maximum Z matches V1's maximum Z
+        // Translate all Z-values of V2 and V2_border
         V2_offset.col(2) = V2.col(2).array() + offsetZ;
+        V2_border_offset.col(2) = V2_border.col(2).array() + offsetZ;
     }
 
-    return V2_offset;
+    // Return the transformed V2 and V2_border
+    return { V2_offset, V2_border_offset };
 }
+
 
 
 

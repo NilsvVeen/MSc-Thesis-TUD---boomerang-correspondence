@@ -219,11 +219,11 @@ int main()
 
         // get 3d curve of all the border vertics (not subset for correspondences)
 
-        Eigen::MatrixXd border_V_1 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj");
+        Eigen::MatrixXd border_V_1 = readVerticesFromPLY(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Left.obj");
         findExactCorrespondences(Mesh1_V, border_V_1);
         writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj", border_V_1);
 
-        Eigen::MatrixXd border_V_2 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
+        Eigen::MatrixXd border_V_2 = readVerticesFromPLY(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Right.obj");
         findExactCorrespondences(Mesh2_V, border_V_2);
         writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj", border_V_2);
 
@@ -259,7 +259,7 @@ int main()
 
 
 
-        Eigen::MatrixXd V3_obj2 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V2_regex);
+        Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
 
 
         //Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");

@@ -265,7 +265,7 @@ int main()
         }
 
 
-        if (true) {
+        if (false) {
 
             std::cout << "split Meshes" << std::endl;
 
@@ -367,7 +367,7 @@ int main()
 
 
         // parameterize whole surface
-        if (false) {
+        if (true) {
             Eigen::MatrixXd UV1;
             polyscope::options::programName = "Split Mesh LCSM, default map";
             if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, false)) {

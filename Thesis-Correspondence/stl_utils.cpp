@@ -233,6 +233,37 @@ Eigen::MatrixXd readVerticesFromPLY(const std::string& filename) {
     return V;
 }
 
+void writeVerticesToPLY(const std::string& filename, const Eigen::MatrixXd& vertices) {
+    if (vertices.cols() != 3) {
+        std::cerr << "Error: Input matrix must have exactly 3 columns for x, y, z coordinates." << std::endl;
+        return;
+    }
+
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << " for writing." << std::endl;
+        return;
+    }
+
+    // Write PLY header
+    file << "ply\n";
+    file << "format ascii 1.0\n";
+    file << "element vertex " << vertices.rows() << "\n";
+    file << "property float x\n";
+    file << "property float y\n";
+    file << "property float z\n";
+    file << "end_header\n";
+
+    // Write vertices
+    for (int i = 0; i < vertices.rows(); ++i) {
+        file << vertices(i, 0) << " " << vertices(i, 1) << " " << vertices(i, 2) << "\n";
+    }
+
+    file.close();
+    std::cout << "Vertices successfully written to " << filename << std::endl;
+}
+
+
 
 
 bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F) {

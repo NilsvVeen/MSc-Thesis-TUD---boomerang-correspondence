@@ -44,6 +44,8 @@ void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::Matr
 
 Eigen::MatrixXd readVerticesFromPLY(const std::string& filename);
 
+void writeVerticesToPLY(const std::string& filename, const Eigen::MatrixXd& vertices);
+
 bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F);
 
 bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V);

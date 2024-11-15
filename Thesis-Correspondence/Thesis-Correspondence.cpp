@@ -183,6 +183,7 @@ int main()
         std::vector<Eigen::MatrixXd> V1_pointclouds;
         std::vector<Eigen::MatrixXd> V2_pointclouds;
 
+
         // Call the function to read the data directly into the variables
         readMeshesAndPointClouds(meshesFolder, pointCloudsFolder,
             Mesh1_V, Mesh1_F,
@@ -215,6 +216,17 @@ int main()
         // Show them in Polyscope with the common color
         showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);
 
+
+        // get 3d curve of all the border vertics (not subset for correspondences)
+
+        Eigen::MatrixXd border_V_1 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj");
+        findExactCorrespondences(Mesh1_V, border_V_1);
+        writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj", border_V_1);
+
+        Eigen::MatrixXd border_V_2 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
+        findExactCorrespondences(Mesh2_V, border_V_2);
+        writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj", border_V_2);
+
     }
 
 
@@ -228,7 +240,7 @@ int main()
 
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
-        readMeshFromFile( "2d_Curve_in_3d/Mesh1.obj", Mesh1_V, Mesh1_F);
+        readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/Mesh1.obj", Mesh1_V, Mesh1_F);
 
 
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
@@ -236,9 +248,11 @@ int main()
 
         //Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
 
-        Eigen::MatrixXd V3 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj" );
+        //Eigen::MatrixXd V3 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj" ); 
+        //findExactCorrespondences(Mesh1_V, V3);
+        
+        Eigen::MatrixXd V3 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj");
 
-        findExactCorrespondences(Mesh1_V, V3);
 
         if (true) {
             std::cout << "surface parameterization using LCSM without splititng the mesh into 2" << std::endl;

@@ -24,11 +24,11 @@
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
-static const bool ProcessObjects = false;
-static const bool ParameterizeObjects = false;
+static const bool ProcessObjects = true;
+static const bool ParameterizeObjects = true;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
-static const bool showOriginalRotatedMesh = false;
-static const bool correspondences2dto3d = false;
+static const bool showOriginalRotatedMesh = true;
+static const bool correspondences2dto3d = true;
 static const bool parameterizeSurfaceBool = true;
 
 
@@ -41,9 +41,12 @@ int main()
     std::string directoryName2 = "output_files_4";
     createDirectory(directoryName2);
 
+    std::cout << "Step 1 ---------- Process objects to get boundary vertices" << std::endl;
 
     // get 2d outline
     if (ProcessObjects) {
+
+        
 
         polyscope::removeAllGroups();
         polyscope::removeAllStructures();
@@ -79,6 +82,9 @@ int main()
     }
 
 
+    std::cout << "Step 2 ---------- Show meshes and border side by side" << std::endl;
+
+
     // Create default directory if none is provided
     const std::string DEFAULT_CORRESPONDENCES_meshes_FOLDER = "models_for_correspondences";
 
@@ -105,6 +111,7 @@ int main()
     }
 
 
+    std::cout << "Step 3 ---------- sort border vertices and let user select vertices to get correspondences" << std::endl;
 
     const std::string DEFAULT_CORRESPONDENCES_FOLDER = "Correspondences";
     // view models and parameterize
@@ -171,6 +178,9 @@ int main()
         }
     }
 
+
+    std::cout << "Step 3 ---------- Lift the 2d boundray curve to 3d" << std::endl;
+
     const std::string DEFAULT_2dto3d_FOLDER = "2d_Curve_in_3d";
     if (correspondences2dto3d) {
         const std::string meshesFolder = DEFAULT_CORRESPONDENCES_meshes_FOLDER;
@@ -229,6 +239,7 @@ int main()
 
     }
 
+    std::cout << "Step 4 ---------- Parameterize surface using lifted curve as boundary" << std::endl;
 
     if (parameterizeSurfaceBool) {
 

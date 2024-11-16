@@ -24,11 +24,11 @@
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
-static const bool ProcessObjects = true;
-static const bool ParameterizeObjects = true;
+static const bool ProcessObjects = false;
+static const bool ParameterizeObjects = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
-static const bool showOriginalRotatedMesh = true;
-static const bool correspondences2dto3d = true;
+static const bool showOriginalRotatedMesh = false;
+static const bool correspondences2dto3d = false;
 static const bool parameterizeSurfaceBool = true;
 
 
@@ -179,7 +179,7 @@ int main()
     }
 
 
-    std::cout << "Step 3 ---------- Lift the 2d boundray curve to 3d" << std::endl;
+    std::cout << "Step 4 ---------- Lift the 2d boundray curve to 3d" << std::endl;
 
     const std::string DEFAULT_2dto3d_FOLDER = "2d_Curve_in_3d";
     if (correspondences2dto3d) {
@@ -239,7 +239,7 @@ int main()
 
     }
 
-    std::cout << "Step 4 ---------- Parameterize surface using lifted curve as boundary" << std::endl;
+    std::cout << "Step 5 ---------- Parameterize surface using lifted curve as boundary" << std::endl;
 
     if (parameterizeSurfaceBool) {
 

@@ -518,6 +518,12 @@ void showSideBySideMeshes(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
         writeVerticesToPLY(dir + "/border_Right.obj", V2_border_offset);
     }
 
+
+    polyscope::registerPointCloud("border V1", V1_border);
+    polyscope::registerPointCloud("border V2", V2_border_offset);
+
+    polyscope::show();
+
     // Show the Polyscope UI
 }
 

@@ -265,10 +265,13 @@ int main()
         //Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
 
 
-        if (true) {
+
+        if (false) {
             std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
+            polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
+            polyscope::registerPointCloud("borderV3", V3);
             if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
@@ -278,8 +281,34 @@ int main()
         if (true) {
             std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
+            polyscope::init();
+
             polyscope::options::programName = "No Split Mesh LCSM, projection";
+            polyscope::registerPointCloud("border V3 shift", V3_obj2);
+
             if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
+                std::cerr << "Surface parameterization failed.\n";
+                return EXIT_FAILURE;
+            }
+        }
+
+        if (false) {
+            std::cout << "surface parameterization (MESH 2) using nonshifted" << std::endl;
+            Eigen::MatrixXd UV_map;
+
+            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
+
+            Eigen::MatrixXd Mesh3_V;
+            Eigen::MatrixXi Mesh3_F;
+            readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
+            findExactCorrespondences(Mesh3_V, V3_obj3);
+
+            polyscope::init();
+
+            polyscope::options::programName = "No Split Mesh LCSM, projection";
+            polyscope::registerPointCloud("border V3 shift", V3_obj3);
+
+            if (!paramsurface5(Mesh3_V, Mesh3_F, UV_map, V3_obj3, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }

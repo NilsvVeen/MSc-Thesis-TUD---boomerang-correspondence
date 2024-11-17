@@ -645,7 +645,7 @@ void createLineConnectionsAll(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
 
 // ISUE: now it uses 
-Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2) {
+Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, Eigen::Vector3d& shiftVector) {
     // Calculate necessary offsets in X
     double maxX_V1 = V1.col(0).maxCoeff(); // Maximum X of V1
     double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
@@ -677,6 +677,8 @@ Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen
     }
 
     std::cout << "SHIFT (offset input BorderV1, BorderV2) :" << offsetX << " " << offsetY << "  " << offsetZ << std::endl;
+
+    shiftVector << offsetX, offsetY, offsetZ;
 
 
     return V2_offset;
@@ -1087,7 +1089,7 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
 
 
 // Main function with slider for rotation of both point clouds
-void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const std::string& dir) {
+void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, const std::string& dir, Eigen::Vector3d& shiftVector) {
     polyscope::init();
 
     double radius_default = 0.0005 * 3;
@@ -1106,7 +1108,7 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
     auto* pointCloud1 = registerPointCloudWithColors("Point Cloud 1", V1, radius_default, vertexColors1);
 
     // Calculate and adjust offsets for V2
-    Eigen::MatrixXd V2_offset = calculateAndAdjustOffsets(V1, V2);
+    Eigen::MatrixXd V2_offset = calculateAndAdjustOffsets(V1, V2, shiftVector);
 
     // Register the second point cloud (rotated)
     auto* pointCloud2 = registerPointCloudWithColors("Point Cloud 2", rotatePointCloud(V2_offset, rotationAngleRadians2, rotationAxis), radius_default, vertexColors2);

@@ -25,13 +25,13 @@
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
 static const bool ProcessObjects = false;
-static const bool ParameterizeObjects = false;
+static const bool ParameterizeObjects = true;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
 
 static const bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = true;
+static const bool parameterizeSurfaceBool = false;
 
 int main()
 {
@@ -124,6 +124,8 @@ int main()
 
     std::cout << "Step 3 ---------- sort border vertices and let user select vertices to get correspondences" << std::endl;
 
+    Eigen::Vector3d shiftVector;
+
     const std::string DEFAULT_CORRESPONDENCES_FOLDER = "Correspondences";
     // view models and parameterize
     if (ParameterizeObjects) {
@@ -180,8 +182,7 @@ int main()
 
             //showSelection(sortedVertices);
 
-            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER);
-
+            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
 
 
             //showSideBySideSelectionWithVertexSelection(sampled.first, sampled.second);
@@ -193,6 +194,39 @@ int main()
         }
     }
 
+    std::cout << "official shift vector to use!!!!!!!!!!!!!!!!! : " << shiftVector << std::endl;
+
+
+    const std::string shiftMeshAndCurve = "shiftMeshAndCurve";
+    if (true) {
+        std::cout << "Step 3.5 ---------- Shift Mesh 2 by shift vector" << std::endl;
+
+        Eigen::RowVector3d shiftVectorRow = shiftVector.transpose();
+
+        createDirectory(shiftMeshAndCurve);
+        clearDirectory(shiftMeshAndCurve);
+
+        Eigen::MatrixXd sortedVertices, sortedVertices2_temp;
+        readPointCloudFromFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
+        readPointCloudFromFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2_temp);
+        Eigen::MatrixXd sortedVertices2 = sortedVertices2_temp.rowwise() + shiftVectorRow;
+
+        Eigen::MatrixXd Mesh1_V;
+        Eigen::MatrixXi Mesh1_F;
+        readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
+
+        Eigen::MatrixXd Mesh2_V_temp;
+        Eigen::MatrixXi Mesh2_F;
+        readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V_temp, Mesh2_F);
+        Eigen::MatrixXd Mesh2_V = Mesh2_V_temp.rowwise() + shiftVectorRow;
+
+
+        saveMeshToFile(shiftMeshAndCurve + "/M1.obj", Mesh1_V, Mesh1_F);
+        saveMeshToFile(shiftMeshAndCurve + "/M2.obj", Mesh2_V, Mesh2_F);
+        savePointCloudToFile(shiftMeshAndCurve + "/B1.obj", sortedVertices);
+        savePointCloudToFile(shiftMeshAndCurve + "/B2.obj", sortedVertices2);
+
+    }
 
     std::cout << "Step 4 ---------- Lift the 2d boundray curve to 3d" << std::endl;
 

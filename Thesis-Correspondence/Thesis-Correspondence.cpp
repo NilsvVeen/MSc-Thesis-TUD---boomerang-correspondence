@@ -398,12 +398,14 @@ int main()
             }
         }
 
-        if (false) {
+        if (true) {
             std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
-            V3_obj2 = sortVerticesByProximity(V3_obj2);
+            findExactCorrespondences(Mesh2_V, V3_obj2);
+
+            //V3_obj2 = sortVerticesByProximity(V3_obj2);
 
             //Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
             ////V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 345);
@@ -423,7 +425,7 @@ int main()
             }
         }
 
-        if (true) {
+        if (false) {
             std::cout << "surface parameterization (MESH 2) using nonshifted" << std::endl;
             Eigen::MatrixXd UV_map;
 
@@ -451,28 +453,28 @@ int main()
 
        
 
-            polyscope::init();
+            //polyscope::init();
 
-            polyscope::options::programName = "No Split Mesh LCSM, projection";
-            polyscope::registerPointCloud("border V3 shift", V3_obj3);
-            polyscope::registerPointCloud("borderV3 (Model 1 original)", V3);
-            polyscope::registerPointCloud("borderV3 (Model 2 original)", V3_obj2);
+            //polyscope::options::programName = "No Split Mesh LCSM, projection";
+            //polyscope::registerPointCloud("border V3 shift", V3_obj3);
+            //polyscope::registerPointCloud("borderV3 (Model 1 original)", V3);
+            //polyscope::registerPointCloud("borderV3 (Model 2 original)", V3_obj2);
 
-            const std::string checkCode = "CheckCode";
-            createDirectory(checkCode);
-            clearDirectory(checkCode);
+            //const std::string checkCode = "CheckCode";
+            //createDirectory(checkCode);
+            //clearDirectory(checkCode);
 
-            saveMeshToFile(checkCode + "/Mesh_V3_subs.obj", Mesh2_V, Mesh2_F);
-            saveMeshToFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", Mesh3_V, Mesh3_F);
-            writeVerticesToPLY(checkCode + "/border_V3_subs.obj", V3_obj2);
-            writeVerticesToPLY(checkCode + "/border_shifted_from_origin_OK.obj", V3_obj3);
+            //saveMeshToFile(checkCode + "/Mesh_V3_subs.obj", Mesh2_V, Mesh2_F);
+            //saveMeshToFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", Mesh3_V, Mesh3_F);
+            //writeVerticesToPLY(checkCode + "/border_V3_subs.obj", V3_obj2);
+            //writeVerticesToPLY(checkCode + "/border_shifted_from_origin_OK.obj", V3_obj3);
 
 
 
-            Eigen::MatrixXd MeshVVVVVVVVVV;
-            Eigen::MatrixXi MeshFFFFFFFFFF;
-            readMeshFromFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", MeshVVVVVVVVVV, MeshFFFFFFFFFF);
-            Eigen::MatrixXd V3_objXXXXXXXXXX = readVerticesFromPLY(checkCode + "/border_shifted_from_origin_OK.obj");
+            //Eigen::MatrixXd MeshVVVVVVVVVV;
+            //Eigen::MatrixXi MeshFFFFFFFFFF;
+            //readMeshFromFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", MeshVVVVVVVVVV, MeshFFFFFFFFFF);
+            //Eigen::MatrixXd V3_objXXXXXXXXXX = readVerticesFromPLY(checkCode + "/border_shifted_from_origin_OK.obj");
 
             //if (!paramsurface5(MeshVVVVVVVVVV, MeshFFFFFFFFFF, UV_map, V3_objXXXXXXXXXX, true)) {
             //    std::cerr << "Surface parameterization failed.\n";

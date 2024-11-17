@@ -309,21 +309,21 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
-            //V3_obj2 = sortVerticesByProximity(V3_obj2);
+            V3_obj2 = sortVerticesByProximity(V3_obj2);
 
-            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
-            //V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 345);
-            V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 349);
+            //Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
+            ////V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 345);
+            //V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 349);
 
-            Eigen::MatrixXd Mesh3_V;
-            Eigen::MatrixXi Mesh3_F;
-            readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
-            findExactCorrespondences(Mesh3_V, V3_obj3);
+            //Eigen::MatrixXd Mesh3_V;
+            //Eigen::MatrixXi Mesh3_F;
+            //readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
+            //findExactCorrespondences(Mesh3_V, V3_obj3);
 
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
 
-            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj3, true)) {
+            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }

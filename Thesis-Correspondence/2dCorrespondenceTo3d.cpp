@@ -21,8 +21,8 @@ void readMeshesAndPointClouds(const std::string& meshesFolder,
     std::vector<Eigen::MatrixXd>& V2_pointclouds) {
 
     // Step 1: Read Meshes from the specified folder
-    std::string mesh1File = meshesFolder + "/LeftMesh.obj";  // Example filenames
-    std::string mesh2File = meshesFolder + "/RightMesh.obj";
+    std::string mesh1File = meshesFolder + "/M1.obj";  // Example filenames
+    std::string mesh2File = meshesFolder + "/M2.obj";
 
     // Use utility functions to read meshes
     if (!readMeshFromFile(mesh1File, Mesh1_V, Mesh1_F)) {

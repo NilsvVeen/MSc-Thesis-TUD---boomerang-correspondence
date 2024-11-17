@@ -101,30 +101,30 @@ int main()
     std::cout << "Step 2 ---------- Show meshes and border side by side" << std::endl;
 
 
-    // Create default directory if none is provided
-    const std::string DEFAULT_CORRESPONDENCES_meshes_FOLDER = "models_for_correspondences";
+    //// Create default directory if none is provided
+    //const std::string DEFAULT_CORRESPONDENCES_meshes_FOLDER = "models_for_correspondences";
 
-    if (showOriginalRotatedMesh) {
-        polyscope::init();
-        polyscope::removeAllGroups();
-        polyscope::removeAllStructures();
+    //if (showOriginalRotatedMesh) {
+    //    polyscope::init();
+    //    polyscope::removeAllGroups();
+    //    polyscope::removeAllStructures();
 
-        Eigen::MatrixXd Mesh1_V;
-        Eigen::MatrixXi Mesh1_F;
-        readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
+    //    Eigen::MatrixXd Mesh1_V;
+    //    Eigen::MatrixXi Mesh1_F;
+    //    readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
 
-        Eigen::MatrixXd Mesh2_V;
-        Eigen::MatrixXi Mesh2_F;
-        readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V, Mesh2_F);
+    //    Eigen::MatrixXd Mesh2_V;
+    //    Eigen::MatrixXi Mesh2_F;
+    //    readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V, Mesh2_F);
 
-        Eigen::MatrixXd V1_border;
-        Eigen::MatrixXd V2_border;
-        readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
-        readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
+    //    Eigen::MatrixXd V1_border;
+    //    Eigen::MatrixXd V2_border;
+    //    readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
+    //    readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
 
-        // Display the two meshes side by side
-        showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border, DEFAULT_CORRESPONDENCES_meshes_FOLDER);
-    }
+    //    // Display the two meshes side by side
+    //    showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border, DEFAULT_CORRESPONDENCES_meshes_FOLDER);
+    //}
 
 
     std::cout << "Step 3 ---------- sort border vertices and let user select vertices to get correspondences" << std::endl;
@@ -292,7 +292,7 @@ int main()
 
     const std::string DEFAULT_2dto3d_FOLDER = "2d_Curve_in_3d";
     if (correspondences2dto3d) {
-        const std::string meshesFolder = DEFAULT_CORRESPONDENCES_meshes_FOLDER;
+        const std::string meshesFolder = shiftMeshAndCurve;
         const std::string pointCloudsFolder = DEFAULT_CORRESPONDENCES_FOLDER;
         const std::string Curve2dTo3dFolder = DEFAULT_2dto3d_FOLDER;
 
@@ -338,11 +338,11 @@ int main()
 
         // get 3d curve of all the border vertics (not subset for correspondences)
 
-        Eigen::MatrixXd border_V_1 = readVerticesFromPLY(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Left.obj");
+        Eigen::MatrixXd border_V_1 = readVerticesFromPLY(shiftMeshAndCurve + "/B1.obj");
         findExactCorrespondences(Mesh1_V, border_V_1);
         writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj", border_V_1);
 
-        Eigen::MatrixXd border_V_2 = readVerticesFromPLY(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Right.obj");
+        Eigen::MatrixXd border_V_2 = readVerticesFromPLY(shiftMeshAndCurve + "/B2.obj");
         findExactCorrespondences(Mesh2_V, border_V_2);
         writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj", border_V_2);
 

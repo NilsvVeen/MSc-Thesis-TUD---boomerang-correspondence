@@ -25,13 +25,18 @@
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
 static const bool ProcessObjects = false;
-static const bool ParameterizeObjects = true;
+static const bool ParameterizeObjects = false;
+
+
+static const bool shiftAll = false;
+
+
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
 
 static const bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = false;
+static const bool parameterizeSurfaceBool = true;
 
 int main()
 {
@@ -198,8 +203,10 @@ int main()
 
 
     const std::string shiftMeshAndCurve = "shiftMeshAndCurve";
-    if (true) {
+    if (shiftAll) {
         std::cout << "Step 3.5 ---------- Shift Mesh 2 by shift vector" << std::endl;
+
+        shiftVector << 538, 496 , 349;
 
         Eigen::RowVector3d shiftVectorRow = shiftVector.transpose();
 
@@ -225,6 +232,59 @@ int main()
         saveMeshToFile(shiftMeshAndCurve + "/M2.obj", Mesh2_V, Mesh2_F);
         savePointCloudToFile(shiftMeshAndCurve + "/B1.obj", sortedVertices);
         savePointCloudToFile(shiftMeshAndCurve + "/B2.obj", sortedVertices2);
+
+        if (Mesh1_V.rows() == 0 || Mesh1_V.cols() != 3) {
+            std::cerr << "Error: Mesh1_V is empty or has invalid dimensions!" << std::endl;
+        }
+        if (Mesh1_F.rows() == 0 || Mesh1_F.cols() != 3) {
+            std::cerr << "Error: Mesh1_F is empty or has invalid dimensions!" << std::endl;
+        }
+        if (Mesh1_V.hasNaN() || Mesh1_F.hasNaN()) {
+            std::cerr << "Error: Mesh1_V or Mesh1_F contains NaN values!" << std::endl;
+        }
+        if (Mesh2_V.rows() == 0 || Mesh2_V.cols() != 3) {
+            std::cerr << "Error: Mesh1_V is empty or has invalid dimensions!" << std::endl;
+        }
+        if (Mesh2_F.rows() == 0 || Mesh2_F.cols() != 3) {
+            std::cerr << "Error: Mesh1_F is empty or has invalid dimensions!" << std::endl;
+        }
+        if (Mesh2_V.hasNaN() || Mesh2_F.hasNaN()) {
+            std::cerr << "Error: Mesh1_V or Mesh1_F contains NaN values!" << std::endl;
+        }
+
+        if (sortedVertices.rows() == 0 || sortedVertices.cols() != 3) {
+            std::cerr << "Error: sortedVertices is empty or has invalid dimensions!" << std::endl;
+        }
+        if (sortedVertices.hasNaN()) {
+            std::cerr << "Error: sortedVertices contains NaN values!" << std::endl;
+        }
+        if (sortedVertices2.rows() == 0 || sortedVertices2.cols() != 3) {
+            std::cerr << "Error: sortedVertices is empty or has invalid dimensions!" << std::endl;
+        }
+        if (sortedVertices2.hasNaN()) {
+            std::cerr << "Error: sortedVertices contains NaN values!" << std::endl;
+        }
+
+
+        std::cout << "1" << std::endl;
+        polyscope::init();
+        std::cout << "2" << std::endl;
+
+        polyscope::registerSurfaceMesh("M1", Mesh1_V, Mesh1_F);
+        std::cout << "3" << std::endl;
+
+        polyscope::registerSurfaceMesh("M2", Mesh2_V, Mesh2_F);
+        std::cout << "4" << std::endl;
+
+        polyscope::registerPointCloud("B1", sortedVertices);
+        std::cout << "5" << std::endl;
+
+        polyscope::registerPointCloud("B2", sortedVertices2);
+        std::cout << "6" << std::endl;
+
+        polyscope::show();
+        std::cout << "7" << std::endl;
+
 
     }
 
@@ -338,7 +398,7 @@ int main()
             }
         }
 
-        if (true) {
+        if (false) {
             std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();
@@ -363,13 +423,13 @@ int main()
             }
         }
 
-        if (false) {
+        if (true) {
             std::cout << "surface parameterization (MESH 2) using nonshifted" << std::endl;
             Eigen::MatrixXd UV_map;
 
             //V3_obj2 = sortVerticesByProximity(V3_obj2);
 
-            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
+/*            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
 
             Eigen::MatrixXd Mesh3_V;
             Eigen::MatrixXi Mesh3_F;
@@ -378,10 +438,18 @@ int main()
 
 
             Mesh3_V.rowwise() +=  Eigen::RowVector3d(538, 496, 349);
-            V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 349);    
+            V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 349);  */  
             //Mesh3_V.rowwise() +=  Eigen::RowVector3d(538, 496, 345);
             //V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 345);
 
+            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(shiftMeshAndCurve + "/B2.obj");
+            Eigen::MatrixXd Mesh3_V;
+            Eigen::MatrixXi Mesh3_F;
+            readMeshFromFile(shiftMeshAndCurve + "/M2.obj", Mesh3_V, Mesh3_F);
+            findExactCorrespondences(Mesh3_V, V3_obj3);
+
+
+       
 
             polyscope::init();
 
@@ -396,11 +464,20 @@ int main()
 
             saveMeshToFile(checkCode + "/Mesh_V3_subs.obj", Mesh2_V, Mesh2_F);
             saveMeshToFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", Mesh3_V, Mesh3_F);
-            savePointCloudToFile(checkCode + "/border_V3_subs.obj", V3_obj2);
-            savePointCloudToFile(checkCode + "/border_shifted_from_origin_OK.obj", V3_obj3);
+            writeVerticesToPLY(checkCode + "/border_V3_subs.obj", V3_obj2);
+            writeVerticesToPLY(checkCode + "/border_shifted_from_origin_OK.obj", V3_obj3);
 
 
 
+            Eigen::MatrixXd MeshVVVVVVVVVV;
+            Eigen::MatrixXi MeshFFFFFFFFFF;
+            readMeshFromFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", MeshVVVVVVVVVV, MeshFFFFFFFFFF);
+            Eigen::MatrixXd V3_objXXXXXXXXXX = readVerticesFromPLY(checkCode + "/border_shifted_from_origin_OK.obj");
+
+            //if (!paramsurface5(MeshVVVVVVVVVV, MeshFFFFFFFFFF, UV_map, V3_objXXXXXXXXXX, true)) {
+            //    std::cerr << "Surface parameterization failed.\n";
+            //    return EXIT_FAILURE;
+            //}
             if (!paramsurface5(Mesh3_V, Mesh3_F, UV_map, V3_obj3, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;

@@ -104,22 +104,45 @@ void showInPolyscope(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh
 }
 
 
-// Helper function to find exact (x,y) matches in Mesh1 and add the corresponding z value
+// Helper function to find exact (x, y) matches in Mesh1 and add the corresponding z value
 void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V1_pointcloud) {
+    // Create a set to store already processed (x, y, z) points
+    std::set<std::tuple<double, double, double>> processedPoints;
+
     for (int i = 0; i < V1_pointcloud.rows(); ++i) {
+        bool matchFound = false;
+
         for (int j = 0; j < mesh1_V.rows(); ++j) {
             // Compare x, y coordinates
             if (V1_pointcloud(i, 0) == mesh1_V(j, 0) && V1_pointcloud(i, 1) == mesh1_V(j, 1)) {
-                // Set z value from mesh1_V
-                V1_pointcloud(i, 2) = mesh1_V(j, 2);
+                // Create the (x, y, z) tuple for the match
+                std::tuple<double, double, double> point(
+                    V1_pointcloud(i, 0),
+                    V1_pointcloud(i, 1),
+                    mesh1_V(j, 2)
+                );
+
+                // Check if the point is already added
+                if (processedPoints.find(point) == processedPoints.end()) {
+                    // Set z value from mesh1_V
+                    V1_pointcloud(i, 2) = mesh1_V(j, 2);
+                    processedPoints.insert(point);  // Mark this point as processed
+                    matchFound = true;
+                }
                 break;  // Exit loop once a match is found
             }
+        }
+
+        // If no match was found or the point was already processed, skip to the next
+        if (!matchFound) {
+            V1_pointcloud(i, 2) = 0;  // Optional: You can assign a default value like 0
         }
 
         // Update progress
         std::cout << "\rProcessing V1 point cloud: " << std::fixed << std::setprecision(2)
             << (static_cast<double>(i + 1) / V1_pointcloud.rows()) * 100 << "% completed" << std::flush;
     }
+
     std::cout << std::endl; // To move to the next line after the progress is complete
 }
 

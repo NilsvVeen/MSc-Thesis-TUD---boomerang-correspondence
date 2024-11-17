@@ -288,10 +288,12 @@ int main()
 
     }
 
-    std::cout << "Step 4 ---------- Lift the 2d boundray curve to 3d" << std::endl;
+    std::cout << "Step 4 ---------- Lift the 2d boundray curve to 3d []" << std::endl;
 
     const std::string DEFAULT_2dto3d_FOLDER = "2d_Curve_in_3d";
     if (correspondences2dto3d) {
+
+
         const std::string meshesFolder = shiftMeshAndCurve;
         const std::string pointCloudsFolder = DEFAULT_CORRESPONDENCES_FOLDER;
         const std::string Curve2dTo3dFolder = DEFAULT_2dto3d_FOLDER;
@@ -318,11 +320,34 @@ int main()
 
         std::cout << "match V2" << std::endl;
 
+        Eigen::MatrixXd Mesh2_V_new;
+        Eigen::MatrixXi Mesh2_F_new;
+        std::vector<Eigen::MatrixXd> V2_pointclouds_new;
+
+        int i = 0;
         // Process correspondences for V2 (Closest x, y match, use x, y, z from Mesh2)
         for (Eigen::MatrixXd& V2 : V2_pointclouds) {
             //findClosestCorrespondences(Mesh2_V, V2);
-            findExactCorrespondences(Mesh2_V, V2);
+            //findExactCorrespondences(Mesh2_V, V2);
+
+            Eigen::MatrixXd V2_pointcloud_new; // Create a temporary for the new point cloud
+
+            // Project and split mesh, update V2_pointcloud_new
+            projectAndSplitMesh(Mesh2_V, Mesh2_F, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
+
+            // Store the updated point cloud in the vector
+            V2_pointclouds_new.push_back(V2_pointcloud_new);
+
+            //break;
+
         }
+
+        std::cout << "Mesh Old size: " << Mesh2_V.rows() << std::endl;
+        std::cout << "Faces Old size: " << Mesh2_F.rows() << std::endl;
+        std::cout << "Mesh new size: " << Mesh2_V_new.rows() << std::endl;
+        std::cout << "Faces new size: " << Mesh2_F_new.rows() << std::endl;
+
+
 
 
         // Check if meshes were successfully read
@@ -331,10 +356,11 @@ int main()
             return -1;
         }
 
-        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);
+        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds_new);
+        saveMeshToFile(DEFAULT_2dto3d_FOLDER + "/V2_new.obj", Mesh2_V_new, Mesh2_F_new);
  
         // Show them in Polyscope with the common color
-        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds);
+        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds_new);
 
 
         // get 3d curve of all the border vertics (not subset for correspondences)
@@ -365,7 +391,7 @@ int main()
 
         Eigen::MatrixXd Mesh2_V;
         Eigen::MatrixXi Mesh2_F;
-        readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/Mesh2.obj", Mesh2_V, Mesh2_F);
+        readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/V2_new.obj", Mesh2_V, Mesh2_F);
 
 
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";

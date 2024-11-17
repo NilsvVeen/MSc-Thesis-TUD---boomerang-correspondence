@@ -28,12 +28,15 @@ static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
-static const bool correspondences2dto3d = false;
-static const bool parameterizeSurfaceBool = true;
 
+static const bool correspondences2dto3d = false;
+
+static const bool parameterizeSurfaceBool = true;
 
 int main()
 {
+
+
 
     //// Create a directory for output files
     std::string directoryName = "output_files_3";
@@ -77,8 +80,16 @@ int main()
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
 
+        Eigen::MatrixXd Mesh1_V;
+        Eigen::MatrixXi Mesh1_F;
+        Eigen::MatrixXd V1_border;
+        readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
+        readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
+
         // get outlining vertices of object
         std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2);
+        //std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2, Mesh1_V, V1_border, true);
+
     }
 
 
@@ -128,6 +139,11 @@ int main()
         if (readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V) 
             && readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2)
             ) {
+
+        //if (readPointCloudFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Left.obj", V)
+        //    && readPointCloudFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Right.obj", V2)
+        //    ) {
+
             std::cout << "Point cloud loaded successfully." << std::endl;
             std::cout << "Number of vertices: " << V.rows() << std::endl; // Print the number of vertices
             std::cout << "Number of vertices in 2: " << V2.rows() << std::endl; // Print the number of vertices
@@ -159,9 +175,8 @@ int main()
 
             //showPointCloudInParts(sortedVertices);
 
-            std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
-
-            writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
+            //std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
+            //writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
 
             //showSelection(sortedVertices);
 
@@ -294,10 +309,21 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
+            //V3_obj2 = sortVerticesByProximity(V3_obj2);
+
+            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
+            //V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 345);
+            V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 349);
+
+            Eigen::MatrixXd Mesh3_V;
+            Eigen::MatrixXi Mesh3_F;
+            readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
+            findExactCorrespondences(Mesh3_V, V3_obj3);
+
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
 
-            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
+            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj3, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
@@ -307,6 +333,8 @@ int main()
             std::cout << "surface parameterization (MESH 2) using nonshifted" << std::endl;
             Eigen::MatrixXd UV_map;
 
+            //V3_obj2 = sortVerticesByProximity(V3_obj2);
+
             Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
 
             Eigen::MatrixXd Mesh3_V;
@@ -314,10 +342,30 @@ int main()
             readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
             findExactCorrespondences(Mesh3_V, V3_obj3);
 
+
+            Mesh3_V.rowwise() +=  Eigen::RowVector3d(538, 496, 349);
+            V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 349);    
+            //Mesh3_V.rowwise() +=  Eigen::RowVector3d(538, 496, 345);
+            //V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 345);
+
+
             polyscope::init();
 
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj3);
+            polyscope::registerPointCloud("borderV3 (Model 1 original)", V3);
+            polyscope::registerPointCloud("borderV3 (Model 2 original)", V3_obj2);
+
+            const std::string checkCode = "CheckCode";
+            createDirectory(checkCode);
+            clearDirectory(checkCode);
+
+            saveMeshToFile(checkCode + "/Mesh_V3_subs.obj", Mesh2_V, Mesh2_F);
+            saveMeshToFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", Mesh3_V, Mesh3_F);
+            savePointCloudToFile(checkCode + "/border_V3_subs.obj", V3_obj2);
+            savePointCloudToFile(checkCode + "/border_shifted_from_origin_OK.obj", V3_obj3);
+
+
 
             if (!paramsurface5(Mesh3_V, Mesh3_F, UV_map, V3_obj3, true)) {
                 std::cerr << "Surface parameterization failed.\n";

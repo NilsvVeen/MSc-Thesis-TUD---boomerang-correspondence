@@ -651,7 +651,7 @@ Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen
     double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
 
     // Calculate the offset to ensure V2 starts after V1 in the X direction
-    double offsetX = maxX_V1 - minX_V2;
+    int offsetX = std::round(maxX_V1 - minX_V2);
 
     // Offset V2 to be next to V1 in the X direction
     Eigen::MatrixXd V2_offset = V2;
@@ -659,8 +659,10 @@ Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen
 
     // Align the Y-coordinates by centering V2 around the average Y of V1
     double averageY1 = V1.col(1).mean();
-    V2_offset.col(1) = V2.col(1).array() + (averageY1 - V2.col(1).mean()); // Center V2 around the Y-axis
+    int offsetY = std::round(averageY1 - V2.col(1).mean()); // Center V2 around the Y-axis
+    V2_offset.col(1) = V2.col(1).array() + offsetY; // Center V2 around the Y-axis
 
+    int offsetZ = 0;
     // Adjust the Z-coordinates based on the furthest Z values
     if (V1.cols() > 2 && V2.cols() > 2) {
         // Find the furthest Z values in both V1 and V2
@@ -668,11 +670,14 @@ Eigen::MatrixXd calculateAndAdjustOffsets(const Eigen::MatrixXd& V1, const Eigen
         double maxZ_V2 = V2.col(2).maxCoeff();
 
         // Calculate the translation to move V2's furthest Z to match V1's furthest Z
-        double offsetZ = maxZ_V1 - maxZ_V2;
+         offsetZ = std::round(maxZ_V1 - maxZ_V2);
 
         // Translate all Z-values of V2 so that its maximum Z matches V1's maximum Z
         V2_offset.col(2) = V2.col(2).array() + offsetZ;
     }
+
+    std::cout << "SHIFT (offset input BorderV1, BorderV2) :" << offsetX << " " << offsetY << "  " << offsetZ << std::endl;
+
 
     return V2_offset;
 }
@@ -688,7 +693,7 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculateAndAdjustOffsetsFromBorders
     double minX_V2 = V2.col(0).minCoeff(); // Minimum X of V2
 
     // Calculate the offset to ensure V2 starts after V1 in the X direction
-    double offsetX = maxX_V1 - minX_V2;
+    int offsetX = std::round(maxX_V1 - minX_V2);
 
     // Offset V2 to be next to V1 in the X direction
     Eigen::MatrixXd V2_offset = V2;
@@ -700,25 +705,29 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculateAndAdjustOffsetsFromBorders
 
     // Align the Y-coordinates by centering V2 around the average Y of V1
     double averageY1 = V1_border.col(1).mean();
-    double offsetY = averageY1 - V2_border.col(1).mean();
+    int offsetY = std::round(averageY1 - V2_border.col(1).mean());
 
     // Apply Y offset
     V2_offset.col(1) = V2.col(1).array() + offsetY;
     V2_border_offset.col(1) = V2_border.col(1).array() + offsetY;
 
+    int offsetZ = 0;
     // Adjust the Z-coordinates based on the furthest Z values
     if (V1.cols() > 2 && V2.cols() > 2) {
         // Find the furthest Z values in both V1 and V2
-        double maxZ_V1 = V1.col(2).maxCoeff();
-        double maxZ_V2 = V2.col(2).maxCoeff();
+        double maxZ_V1 = V1_border.col(2).maxCoeff();
+        double maxZ_V2 = V2_border.col(2).maxCoeff();
 
         // Calculate the translation to move V2's furthest Z to match V1's furthest Z
-        double offsetZ = maxZ_V1 - maxZ_V2;
+        offsetZ = std::round( maxZ_V1 - maxZ_V2);
 
         // Translate all Z-values of V2 and V2_border
         V2_offset.col(2) = V2.col(2).array() + offsetZ;
         V2_border_offset.col(2) = V2_border.col(2).array() + offsetZ;
     }
+
+
+    std::cout << "SHIFT:" << offsetX << " " << offsetY << "  " << offsetZ << std::endl;
 
     // Return the transformed V2 and V2_border
     return { V2_offset, V2_border_offset };

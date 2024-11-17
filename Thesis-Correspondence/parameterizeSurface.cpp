@@ -119,24 +119,36 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         Eigen::VectorXi B(boundary_vertices.rows());
         Eigen::MatrixXd BC(boundary_vertices.rows(), 2);
 
+        //// Normalize boundary vertices for ProjectionUV
+        //double minX = boundary_vertices.col(0).minCoeff();
+        //double maxX = boundary_vertices.col(0).maxCoeff();
+        //double minY = boundary_vertices.col(1).minCoeff();
+        //double maxY = boundary_vertices.col(1).maxCoeff();
+
         for (int i = 0; i < boundary_vertices.rows(); ++i) {
-            bool found = false;
+            double min_distance = std::numeric_limits<double>::max();
+            int closest_vertex = -1;
+
             for (int j = 0; j < V.rows(); ++j) {
                 double distance = (V.row(j) - boundary_vertices.row(i)).norm();
+                //std::cout << V.row(j) << " _---- VS ----- " << boundary_vertices.row(i)
+                //    << "  distance: " << distance << std::endl;
 
-                if (distance < 1e-4) {
-                    B(i) = j;
-                    found = true;
-                    break;
+                if (distance < min_distance) {
+                    min_distance = distance;
+                    closest_vertex = j;
                 }
             }
 
-            if (!found) {
-                std::cerr << "Error: Boundary vertex at index " << i
-                    << " (" << boundary_vertices.row(i)
-                    << ") not found in V." << std::endl;
-                return false;  // Early exit if a boundary vertex is missing
+            if (closest_vertex == -1) {
+                std::cerr << "Error: No closest vertex found for boundary vertex at index " << i
+                    << " (" << boundary_vertices.row(i) << ")" << std::endl;
+                return false;  // Early exit if no closest vertex was found
             }
+
+            B(i) = closest_vertex;  // Assign the index of the closest vertex
+            //std::cout << "Closest vertex for boundary vertex " << i << " is " << closest_vertex
+            //    << " with distance " << min_distance << std::endl;
 
             bool CircleUV = false;
             if (CircleUV) {
@@ -151,6 +163,9 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
                 // Set the boundary constraints directly to the boundary_vertices coordinates
                 BC(i, 0) = boundary_vertices(i, 0);  // u-coordinate
                 BC(i, 1) = boundary_vertices(i, 1);  // v-coordinate
+                    // Set the UV coordinates in BC for the boundary
+                //BC(i, 0) = (boundary_vertices(i, 0) - minX) / (maxX - minX);  // Normalize X
+                //BC(i, 1) = (boundary_vertices(i, 1) - minY) / (maxY - minY);  // Normalize Y
             }
         }
 
@@ -185,9 +200,14 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     double z_value = 0.1; // Adjust this value for how far above the UV plane you want it
     for (int i = 0; i < UV.rows(); ++i) {
         UV3D(i, 0) = UV(i, 0) ; // u coordinate
-        UV3D(i, 1) = UV(i, 1) ; // v coordinate
+        UV3D(i, 1) = UV(i, 1); // v coordinate
+        //UV3D(i, 0) = UV(i, 0) * 100; // u coordinate
+        //UV3D(i, 1) = UV(i, 1) * 100; // v coordinate
         UV3D(i, 2) = z_value;  // constant z value
     }
+
+    writeVerticesToPLY("aaaaaaaaaaaaaaaaaaaaaaaaaaaaa", UV3D);
+
 
     // Initialize Polyscope
     polyscope::init();

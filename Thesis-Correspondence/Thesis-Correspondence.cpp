@@ -34,9 +34,9 @@ static const bool shiftAll = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
 
-static const bool correspondences2dto3d = false;
+static const bool correspondences2dto3d = true;
 
-static const bool parameterizeSurfaceBool = true;
+static const bool parameterizeSurfaceBool = false;
 
 int main()
 {
@@ -320,7 +320,8 @@ int main()
 
         // Process correspondences for V2 (Closest x, y match, use x, y, z from Mesh2)
         for (Eigen::MatrixXd& V2 : V2_pointclouds) {
-            findClosestCorrespondences(Mesh2_V, V2);
+            //findClosestCorrespondences(Mesh2_V, V2);
+            findExactCorrespondences(Mesh2_V, V2);
         }
 
 
@@ -370,19 +371,18 @@ int main()
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
         std::string V2_regex = "V2_pointcloud_(\\d+)\\.txt";
 
-        //Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
+        Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
+        findExactCorrespondences(Mesh1_V, V3);
 
         //Eigen::MatrixXd V3 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj" ); 
         //findExactCorrespondences(Mesh1_V, V3);
         
-        Eigen::MatrixXd V3 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj");
-
-
-
-        Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
-
-
+        //Eigen::MatrixXd V3 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj");
         //Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
+
+        Eigen::MatrixXd V3_obj2 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V2_regex);
+        findExactCorrespondences(Mesh2_V, V3_obj2);
+
 
 
 

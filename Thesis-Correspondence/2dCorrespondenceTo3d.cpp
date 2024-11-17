@@ -109,6 +109,10 @@ void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V
     // Create a set to store already processed (x, y, z) points
     std::set<std::tuple<double, double, double>> processedPoints;
 
+    // Temporary container for valid points
+    Eigen::MatrixXd validPoints(V1_pointcloud.rows(), V1_pointcloud.cols());
+    int validIndex = 0;
+
     for (int i = 0; i < V1_pointcloud.rows(); ++i) {
         bool matchFound = false;
 
@@ -128,20 +132,22 @@ void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V
                     V1_pointcloud(i, 2) = mesh1_V(j, 2);
                     processedPoints.insert(point);  // Mark this point as processed
                     matchFound = true;
+
+                    // Add to valid points
+                    validPoints.row(validIndex++) = V1_pointcloud.row(i);
                 }
                 break;  // Exit loop once a match is found
             }
-        }
-
-        // If no match was found or the point was already processed, skip to the next
-        if (!matchFound) {
-            V1_pointcloud(i, 2) = 0;  // Optional: You can assign a default value like 0
         }
 
         // Update progress
         std::cout << "\rProcessing V1 point cloud: " << std::fixed << std::setprecision(2)
             << (static_cast<double>(i + 1) / V1_pointcloud.rows()) * 100 << "% completed" << std::flush;
     }
+
+    // Resize validPoints to include only valid rows
+    validPoints.conservativeResize(validIndex, V1_pointcloud.cols());
+    V1_pointcloud = validPoints;  // Update the original point cloud
 
     std::cout << std::endl; // To move to the next line after the progress is complete
 }

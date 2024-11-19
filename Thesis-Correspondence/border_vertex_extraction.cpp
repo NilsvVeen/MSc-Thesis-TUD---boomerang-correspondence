@@ -247,7 +247,7 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
         initializePolyscopeAndRegisterMesh("Convex Hull", V_hull, F_hull);
 
         // Try 2D Alpha Shape from CGAL
-        double alpha = 1.0; // Alpha for the alpha shape
+        double alpha = 15.0; // Alpha for the alpha shape
         findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha);
 
         if (!borderVertices.empty()) {

@@ -21,6 +21,7 @@
 #endif
 #include <regex>
 #include "splitMesh.h"
+#include <igl/boundary_loop.h>
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
@@ -36,7 +37,16 @@ static const bool showOriginalRotatedMesh = false;
 
 static const bool correspondences2dto3d = true;
 
-static const bool parameterizeSurfaceBool = false;
+static const bool parameterizeSurfaceBool = true;
+
+int countHoles(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+    // Find boundary loops
+    std::vector<std::vector<int>> boundary_loops;
+    igl::boundary_loop(F, boundary_loops);
+
+    // The number of holes corresponds to the number of boundary loops
+    return static_cast<int>(boundary_loops.size());
+}
 
 int main()
 {
@@ -62,7 +72,8 @@ int main()
         // Print files in the global models directory
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09.stl";
+        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -80,7 +91,9 @@ int main()
         // Print files in the global models directory
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
+        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
+        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -206,7 +219,11 @@ int main()
     if (shiftAll) {
         std::cout << "Step 3.5 ---------- Shift Mesh 2 by shift vector" << std::endl;
 
-        shiftVector << 538, 496 , 349;
+        //shiftVector << 538, 496 , 349; // normal case
+        shiftVector << 538, 505 , 349; // decimated 01  case
+        shiftVector << 213, 0 , 0; // decimated 01  case
+
+
 
         Eigen::RowVector3d shiftVectorRow = shiftVector.transpose();
 
@@ -318,27 +335,45 @@ int main()
             findExactCorrespondences(Mesh1_V, V1);
         }
 
+
+
         std::cout << "match V2" << std::endl;
 
-        Eigen::MatrixXd Mesh2_V_new;
-        Eigen::MatrixXi Mesh2_F_new;
+        Eigen::MatrixXd Mesh2_V_new = Mesh2_V; // Start with the original mesh
+        Eigen::MatrixXi Mesh2_F_new = Mesh2_F;
         std::vector<Eigen::MatrixXd> V2_pointclouds_new;
 
-        int i = 0;
-        // Process correspondences for V2 (Closest x, y match, use x, y, z from Mesh2)
-        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
-            //findClosestCorrespondences(Mesh2_V, V2);
-            //findExactCorrespondences(Mesh2_V, V2);
 
+        double averageZ = Mesh2_V.col(2).mean();
+        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
+            V2.col(2).setConstant(averageZ); // Set all Z values of V2 to averageZ
+        }
+        polyscope::init();
+        polyscope::registerSurfaceMesh("Before", Mesh2_V, Mesh2_F);
+        int i = 0;
+        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
+
+            polyscope::registerPointCloud("before_" + std::to_string(i), V2);
+            i += 1;
+        }
+        polyscope::show();
+
+
+
+
+
+        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
             Eigen::MatrixXd V2_pointcloud_new; // Create a temporary for the new point cloud
 
-            // Project and split mesh, update V2_pointcloud_new
-            projectAndSplitMesh(Mesh2_V, Mesh2_F, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
-
+            // Project and split mesh, update V2_pointcloud_new, Mesh2_V_new, and Mesh2_F_new
+            projectAndSplitMesh(Mesh2_V_new, Mesh2_F_new, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
             // Store the updated point cloud in the vector
             V2_pointclouds_new.push_back(V2_pointcloud_new);
 
-            //break;
+
+            //findClosestCorrespondences(Mesh2_V, V2);
+            //V2_pointclouds_new.push_back(V2);
+
 
         }
 
@@ -356,22 +391,25 @@ int main()
             return -1;
         }
 
-        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds_new);
-        saveMeshToFile(DEFAULT_2dto3d_FOLDER + "/V2_new.obj", Mesh2_V_new, Mesh2_F_new);
+        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V, Mesh1_F, Mesh2_V_new, Mesh2_F_new, V1_pointclouds, V2_pointclouds_new);
+        //saveMeshToFile(DEFAULT_2dto3d_FOLDER + "/V2_new.obj", Mesh2_V_new, Mesh2_F_new);
  
         // Show them in Polyscope with the common color
-        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_pointclouds, V2_pointclouds_new);
+        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V_new, Mesh2_F_new, V1_pointclouds, V2_pointclouds_new);
 
+
+        int numHoles = countHoles(Mesh2_V_new, Mesh2_F_new);
+        std::cout << "Number of holes in the mesh: " << numHoles << std::endl;
 
         // get 3d curve of all the border vertics (not subset for correspondences)
 
-        Eigen::MatrixXd border_V_1 = readVerticesFromPLY(shiftMeshAndCurve + "/B1.obj");
-        findExactCorrespondences(Mesh1_V, border_V_1);
-        writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj", border_V_1);
+        //Eigen::MatrixXd border_V_1 = readVerticesFromPLY(shiftMeshAndCurve + "/B1.obj");
+        //findExactCorrespondences(Mesh1_V, border_V_1);
+        //writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj", border_V_1);
 
-        Eigen::MatrixXd border_V_2 = readVerticesFromPLY(shiftMeshAndCurve + "/B2.obj");
-        findExactCorrespondences(Mesh2_V, border_V_2);
-        writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj", border_V_2);
+        //Eigen::MatrixXd border_V_2 = readVerticesFromPLY(shiftMeshAndCurve + "/B2.obj");
+        //findExactCorrespondences(Mesh2_V, border_V_2);
+        //writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj", border_V_2);
 
     }
 
@@ -391,7 +429,7 @@ int main()
 
         Eigen::MatrixXd Mesh2_V;
         Eigen::MatrixXi Mesh2_F;
-        readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/V2_new.obj", Mesh2_V, Mesh2_F);
+        readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/Mesh2.obj", Mesh2_V, Mesh2_F);
 
 
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
@@ -407,7 +445,7 @@ int main()
         //Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
 
         Eigen::MatrixXd V3_obj2 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V2_regex);
-        findExactCorrespondences(Mesh2_V, V3_obj2);
+        //findExactCorrespondences(Mesh2_V, V3_obj2);
 
 
 
@@ -430,7 +468,8 @@ int main()
             polyscope::init();
 
             findExactCorrespondences(Mesh2_V, V3_obj2);
-
+            int numHoles = countHoles(Mesh2_V, Mesh2_F);
+            std::cout << "Number of holes in the mesh in step last: " << numHoles << std::endl;
             //V3_obj2 = sortVerticesByProximity(V3_obj2);
 
             //Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
@@ -444,11 +483,21 @@ int main()
 
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
+            //polyscope::registerSurfaceMesh("Before", Mesh2_V, Mesh2_F);
+            //polyscope::show();
+
 
             if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
+
+            int numHoles2 = countHoles(Mesh2_V, Mesh2_F);
+            std::cout << "Number of holes in the mesh in step last -- part 2: " << numHoles2 << std::endl;
+
+
+
+
         }
 
         if (false) {

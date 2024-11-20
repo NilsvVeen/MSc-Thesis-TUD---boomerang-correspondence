@@ -35,7 +35,7 @@ static const bool shiftAll = false;
 static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
 static const bool showOriginalRotatedMesh = false;
 
-static const bool correspondences2dto3d = true;
+static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = true;
 
@@ -93,7 +93,7 @@ int main()
 
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -221,7 +221,7 @@ int main()
 
         //shiftVector << 538, 496 , 349; // normal case
         shiftVector << 538, 505 , 349; // decimated 01  case
-        shiftVector << 213, 0 , 0; // decimated 01  case
+        //shiftVector << 213, 0 , 0; // decimated 01  case
 
 
 
@@ -358,21 +358,24 @@ int main()
         }
         polyscope::show();
 
+        // Compute the average Z-coordinate
+        double avgZ = Mesh2_V.col(2).mean(); // Assuming Mesh2_V is an Eigen::MatrixXd with 3 columns (x, y, z)
 
-
+        // Set the Z-coordinate of all vertices to the average Z value
+        Mesh2_V.col(2).setConstant(avgZ);
 
 
         for (Eigen::MatrixXd& V2 : V2_pointclouds) {
             Eigen::MatrixXd V2_pointcloud_new; // Create a temporary for the new point cloud
 
-            // Project and split mesh, update V2_pointcloud_new, Mesh2_V_new, and Mesh2_F_new
-            projectAndSplitMesh(Mesh2_V_new, Mesh2_F_new, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
-            // Store the updated point cloud in the vector
-            V2_pointclouds_new.push_back(V2_pointcloud_new);
+            //// Project and split mesh, update V2_pointcloud_new, Mesh2_V_new, and Mesh2_F_new
+            //projectAndSplitMesh(Mesh2_V_new, Mesh2_F_new, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
+            //// Store the updated point cloud in the vector
+            //V2_pointclouds_new.push_back(V2_pointcloud_new);
 
 
-            //findClosestCorrespondences(Mesh2_V, V2);
-            //V2_pointclouds_new.push_back(V2);
+            findClosestCorrespondences(Mesh2_V, V2);
+            V2_pointclouds_new.push_back(V2);
 
 
         }

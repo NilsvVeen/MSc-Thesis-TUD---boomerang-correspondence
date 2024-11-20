@@ -453,7 +453,7 @@ int main()
 
 
 
-        if (false) {
+        if (true) {
             std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();
@@ -484,6 +484,7 @@ int main()
             //readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
             //findExactCorrespondences(Mesh3_V, V3_obj3);
 
+            polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
             //polyscope::registerSurfaceMesh("Before", Mesh2_V, Mesh2_F);

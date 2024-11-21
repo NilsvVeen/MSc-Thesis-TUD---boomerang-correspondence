@@ -106,7 +106,7 @@ void showInPolyscope(const Eigen::MatrixXd& Mesh1_V, const Eigen::MatrixXi& Mesh
 
 
 // Helper function to find exact (x, y) matches in Mesh1 and add the corresponding z value
-void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V1_pointcloud) {
+void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V1_pointcloud, std::vector<int>& indices_to_remove) {
     // Create a set to store already processed (x, y, z) points
     std::set<std::tuple<double, double, double>> processedPoints;
 
@@ -114,6 +114,7 @@ void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V
     Eigen::MatrixXd validPoints(V1_pointcloud.rows(), V1_pointcloud.cols());
     int validIndex = 0;
 
+    
     for (int i = 0; i < V1_pointcloud.rows(); ++i) {
         bool matchFound = false;
 
@@ -136,14 +137,21 @@ void findExactCorrespondences(const Eigen::MatrixXd& mesh1_V, Eigen::MatrixXd& V
 
                     // Add to valid points
                     validPoints.row(validIndex++) = V1_pointcloud.row(i);
+
+
                 }
                 break;  // Exit loop once a match is found
             }
         }
+        if (!matchFound) {
+            indices_to_remove.push_back(i);
+            std::cout << "no match!?!?! at : " << std::to_string(V1_pointcloud(i)) << " at index " << i << std::endl;
 
-        // Update progress
-        std::cout << "\rProcessing V1 point cloud: " << std::fixed << std::setprecision(2)
-            << (static_cast<double>(i + 1) / V1_pointcloud.rows()) * 100 << "% completed" << std::flush;
+        }
+
+        //// Update progress
+        //std::cout << "\rProcessing V1 point cloud: " << std::fixed << std::setprecision(2)
+        //    << (static_cast<double>(i + 1) / V1_pointcloud.rows()) * 100 << "% completed" << std::flush;
     }
 
     // Resize validPoints to include only valid rows

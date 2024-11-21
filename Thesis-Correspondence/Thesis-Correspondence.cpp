@@ -329,12 +329,19 @@ int main()
             V1_pointclouds, V2_pointclouds);
 
 
+        auto count = 0;
+        auto count2 = 0;
         std::cout << "match V1" << std::endl;
         // Process correspondences for V1 (Exact match x, y, use z from Mesh1)
         for (Eigen::MatrixXd& V1 : V1_pointclouds) {
-            findExactCorrespondences(Mesh1_V, V1);
+            count += V1.rows();
+            std::vector<int> duplicates_XXX = std::vector<int>();
+
+            findExactCorrespondences(Mesh1_V, V1, duplicates_XXX);
+            count2 += V1.rows();
         }
 
+        std::cout << "After matching V1, size difference: " << std::to_string(count) << " -- to -- " << std::to_string(count2 )<< std::endl;
 
 
         std::cout << "match V2" << std::endl;
@@ -351,11 +358,13 @@ int main()
         polyscope::init();
         polyscope::registerSurfaceMesh("Before", Mesh2_V, Mesh2_F);
         int i = 0;
-        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
 
+        for (Eigen::MatrixXd& V2 : V2_pointclouds) {
             polyscope::registerPointCloud("before_" + std::to_string(i), V2);
             i += 1;
         }
+
+
         polyscope::show();
 
         // Compute the average Z-coordinate
@@ -364,7 +373,8 @@ int main()
         // Set the Z-coordinate of all vertices to the average Z value
         Mesh2_V.col(2).setConstant(avgZ);
 
-
+        auto count_fake = 0;
+        auto count_fake2 = 0;
         for (Eigen::MatrixXd& V2 : V2_pointclouds) {
             Eigen::MatrixXd V2_pointcloud_new; // Create a temporary for the new point cloud
 
@@ -373,12 +383,15 @@ int main()
             //// Store the updated point cloud in the vector
             //V2_pointclouds_new.push_back(V2_pointcloud_new);
 
-
+            count_fake += V2.rows();
             findClosestCorrespondences(Mesh2_V, V2);
             V2_pointclouds_new.push_back(V2);
+            count_fake2 += V2.rows();
 
 
         }
+
+        std::cout << "After matching V2, size difference: " << std::to_string(count_fake) << " -- to -- " << std::to_string(count_fake2) << std::endl;
 
         std::cout << "Mesh Old size: " << Mesh2_V.rows() << std::endl;
         std::cout << "Faces Old size: " << Mesh2_F.rows() << std::endl;
@@ -439,7 +452,14 @@ int main()
         std::string V2_regex = "V2_pointcloud_(\\d+)\\.txt";
 
         Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
-        findExactCorrespondences(Mesh1_V, V3);
+        auto xx = V3.rows();
+        std::vector<int> duplicatesV1 = std::vector<int>();
+        findExactCorrespondences(Mesh1_V, V3, duplicatesV1);
+        auto xx2 = V3.rows();
+
+
+
+        std::cout << "----------------After matching V1, size difference: " << std::to_string(xx) << " -- to -- " << std::to_string(xx2) <<  " length: " << duplicatesV1.size() << std::endl;
 
         //Eigen::MatrixXd V3 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj" ); 
         //findExactCorrespondences(Mesh1_V, V3);
@@ -453,7 +473,7 @@ int main()
 
 
 
-        if (true) {
+        if (false) {
             std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();
@@ -470,7 +490,36 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
-            findExactCorrespondences(Mesh2_V, V3_obj2);
+            for (int j = duplicatesV1.size() - 1; j >= 0; j--) {
+                int row_to_remove = duplicatesV1[j];
+                if (row_to_remove >= 0 && row_to_remove < V3_obj2.rows()) {
+                    Eigen::MatrixXd temp(V3_obj2.rows() - 1, V3_obj2.cols());
+                    temp << V3_obj2.topRows(row_to_remove),
+                        V3_obj2.bottomRows(V3_obj2.rows() - row_to_remove - 1);
+                    V3_obj2 = temp;
+                }
+            }
+
+
+            std::vector<int> duplicatesV2 = std::vector<int>();
+            auto yy = V3_obj2.rows();
+            findExactCorrespondences(Mesh2_V, V3_obj2, duplicatesV2);
+            auto yy2 = V3_obj2.rows();
+
+            for (int j = duplicatesV2.size() - 1; j >= 0; j--) {
+                int row_to_remove = duplicatesV2[j];
+                if (row_to_remove >= 0 && row_to_remove < V3.rows()) {
+                    Eigen::MatrixXd temp(V3.rows() - 1, V3.cols());
+                    temp << V3.topRows(row_to_remove),
+                        V3.bottomRows(V3.rows() - row_to_remove - 1);
+                    V3 = temp;
+                }
+            }
+
+
+
+
+            std::cout << "-------------------------------After matching V2, size difference: " << std::to_string(yy) << " -- to -- " << std::to_string(yy2) << " duplciates: " << duplicatesV2.size() << std::endl;
             int numHoles = countHoles(Mesh2_V, Mesh2_F);
             std::cout << "Number of holes in the mesh in step last: " << numHoles << std::endl;
             //V3_obj2 = sortVerticesByProximity(V3_obj2);
@@ -489,6 +538,10 @@ int main()
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
             //polyscope::registerSurfaceMesh("Before", Mesh2_V, Mesh2_F);
             //polyscope::show();
+
+
+            std::cout << "Final border sizes " << V3.rows() << " " << V3_obj2.rows() << std::endl;
+
 
 
             if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
@@ -527,7 +580,9 @@ int main()
             Eigen::MatrixXd Mesh3_V;
             Eigen::MatrixXi Mesh3_F;
             readMeshFromFile(shiftMeshAndCurve + "/M2.obj", Mesh3_V, Mesh3_F);
-            findExactCorrespondences(Mesh3_V, V3_obj3);
+            std::vector<int> duplicates_XXX = std::vector<int>();
+
+            findExactCorrespondences(Mesh3_V, V3_obj3, duplicates_XXX);
 
 
        

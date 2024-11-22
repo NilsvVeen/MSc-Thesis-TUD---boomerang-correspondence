@@ -67,7 +67,7 @@ Eigen::MatrixXd readAndConcatenatePointClouds(const std::string& folderPath, con
     return V3;
 }
 
-bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV, const Eigen::MatrixXd& boundary_vertices, bool boundaryEnabled)
+bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV, const Eigen::MatrixXd& boundary_vertices, bool boundaryEnabled, const Eigen::MatrixXd& boundary_vertices_other)
 {
     // Print size of V and F
     std::cout << "Input V size: " << V.rows() << " x " << V.cols() << std::endl;
@@ -161,8 +161,8 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             bool ProjectionUV = true;
             if (ProjectionUV) {
                 // Set the boundary constraints directly to the boundary_vertices coordinates
-                BC(i, 0) = boundary_vertices(i, 0);  // u-coordinate
-                BC(i, 1) = boundary_vertices(i, 1);  // v-coordinate
+                BC(i, 0) = boundary_vertices_other(i, 0);  // u-coordinate
+                BC(i, 1) = boundary_vertices_other(i, 1);  // v-coordinate
                     // Set the UV coordinates in BC for the boundary
                 //BC(i, 0) = (boundary_vertices(i, 0) - minX) / (maxX - minX);  // Normalize X
                 //BC(i, 1) = (boundary_vertices(i, 1) - minY) / (maxY - minY);  // Normalize Y

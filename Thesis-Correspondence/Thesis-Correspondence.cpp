@@ -473,13 +473,13 @@ int main()
 
 
 
-        if (false) {
+        if (true) {
             std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("borderV3", V3);
-            if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true)) {
+            if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true, V3)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
@@ -544,7 +544,7 @@ int main()
 
 
 
-            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true)) {
+            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true, V3)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
@@ -614,7 +614,7 @@ int main()
             //    std::cerr << "Surface parameterization failed.\n";
             //    return EXIT_FAILURE;
             //}
-            if (!paramsurface5(Mesh3_V, Mesh3_F, UV_map, V3_obj3, true)) {
+            if (!paramsurface5(Mesh3_V, Mesh3_F, UV_map, V3_obj3, true, V3_obj3)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
@@ -703,7 +703,7 @@ int main()
                 Eigen::MatrixXd UV_split1;
                 Eigen::MatrixXd V_border_split1 = getBorderVerticesMatrix(Mesh_V_Split1, Mesh_F_Split1);
                 polyscope::options::programName = "Split Mesh (one side) LCSM, projection";
-                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, true)) {
+                if (!paramsurface5(Mesh_V_Split1, Mesh_F_Split1, UV_split1, V_border_split1, true, V_border_split1)) {
                     std::cerr << "Surface parameterization failed.\n";
                     return EXIT_FAILURE;
                 }
@@ -727,7 +727,7 @@ int main()
         if (false) {
             Eigen::MatrixXd UV1;
             polyscope::options::programName = "Split Mesh LCSM, default map";
-            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, false)) {
+            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, false, V3)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }

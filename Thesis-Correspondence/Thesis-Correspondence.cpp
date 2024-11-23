@@ -93,7 +93,8 @@ int main()
 
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
+        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_11_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -220,7 +221,8 @@ int main()
         std::cout << "Step 3.5 ---------- Shift Mesh 2 by shift vector" << std::endl;
 
         //shiftVector << 538, 496 , 349; // normal case
-        shiftVector << 538, 505 , 349; // decimated 01  case
+        //shiftVector << 538, 505 , 349; // decimated 01  case
+        shiftVector << 856, 84,  317; // decimated 01  case
         //shiftVector << 213, 0 , 0; // decimated 01  case
 
 
@@ -471,6 +473,31 @@ int main()
         //findExactCorrespondences(Mesh2_V, V3_obj2);
 
 
+        for (int j = duplicatesV1.size() - 1; j >= 0; j--) {
+            int row_to_remove = duplicatesV1[j];
+            if (row_to_remove >= 0 && row_to_remove < V3_obj2.rows()) {
+                Eigen::MatrixXd temp(V3_obj2.rows() - 1, V3_obj2.cols());
+                temp << V3_obj2.topRows(row_to_remove),
+                    V3_obj2.bottomRows(V3_obj2.rows() - row_to_remove - 1);
+                V3_obj2 = temp;
+            }
+        }
+
+
+        std::vector<int> duplicatesV2 = std::vector<int>();
+        auto yy = V3_obj2.rows();
+        findExactCorrespondences(Mesh2_V, V3_obj2, duplicatesV2);
+        auto yy2 = V3_obj2.rows();
+
+        for (int j = duplicatesV2.size() - 1; j >= 0; j--) {
+            int row_to_remove = duplicatesV2[j];
+            if (row_to_remove >= 0 && row_to_remove < V3.rows()) {
+                Eigen::MatrixXd temp(V3.rows() - 1, V3.cols());
+                temp << V3.topRows(row_to_remove),
+                    V3.bottomRows(V3.rows() - row_to_remove - 1);
+                V3 = temp;
+            }
+        }
 
 
         if (true) {
@@ -490,31 +517,7 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
-            for (int j = duplicatesV1.size() - 1; j >= 0; j--) {
-                int row_to_remove = duplicatesV1[j];
-                if (row_to_remove >= 0 && row_to_remove < V3_obj2.rows()) {
-                    Eigen::MatrixXd temp(V3_obj2.rows() - 1, V3_obj2.cols());
-                    temp << V3_obj2.topRows(row_to_remove),
-                        V3_obj2.bottomRows(V3_obj2.rows() - row_to_remove - 1);
-                    V3_obj2 = temp;
-                }
-            }
 
-
-            std::vector<int> duplicatesV2 = std::vector<int>();
-            auto yy = V3_obj2.rows();
-            findExactCorrespondences(Mesh2_V, V3_obj2, duplicatesV2);
-            auto yy2 = V3_obj2.rows();
-
-            for (int j = duplicatesV2.size() - 1; j >= 0; j--) {
-                int row_to_remove = duplicatesV2[j];
-                if (row_to_remove >= 0 && row_to_remove < V3.rows()) {
-                    Eigen::MatrixXd temp(V3.rows() - 1, V3.cols());
-                    temp << V3.topRows(row_to_remove),
-                        V3.bottomRows(V3.rows() - row_to_remove - 1);
-                    V3 = temp;
-                }
-            }
 
 
 

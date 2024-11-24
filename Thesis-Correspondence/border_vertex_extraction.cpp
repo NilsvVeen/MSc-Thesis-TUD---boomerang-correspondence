@@ -159,6 +159,63 @@ void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<E
     }
 }
 
+
+// Function to compute the centroid of the mesh
+Eigen::RowVector3d computeCentroid(const Eigen::MatrixXd& V) {
+    return V.colwise().mean();
+}
+
+void rotateMeshAroundY(const Eigen::MatrixXd& inputV, const Eigen::MatrixXi& F,
+    Eigen::MatrixXd& outputV) {
+
+    // Compute centroid
+    Eigen::RowVector3d origin = computeCentroid(inputV);
+
+    // 180-degree rotation matrix around Y-axis
+    Eigen::Matrix3d rotationMatrix;
+    rotationMatrix << -1, 0, 0,
+        0, 1, 0,
+        0, 0, -1;
+
+    // Translate vertices to the origin, apply rotation, and translate back
+    outputV = inputV.rowwise() - origin;
+    outputV = (rotationMatrix * outputV.transpose()).transpose();
+    outputV = outputV.rowwise() + origin;
+}
+
+// Function to register and interact with the mesh in Polyscope
+void handleMeshRotation(Eigen::MatrixXd& alignedV, const Eigen::MatrixXi& alignedF) {
+    // Initialize Polyscope
+    polyscope::init();
+
+
+    // Register mesh with Polyscope
+    auto* mesh = polyscope::registerSurfaceMesh("Aligned Mesh", alignedV, alignedF);
+    // Add user option for rotation
+    polyscope::state::userCallback = [&]() {
+        if (ImGui::Button("Flip side")) {
+            Eigen::MatrixXd rotatedV;
+
+            rotateMeshAroundY(alignedV, alignedF, rotatedV); // Perform rotation
+            mesh->updateVertexPositions(rotatedV); // Update mesh in Polyscope
+            alignedV = rotatedV;
+        }
+    };
+
+    // Show the Polyscope GUI
+    polyscope::show();
+    polyscope::state::userCallback = nullptr;
+    polyscope::removeAllStructures();
+    
+
+
+}
+
+
+
+
+
+
 // Main function to fit plane, align mesh, and show results
 std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false) {
 
@@ -182,6 +239,12 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
     Eigen::MatrixXd rotatedV;
     Eigen::MatrixXi rotatedF;
     fitPlaneAndAlignMesh(V, F, rotatedV_temp, rotatedF);
+
+
+    // open in polyscope - give user option to rotate the mesh by 180 degrees (so rotate around y axis) Use the average Z,x,y as origin to rotate around
+    handleMeshRotation(rotatedV_temp, rotatedF);
+
+
 
     if (shift) {
         std::cout << "shift it" << std::endl;

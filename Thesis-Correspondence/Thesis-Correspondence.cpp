@@ -25,7 +25,7 @@
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
 
-static const bool ProcessObjects = false;
+static const bool ProcessObjects = true;
 static const bool ParameterizeObjects = false;
 
 
@@ -37,7 +37,7 @@ static const bool showOriginalRotatedMesh = false;
 
 static const bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = true;
+static const bool parameterizeSurfaceBool = false;
 
 int countHoles(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
     // Find boundary loops

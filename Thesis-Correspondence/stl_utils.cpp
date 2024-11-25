@@ -927,10 +927,10 @@ Eigen::VectorXd adjustParamV2ToMatchV1(const Eigen::VectorXd& paramV1, const Eig
         }
 
         if (!found) {
-            // If no valid interval was found, handle accordingly (e.g., set adjusted to a default value or throw an error)
-            adjusted(i) = paramV2(0); // Default to the first element, or you could throw an error
-            alphas(i) = 0.0; // Default alpha
-            alphas_indices(i) = 0.0; // Default alpha
+            // Default to the last value of paramV2
+            adjusted(i) = paramV2(sizeV2 - 1);
+            alphas(i) = 1.0; // Fully weighted towards the last value
+            alphas_indices(i) = sizeV2 - 1; // Index of the last element
         }
     }
 

@@ -46,6 +46,8 @@ Eigen::MatrixXd readVerticesFromPLY(const std::string& filename);
 
 void writeVerticesToPLY(const std::string& filename, const Eigen::MatrixXd& vertices);
 
+void write2DVerticesToPLY(const std::string& filename, const Eigen::MatrixXd& vertices);
+
 bool readMeshFromFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F);
 
 bool readPointCloudFromFile(const std::string& filename, Eigen::MatrixXd& V);

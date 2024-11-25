@@ -511,6 +511,10 @@ int main()
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
+
+            saveMeshToFile(surfaceParam + "/M1.obj", Mesh1_V, Mesh1_F);
+            write2DVerticesToPLY(surfaceParam + "/UV1.obj", UV_map);
+            writeVerticesToPLY(surfaceParam + "/B1.obj", V3);
         }
 
         if (true) {
@@ -556,7 +560,9 @@ int main()
             int numHoles2 = countHoles(Mesh2_V, Mesh2_F);
             std::cout << "Number of holes in the mesh in step last -- part 2: " << numHoles2 << std::endl;
 
-
+            saveMeshToFile(surfaceParam + "/M2.obj", Mesh2_V, Mesh2_F);
+            write2DVerticesToPLY(surfaceParam + "/UV2.obj", UV_map);
+            writeVerticesToPLY(surfaceParam + "/B2.obj", V3_obj2);
 
 
         }

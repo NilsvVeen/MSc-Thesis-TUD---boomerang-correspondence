@@ -21,9 +21,12 @@
 #endif
 #include <regex>
 #include "splitMesh.h"
-#include <igl/boundary_loop.h>
+
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
+static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
+
+
 
 static const bool ProcessObjects = false;
 static const bool ParameterizeObjects = false;
@@ -32,21 +35,11 @@ static const bool ParameterizeObjects = false;
 static const bool shiftAll = false;
 
 
-static const bool ReadCalculateSortedVertices = false; // only enable if already calculated
-static const bool showOriginalRotatedMesh = false;
-
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = true;
 
-int countHoles(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
-    // Find boundary loops
-    std::vector<std::vector<int>> boundary_loops;
-    igl::boundary_loop(F, boundary_loops);
 
-    // The number of holes corresponds to the number of boundary loops
-    return static_cast<int>(boundary_loops.size());
-}
 
 int main()
 {
@@ -107,38 +100,11 @@ int main()
 
         // get outlining vertices of object
         std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2);
-        //std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2, Mesh1_V, V1_border, true);
 
     }
 
 
-    std::cout << "Step 2 ---------- Show meshes and border side by side" << std::endl;
 
-
-    //// Create default directory if none is provided
-    //const std::string DEFAULT_CORRESPONDENCES_meshes_FOLDER = "models_for_correspondences";
-
-    //if (showOriginalRotatedMesh) {
-    //    polyscope::init();
-    //    polyscope::removeAllGroups();
-    //    polyscope::removeAllStructures();
-
-    //    Eigen::MatrixXd Mesh1_V;
-    //    Eigen::MatrixXi Mesh1_F;
-    //    readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
-
-    //    Eigen::MatrixXd Mesh2_V;
-    //    Eigen::MatrixXi Mesh2_F;
-    //    readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh2_V, Mesh2_F);
-
-    //    Eigen::MatrixXd V1_border;
-    //    Eigen::MatrixXd V2_border;
-    //    readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
-    //    readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
-
-    //    // Display the two meshes side by side
-    //    showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border, DEFAULT_CORRESPONDENCES_meshes_FOLDER);
-    //}
 
 
     std::cout << "Step 3 ---------- sort border vertices and let user select vertices to get correspondences" << std::endl;
@@ -161,9 +127,6 @@ int main()
             && readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2)
             ) {
 
-        //if (readPointCloudFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Left.obj", V)
-        //    && readPointCloudFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/border_Right.obj", V2)
-        //    ) {
 
             std::cout << "Point cloud loaded successfully." << std::endl;
             std::cout << "Number of vertices: " << V.rows() << std::endl; // Print the number of vertices
@@ -188,28 +151,7 @@ int main()
             }
 
 
-
-            //sample the points so both point clouds have equal amount of points.
-            //auto sampled = getEqualizedPointClouds(sortedVertices, sortedVertices);
-            //savePointCloudToFile(directoryName + "/border_vertices_in_order_sampled.obj", sampled.first);
-            //savePointCloudToFile(directoryName2 + "/border_vertices_in_order_sampled.obj", sampled.second);
-
-            //showPointCloudInParts(sortedVertices);
-
-            //std::vector<double> unit_parameters = computeUnitParametrization(sortedVertices);
-            //writeParamsToFile("output_files/unit_parameters.txt", unit_parameters);
-
-            //showSelection(sortedVertices);
-
             showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
-
-
-            //showSideBySideSelectionWithVertexSelection(sampled.first, sampled.second);
-
-
-
-
-
         }
     }
 
@@ -253,57 +195,12 @@ int main()
         savePointCloudToFile(shiftMeshAndCurve + "/B1.obj", sortedVertices);
         savePointCloudToFile(shiftMeshAndCurve + "/B2.obj", sortedVertices2);
 
-        if (Mesh1_V.rows() == 0 || Mesh1_V.cols() != 3) {
-            std::cerr << "Error: Mesh1_V is empty or has invalid dimensions!" << std::endl;
-        }
-        if (Mesh1_F.rows() == 0 || Mesh1_F.cols() != 3) {
-            std::cerr << "Error: Mesh1_F is empty or has invalid dimensions!" << std::endl;
-        }
-        if (Mesh1_V.hasNaN() || Mesh1_F.hasNaN()) {
-            std::cerr << "Error: Mesh1_V or Mesh1_F contains NaN values!" << std::endl;
-        }
-        if (Mesh2_V.rows() == 0 || Mesh2_V.cols() != 3) {
-            std::cerr << "Error: Mesh1_V is empty or has invalid dimensions!" << std::endl;
-        }
-        if (Mesh2_F.rows() == 0 || Mesh2_F.cols() != 3) {
-            std::cerr << "Error: Mesh1_F is empty or has invalid dimensions!" << std::endl;
-        }
-        if (Mesh2_V.hasNaN() || Mesh2_F.hasNaN()) {
-            std::cerr << "Error: Mesh1_V or Mesh1_F contains NaN values!" << std::endl;
-        }
-
-        if (sortedVertices.rows() == 0 || sortedVertices.cols() != 3) {
-            std::cerr << "Error: sortedVertices is empty or has invalid dimensions!" << std::endl;
-        }
-        if (sortedVertices.hasNaN()) {
-            std::cerr << "Error: sortedVertices contains NaN values!" << std::endl;
-        }
-        if (sortedVertices2.rows() == 0 || sortedVertices2.cols() != 3) {
-            std::cerr << "Error: sortedVertices is empty or has invalid dimensions!" << std::endl;
-        }
-        if (sortedVertices2.hasNaN()) {
-            std::cerr << "Error: sortedVertices contains NaN values!" << std::endl;
-        }
-
-
-        std::cout << "1" << std::endl;
         polyscope::init();
-        std::cout << "2" << std::endl;
-
         polyscope::registerSurfaceMesh("M1", Mesh1_V, Mesh1_F);
-        std::cout << "3" << std::endl;
-
         polyscope::registerSurfaceMesh("M2", Mesh2_V, Mesh2_F);
-        std::cout << "4" << std::endl;
-
         polyscope::registerPointCloud("B1", sortedVertices);
-        std::cout << "5" << std::endl;
-
         polyscope::registerPointCloud("B2", sortedVertices2);
-        std::cout << "6" << std::endl;
-
         polyscope::show();
-        std::cout << "7" << std::endl;
 
 
     }
@@ -420,15 +317,6 @@ int main()
         int numHoles = countHoles(Mesh2_V_new, Mesh2_F_new);
         std::cout << "Number of holes in the mesh: " << numHoles << std::endl;
 
-        // get 3d curve of all the border vertics (not subset for correspondences)
-
-        //Eigen::MatrixXd border_V_1 = readVerticesFromPLY(shiftMeshAndCurve + "/B1.obj");
-        //findExactCorrespondences(Mesh1_V, border_V_1);
-        //writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj", border_V_1);
-
-        //Eigen::MatrixXd border_V_2 = readVerticesFromPLY(shiftMeshAndCurve + "/B2.obj");
-        //findExactCorrespondences(Mesh2_V, border_V_2);
-        //writeVerticesToPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj", border_V_2);
 
     }
 
@@ -461,18 +349,10 @@ int main()
         auto xx2 = V3.rows();
 
 
-
         std::cout << "----------------After matching V1, size difference: " << std::to_string(xx) << " -- to -- " << std::to_string(xx2) <<  " length: " << duplicatesV1.size() << std::endl;
 
-        //Eigen::MatrixXd V3 = readVerticesFromPLY(directoryName + "/border_vertices_in_order.obj" ); 
-        //findExactCorrespondences(Mesh1_V, V3);
-        
-        //Eigen::MatrixXd V3 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M1_curve.obj");
-        //Eigen::MatrixXd V3_obj2 = readVerticesFromPLY(DEFAULT_2dto3d_FOLDER + "/lifted_M2_curve.obj");
 
         Eigen::MatrixXd V3_obj2 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V2_regex);
-        //findExactCorrespondences(Mesh2_V, V3_obj2);
-
 
         for (int j = duplicatesV1.size() - 1; j >= 0; j--) {
             int row_to_remove = duplicatesV1[j];
@@ -483,7 +363,6 @@ int main()
                 V3_obj2 = temp;
             }
         }
-
 
         std::vector<int> duplicatesV2 = std::vector<int>();
         auto yy = V3_obj2.rows();
@@ -522,43 +401,14 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
-
-
-
-
-
-            std::cout << "-------------------------------After matching V2, size difference: " << std::to_string(yy) << " -- to -- " << std::to_string(yy2) << " duplciates: " << duplicatesV2.size() << std::endl;
-            int numHoles = countHoles(Mesh2_V, Mesh2_F);
-            std::cout << "Number of holes in the mesh in step last: " << numHoles << std::endl;
-            //V3_obj2 = sortVerticesByProximity(V3_obj2);
-
-            //Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
-            ////V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 345);
-            //V3_obj3.rowwise() += Eigen::RowVector3d(538, 496, 349);
-
-            //Eigen::MatrixXd Mesh3_V;
-            //Eigen::MatrixXi Mesh3_F;
-            //readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
-            //findExactCorrespondences(Mesh3_V, V3_obj3);
-
             polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
-            //polyscope::registerSurfaceMesh("Before", Mesh2_V, Mesh2_F);
-            //polyscope::show();
-
-
-            std::cout << "Final border sizes " << V3.rows() << " " << V3_obj2.rows() << std::endl;
-
-
 
             if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true, V3)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
             }
-
-            int numHoles2 = countHoles(Mesh2_V, Mesh2_F);
-            std::cout << "Number of holes in the mesh in step last -- part 2: " << numHoles2 << std::endl;
 
             saveMeshToFile(surfaceParam + "/M2.obj", Mesh2_V, Mesh2_F);
             write2DVerticesToPLY(surfaceParam + "/UV2.obj", UV_map);
@@ -567,70 +417,7 @@ int main()
 
         }
 
-        if (false) {
-            std::cout << "surface parameterization (MESH 2) using nonshifted" << std::endl;
-            Eigen::MatrixXd UV_map;
-
-            //V3_obj2 = sortVerticesByProximity(V3_obj2);
-
-/*            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(directoryName2 + "/border_vertices_in_order.obj");
-
-            Eigen::MatrixXd Mesh3_V;
-            Eigen::MatrixXi Mesh3_F;
-            readMeshFromFile(directoryName2 + "/rotated_mesh.obj", Mesh3_V, Mesh3_F);
-            findExactCorrespondences(Mesh3_V, V3_obj3);
-
-
-            Mesh3_V.rowwise() +=  Eigen::RowVector3d(538, 496, 349);
-            V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 349);  */  
-            //Mesh3_V.rowwise() +=  Eigen::RowVector3d(538, 496, 345);
-            //V3_obj3.rowwise() +=  Eigen::RowVector3d(538, 496, 345);
-
-            Eigen::MatrixXd V3_obj3 = readVerticesFromPLY(shiftMeshAndCurve + "/B2.obj");
-            Eigen::MatrixXd Mesh3_V;
-            Eigen::MatrixXi Mesh3_F;
-            readMeshFromFile(shiftMeshAndCurve + "/M2.obj", Mesh3_V, Mesh3_F);
-            std::vector<int> duplicates_XXX = std::vector<int>();
-
-            findExactCorrespondences(Mesh3_V, V3_obj3, duplicates_XXX);
-
-
-       
-
-            //polyscope::init();
-
-            //polyscope::options::programName = "No Split Mesh LCSM, projection";
-            //polyscope::registerPointCloud("border V3 shift", V3_obj3);
-            //polyscope::registerPointCloud("borderV3 (Model 1 original)", V3);
-            //polyscope::registerPointCloud("borderV3 (Model 2 original)", V3_obj2);
-
-            //const std::string checkCode = "CheckCode";
-            //createDirectory(checkCode);
-            //clearDirectory(checkCode);
-
-            //saveMeshToFile(checkCode + "/Mesh_V3_subs.obj", Mesh2_V, Mesh2_F);
-            //saveMeshToFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", Mesh3_V, Mesh3_F);
-            //writeVerticesToPLY(checkCode + "/border_V3_subs.obj", V3_obj2);
-            //writeVerticesToPLY(checkCode + "/border_shifted_from_origin_OK.obj", V3_obj3);
-
-
-
-            //Eigen::MatrixXd MeshVVVVVVVVVV;
-            //Eigen::MatrixXi MeshFFFFFFFFFF;
-            //readMeshFromFile(checkCode + "/Mesh_shifted_from_origin_OK.obj", MeshVVVVVVVVVV, MeshFFFFFFFFFF);
-            //Eigen::MatrixXd V3_objXXXXXXXXXX = readVerticesFromPLY(checkCode + "/border_shifted_from_origin_OK.obj");
-
-            //if (!paramsurface5(MeshVVVVVVVVVV, MeshFFFFFFFFFF, UV_map, V3_objXXXXXXXXXX, true)) {
-            //    std::cerr << "Surface parameterization failed.\n";
-            //    return EXIT_FAILURE;
-            //}
-            if (!paramsurface5(Mesh3_V, Mesh3_F, UV_map, V3_obj3, true, V3_obj3)) {
-                std::cerr << "Surface parameterization failed.\n";
-                return EXIT_FAILURE;
-            }
-        }
-
-
+  
 
         if (false) {
 
@@ -733,33 +520,6 @@ int main()
         }
 
 
-        // parameterize whole surface
-        if (false) {
-            Eigen::MatrixXd UV1;
-            polyscope::options::programName = "Split Mesh LCSM, default map";
-            if (!paramsurface5(Mesh1_V, Mesh1_F, UV1, V3, false, V3)) {
-                std::cerr << "Surface parameterization failed.\n";
-                return EXIT_FAILURE;
-            }
-        }
-
-
-
-        //saveMeshToFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "UV.obj", UV1, Mesh1_F);
-
-
-
-        //Eigen::MatrixXd Mesh2_V;
-        //Eigen::MatrixXi Mesh2_F;
-        //readMeshFromFile(DEFAULT_CORRESPONDENCES_meshes_FOLDER + "/RigthMesh.obj", Mesh2_V, Mesh2_F);
-
-        //Eigen::MatrixXd V1_border;
-        //Eigen::MatrixXd V2_border;
-        //readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
-        //readPointCloudFromFile(directoryName2 + "/alpha_shape_border.obj", V2_border);
-
-        //// Display the two meshes side by side
-        //showSideBySideMeshes(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V1_border, V2_border, DEFAULT_CORRESPONDENCES_meshes_FOLDER);
     }
 
 

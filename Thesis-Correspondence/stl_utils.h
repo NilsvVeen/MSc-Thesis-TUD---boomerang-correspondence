@@ -71,4 +71,6 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculateAndAdjustOffsetsFromBorders
     const Eigen::MatrixXd& V1_border,
     const Eigen::MatrixXd& V2_border);
 
+int countHoles(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
+
 #endif // STL_UTILS_H

@@ -36,6 +36,7 @@
 
 #include "stl_utils.h"
 #include "file_utils.h"
+#include <igl/boundary_loop.h>
 
 
 
@@ -1204,5 +1205,14 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
     polyscope::show();
 }
 
+
+int countHoles(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+    // Find boundary loops
+    std::vector<std::vector<int>> boundary_loops;
+    igl::boundary_loop(F, boundary_loops);
+
+    // The number of holes corresponds to the number of boundary loops
+    return static_cast<int>(boundary_loops.size());
+}
 
 

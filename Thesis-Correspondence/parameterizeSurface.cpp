@@ -181,7 +181,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             // Set UV coordinates in BC
             //bool CircleUV = false;  // Toggle between different UV generation methods
             //if (CircleUV) {
-            //    double angle = 2.0 * M_PI * i / boundary_vertices.rows();
+            //    double angle = 2.0 * 3.14159265358979323846  * i / boundary_vertices.rows();
             //    BC(i, 0) = std::cos(angle);  // u-coordinate
             //    BC(i, 1) = std::sin(angle);  // v-coordinate
             //}

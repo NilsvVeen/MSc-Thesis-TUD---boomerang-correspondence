@@ -384,7 +384,7 @@ int main()
         }
 
 
-        if (false) {
+        if (true) {
             std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();

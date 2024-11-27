@@ -14,6 +14,8 @@
 #include <Eigen/Dense>
 #include <algorithm>
 #include <igl/harmonic.h>
+#include <igl/edges.h>
+#include <igl/flip_avoiding_line_search.h>
 
 // Function to read and concatenate point clouds in numeric order from files matching a pattern
 Eigen::MatrixXd readAndConcatenatePointClouds(const std::string& folderPath, const std::string& filePatternStr) {
@@ -67,6 +69,33 @@ Eigen::MatrixXd readAndConcatenatePointClouds(const std::string& folderPath, con
     return V3;
 }
 
+void CalculateGenus(Eigen::MatrixXd V, Eigen::MatrixXi F) {
+    // Count vertices and faces
+    int num_vertices = V.rows();
+    int num_faces = F.rows();
+
+    // Compute edges
+    Eigen::MatrixXi E; // Edges
+    igl::edges(F, E);
+    int num_edges = E.rows();
+
+    // Calculate Euler characteristic
+    int euler_characteristic = num_vertices - num_edges + num_faces;
+
+    // Calculate genus
+    int genus = 1 - (euler_characteristic / 2);
+
+    // Output results
+    std::cout << "Vertices: " << num_vertices << std::endl;
+    std::cout << "Edges: " << num_edges << std::endl;
+    std::cout << "Faces: " << num_faces << std::endl;
+    std::cout << "Euler Characteristic: " << euler_characteristic << std::endl;
+    std::cout << "Genus: " << genus << std::endl;
+}
+
+
+
+
 bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV, const Eigen::MatrixXd& boundary_vertices, bool boundaryEnabled, const Eigen::MatrixXd& boundary_vertices_other)
 {
     // Print size of V and F
@@ -110,30 +139,31 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     std::cout << "vertices input for boudnary " << boundary_vertices.rows() << std::endl;
 
 
+    // Initialize Polyscope
+    polyscope::init();
+
+    // Register the 3D mesh
+    polyscope::registerSurfaceMesh("3D Mesh before", V, F);
+
+    polyscope::show();
+
+    CalculateGenus(V, F);
+
     // Perform LSCM parametrization
     std::cout << "Performing LSCM parametrization..." << std::endl;
 
     if (boundaryEnabled) {
-
-        // Find boundary vertex indices in V
-        Eigen::VectorXi B(boundary_vertices.rows());
+        // Initialize boundary constraints
         Eigen::MatrixXd BC(boundary_vertices.rows(), 2);
-
-        //// Normalize boundary vertices for ProjectionUV
-        //double minX = boundary_vertices.col(0).minCoeff();
-        //double maxX = boundary_vertices.col(0).maxCoeff();
-        //double minY = boundary_vertices.col(1).minCoeff();
-        //double maxY = boundary_vertices.col(1).maxCoeff();
+        Eigen::VectorXi B(boundary_vertices.rows());
 
         for (int i = 0; i < boundary_vertices.rows(); ++i) {
             double min_distance = std::numeric_limits<double>::max();
             int closest_vertex = -1;
 
+            // Find the closest vertex in V to the current boundary vertex
             for (int j = 0; j < V.rows(); ++j) {
-                double distance = (V.row(j) - boundary_vertices.row(i)).norm();
-                //std::cout << V.row(j) << " _---- VS ----- " << boundary_vertices.row(i)
-                //    << "  distance: " << distance << std::endl;
-
+                double distance = (V.row(j) - boundary_vertices.row(i)).squaredNorm();
                 if (distance < min_distance) {
                     min_distance = distance;
                     closest_vertex = j;
@@ -143,44 +173,56 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             if (closest_vertex == -1) {
                 std::cerr << "Error: No closest vertex found for boundary vertex at index " << i
                     << " (" << boundary_vertices.row(i) << ")" << std::endl;
-                return false;  // Early exit if no closest vertex was found
+                return false; // Early exit if no closest vertex was found
             }
 
-            B(i) = closest_vertex;  // Assign the index of the closest vertex
-            //std::cout << "Closest vertex for boundary vertex " << i << " is " << closest_vertex
-            //    << " with distance " << min_distance << std::endl;
+            B(i) = closest_vertex;  // Assign the closest vertex index
 
-            bool CircleUV = false;
-            if (CircleUV) {
-                // Set the UV coordinates in BC for the boundary
-                double angle = 2.0 * 3.14159265358979323846 * i / boundary_vertices.rows();
-                BC(i, 0) = std::cos(angle);  // u-coordinate
-                BC(i, 1) = std::sin(angle);  // v-coordinate
+            // Set UV coordinates in BC
+            //bool CircleUV = false;  // Toggle between different UV generation methods
+            //if (CircleUV) {
+            //    double angle = 2.0 * M_PI * i / boundary_vertices.rows();
+            //    BC(i, 0) = std::cos(angle);  // u-coordinate
+            //    BC(i, 1) = std::sin(angle);  // v-coordinate
+            //}
 
-            }
-            bool ProjectionUV = true;
+            bool ProjectionUV = true;  // If ProjectionUV is enabled
             if (ProjectionUV) {
-                // Set the boundary constraints directly to the boundary_vertices coordinates
                 BC(i, 0) = boundary_vertices_other(i, 0);  // u-coordinate
                 BC(i, 1) = boundary_vertices_other(i, 1);  // v-coordinate
-                    // Set the UV coordinates in BC for the boundary
-                //BC(i, 0) = (boundary_vertices(i, 0) - minX) / (maxX - minX);  // Normalize X
-                //BC(i, 1) = (boundary_vertices(i, 1) - minY) / (maxY - minY);  // Normalize Y
             }
         }
 
+        // Debug: Visualize the boundary vertices (B) and their UV constraints (BC)
+        for (int i = 0; i < B.rows(); ++i) {
+            std::cout << "Boundary Vertex Index: " << B(i)
+                << ", UV: (" << BC(i, 0) << ", " << BC(i, 1) << ")" << std::endl;
+        }
+
+        // Apply LSCM parameterization
         igl::lscm(V, F, B, BC, UV);
-        //igl::harmonic(V, F, B, BC, 1, UV);
-        //igl::lscm(V, F, UV);
+
     }
     else {
         igl::lscm(V, F, UV);
     }
 
-    
+
+    //for (int i = 0; i < F.rows(); ++i) {
+    //    Eigen::Vector2d p0 = UV.row(F(i, 0));
+    //    Eigen::Vector2d p1 = UV.row(F(i, 1));
+    //    Eigen::Vector2d p2 = UV.row(F(i, 2));
+    //    double area = (p1 - p0).x() * (p2 - p0).y() - (p1 - p0).y() * (p2 - p0).x();
+    //    if (area <= 0) {
+    //        std::cerr << "Inverted or degenerate triangle at face " << i << std::endl;
+    //    }
+    //}
 
 
 
+
+
+    CalculateGenus(V, F);
 
 
     // Print size of UV matrix
@@ -244,6 +286,8 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             meshUV->setEnabled(true);
         }
     };
+
+    CalculateGenus(V, F);
 
     // Launch Polyscope's GUI
     polyscope::show();

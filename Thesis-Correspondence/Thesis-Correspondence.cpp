@@ -276,16 +276,17 @@ int main()
         auto count_fake = 0;
         auto count_fake2 = 0;
         for (Eigen::MatrixXd& V2 : V2_pointclouds) {
-            Eigen::MatrixXd V2_pointcloud_new; // Create a temporary for the new point cloud
-
-            //// Project and split mesh, update V2_pointcloud_new, Mesh2_V_new, and Mesh2_F_new
-            //projectAndSplitMesh(Mesh2_V_new, Mesh2_F_new, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
-            //// Store the updated point cloud in the vector
-            //V2_pointclouds_new.push_back(V2_pointcloud_new);
-
             count_fake += V2.rows();
-            findClosestCorrespondences(Mesh2_V, V2);
-            V2_pointclouds_new.push_back(V2);
+
+            Eigen::MatrixXd V2_pointcloud_new; // Create a temporary for the new point cloud
+            // Project and split mesh, update V2_pointcloud_new, Mesh2_V_new, and Mesh2_F_new
+            //projectAndSplitMesh(Mesh2_V_new, Mesh2_F_new, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
+            projectAndReplaceVertices(Mesh2_V_new, Mesh2_F_new, V2, V2_pointcloud_new, Mesh2_V_new, Mesh2_F_new);
+            // Store the updated point cloud in the vector
+            V2_pointclouds_new.push_back(V2_pointcloud_new);
+
+            //findClosestCorrespondences(Mesh2_V, V2);
+            //V2_pointclouds_new.push_back(V2);
             count_fake2 += V2.rows();
 
 
@@ -338,6 +339,9 @@ int main()
         Eigen::MatrixXi Mesh2_F;
         readMeshFromFile(DEFAULT_2dto3d_FOLDER + "/Mesh2.obj", Mesh2_V, Mesh2_F);
 
+        std::cout << "Mesh 2 size: " << Mesh2_V.rows() << std::endl;
+        std::cout << "Faces 2 size: " << Mesh2_F.rows() << std::endl;
+
 
         std::string V1_regex = "V1_pointcloud_(\\d+)\\.txt";
         std::string V2_regex = "V2_pointcloud_(\\d+)\\.txt";
@@ -380,7 +384,7 @@ int main()
         }
 
 
-        if (true) {
+        if (false) {
             std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
             Eigen::MatrixXd UV_map;
             polyscope::init();
@@ -404,6 +408,12 @@ int main()
             polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
             polyscope::registerPointCloud("border V3 shift", V3_obj2);
+
+
+            CalculateGenus(Mesh2_V, Mesh2_F);
+
+
+
 
             if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true, V3)) {
                 std::cerr << "Surface parameterization failed.\n";

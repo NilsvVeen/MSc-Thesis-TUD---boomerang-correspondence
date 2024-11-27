@@ -38,3 +38,7 @@ void writeOutputsToFolder(const std::string& outputFolder,
 void projectAndSplitMesh(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& mesh2_F,
     const Eigen::MatrixXd& V2_pointcloud, Eigen::MatrixXd& V2_pointcloud_new,
     Eigen::MatrixXd& updated_mesh_V, Eigen::MatrixXi& updated_mesh_F);
+
+void projectAndReplaceVertices(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& mesh2_F,
+    const Eigen::MatrixXd& V2_pointcloud, Eigen::MatrixXd& V2_pointcloud_new,
+    Eigen::MatrixXd& updated_mesh_V, Eigen::MatrixXi& updated_mesh_F);

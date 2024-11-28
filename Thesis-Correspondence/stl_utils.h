@@ -43,6 +43,7 @@ void showMeshes();
 void processSTLFile(const std::string& filename, Eigen::MatrixXd& V, Eigen::MatrixXi& F, Eigen::MatrixXd& N);
 
 Eigen::MatrixXd readVerticesFromPLY(const std::string& filename);
+Eigen::MatrixXd readVerticesFromPLY2D(const std::string& filename);
 
 void writeVerticesToPLY(const std::string& filename, const Eigen::MatrixXd& vertices);
 

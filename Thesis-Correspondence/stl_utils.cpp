@@ -234,6 +234,43 @@ Eigen::MatrixXd readVerticesFromPLY(const std::string& filename) {
     return V;
 }
 
+Eigen::MatrixXd readVerticesFromPLY2D(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return Eigen::MatrixXd(0, 2);  // Return an empty matrix on error
+    }
+
+    std::string line;
+    // Skip header
+    while (std::getline(file, line)) {
+        if (line == "end_header") {
+            break;
+        }
+    }
+
+    // Read vertices
+    std::vector<Eigen::Vector2d> vertices;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        double x, y;
+        if (iss >> x >> y) {
+            vertices.emplace_back(x, y);
+        }
+    }
+
+    file.close();
+
+    // Copy vertices to Eigen::MatrixXd
+    Eigen::MatrixXd V(vertices.size(), 2);
+    for (int i = 0; i < vertices.size(); ++i) {
+        V.row(i) = vertices[i];
+    }
+
+    return V;
+}
+
+
 void writeVerticesToPLY(const std::string& filename, const Eigen::MatrixXd& vertices) {
     if (vertices.cols() != 3) {
         std::cerr << "Error: Input matrix must have exactly 3 columns for x, y, z coordinates." << std::endl;

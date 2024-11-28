@@ -37,7 +37,8 @@ static const bool shiftAll = false;
 
 static const bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = true;
+static const bool parameterizeSurfaceBool = false;
+static const bool uvMapCorrespondence = false;
 
 
 
@@ -323,11 +324,11 @@ int main()
 
     std::cout << "Step 5 ---------- Parameterize surface using lifted curve as boundary" << std::endl;
 
+    const std::string surfaceParam = "surfaceParameterize";
     if (parameterizeSurfaceBool) {
 
         std::cout << "surface Parameterization:" << std::endl;
 
-        const std::string surfaceParam = "surfaceParameterize";
         createDirectory(surfaceParam);
         clearDirectory(surfaceParam);
 
@@ -532,6 +533,26 @@ int main()
 
     }
 
+    if (uvMapCorrespondence) {
+
+
+    Eigen::MatrixXd V1;
+    Eigen::MatrixXi F1;
+    Eigen::MatrixXd B1;
+    Eigen::MatrixXd UV1;
+    Eigen::MatrixXd V2;
+    Eigen::MatrixXi F2;
+    Eigen::MatrixXd B2;
+    Eigen::MatrixXd UV2;
+
+    readMeshFromFile(surfaceParam + "/M1.obj", V1, F1);
+    readMeshFromFile(surfaceParam + "/M2.obj", V2, F2);
+    B1 = readVerticesFromPLY(surfaceParam + "/B1.obj");
+    B2 = readVerticesFromPLY(surfaceParam + "/B1.obj");
+    UV1 = readVerticesFromPLY2D(surfaceParam + "/UV1.obj");
+    UV2 = readVerticesFromPLY2D(surfaceParam + "/UV2.obj");
+
+    }
 
 
     return 0;

@@ -38,7 +38,7 @@ static const bool shiftAll = false;
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = false;
+static const bool uvMapCorrespondence = true;
 
 
 
@@ -536,21 +536,34 @@ int main()
     if (uvMapCorrespondence) {
 
 
-    Eigen::MatrixXd V1;
-    Eigen::MatrixXi F1;
-    Eigen::MatrixXd B1;
-    Eigen::MatrixXd UV1;
-    Eigen::MatrixXd V2;
-    Eigen::MatrixXi F2;
-    Eigen::MatrixXd B2;
-    Eigen::MatrixXd UV2;
+        Eigen::MatrixXd V1; // Mesh 1 vertices       n x 3
+        Eigen::MatrixXi F1; // Mesh 1 faces          m x 3
+        Eigen::MatrixXd B1; // boundary 1 vertices   p x 3
+        Eigen::MatrixXd UV1; // uv map of mesh 1     n x 2
 
-    readMeshFromFile(surfaceParam + "/M1.obj", V1, F1);
-    readMeshFromFile(surfaceParam + "/M2.obj", V2, F2);
-    B1 = readVerticesFromPLY(surfaceParam + "/B1.obj");
-    B2 = readVerticesFromPLY(surfaceParam + "/B1.obj");
-    UV1 = readVerticesFromPLY2D(surfaceParam + "/UV1.obj");
-    UV2 = readVerticesFromPLY2D(surfaceParam + "/UV2.obj");
+        Eigen::MatrixXd V2; // mesh 2 vertices       s x 3
+        Eigen::MatrixXi F2; // mesh 2 faces          q x 3
+        Eigen::MatrixXd B2; // boundary 2 vertices   p x 3
+        Eigen::MatrixXd UV2; // uv map of mesh 2     s x 2
+
+        readMeshFromFile(surfaceParam + "/M1.obj", V1, F1);
+        readMeshFromFile(surfaceParam + "/M2.obj", V2, F2);
+        B1 = readVerticesFromPLY(surfaceParam + "/B1.obj");
+        B2 = readVerticesFromPLY(surfaceParam + "/B1.obj");
+        UV1 = readVerticesFromPLY2D(surfaceParam + "/UV1.obj");
+        UV2 = readVerticesFromPLY2D(surfaceParam + "/UV2.obj");
+
+        // Debug prints
+        std::cout << "V1: " << V1.rows() << " x " << V1.cols() << std::endl;
+        std::cout << "F1: " << F1.rows() << " x " << F1.cols() << std::endl;
+        std::cout << "B1: " << B1.rows() << " x " << B1.cols() << std::endl;
+        std::cout << "UV1: " << UV1.rows() << " x " << UV1.cols() << std::endl;
+
+        std::cout << "V2: " << V2.rows() << " x " << V2.cols() << std::endl;
+        std::cout << "F2: " << F2.rows() << " x " << F2.cols() << std::endl;
+        std::cout << "B2: " << B2.rows() << " x " << B2.cols() << std::endl;
+        std::cout << "UV2: " << UV2.rows() << " x " << UV2.cols() << std::endl;
+
 
     }
 

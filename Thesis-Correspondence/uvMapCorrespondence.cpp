@@ -60,7 +60,8 @@ void UVToCorrespondence(
         Eigen::RowVector2d b = UV1.row(i);   // Corresponding UV coordinate
 
         // Find the face in UV2 that contains b
-        for (int j = 0; j < F2.rows(); ++j) {
+        //for (int j = 0; j < F2.rows(); ++j) {
+        for (int j = F2.rows()-1; j > 1; --j) {
             // Get the UV coordinates of the face vertices in UV2
             Eigen::RowVector2d A = UV2.row(F2(j, 0));
             Eigen::RowVector2d B = UV2.row(F2(j, 1));
@@ -82,9 +83,23 @@ void UVToCorrespondence(
                 //polyscope::show();
                 //polyscope::removeAllStructures();
 
-                //break; // Move to the next vertex in V1
+                break; // Move to the next vertex in V1
             }
+
         }
+        // Progress bar logic
+        int progressWidth = 50; // Width of the progress bar
+        double progress = static_cast<double>(i + 1) / V1.rows();
+        int pos = static_cast<int>(progress * progressWidth);
+
+        std::cout << "\r["; // Carriage return for updating the same line
+        for (int k = 0; k < progressWidth; ++k) {
+            if (k < pos) std::cout << "=";
+            else if (k == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << std::fixed << std::setprecision(1) << (progress * 100.0) << "% completed" << std::flush;
+
     }
     polyscope::show();
 

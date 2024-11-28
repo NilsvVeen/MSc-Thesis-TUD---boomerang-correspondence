@@ -192,7 +192,6 @@ void findClosestCorrespondences(const Eigen::MatrixXd& mesh2_V, Eigen::MatrixXd&
     std::cout << std::endl; // To move to the next line after the progress is complete
 }
 
-// note works, but contains something wrong?
 void projectAndSplitMesh(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& mesh2_F,
     const Eigen::MatrixXd& V2_pointcloud, Eigen::MatrixXd& V2_pointcloud_new,
     Eigen::MatrixXd& updated_mesh_V, Eigen::MatrixXi& updated_mesh_F) {
@@ -202,6 +201,9 @@ void projectAndSplitMesh(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& 
 
     // Initialize V2_pointcloud_new as empty
     V2_pointcloud_new.resize(0, 3);
+
+    std::cout << "points size: " << V2_pointcloud.rows() << std::endl;
+    std::cout << "V, F input sizes:  " << updated_mesh_V.rows() << ", " << updated_mesh_F.rows() << std::endl;
 
     for (int i = 0; i < V2_pointcloud.rows(); ++i) {
         // Find the closest points and their associated faces
@@ -228,15 +230,13 @@ void projectAndSplitMesh(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& 
         // Get the vertices of the closest face
         Eigen::RowVector3i face = updated_mesh_F.row(face_idx);
 
-        // Split the face by adding the new vertex
+        // Create new faces without removing the original face
         Eigen::RowVector3i new_face1(face(0), face(1), new_vertex_idx);
         Eigen::RowVector3i new_face2(face(1), face(2), new_vertex_idx);
         Eigen::RowVector3i new_face3(face(2), face(0), new_vertex_idx);
 
-        // Remove the old face and add the new faces
-        updated_mesh_F.row(face_idx) = updated_mesh_F.row(updated_mesh_F.rows() - 1);  // Replace with last face
-        updated_mesh_F.conservativeResize(updated_mesh_F.rows() - 1, Eigen::NoChange);  // Remove last face
-        updated_mesh_F.conservativeResize(updated_mesh_F.rows() + 3, Eigen::NoChange);  // Add 3 new faces
+        // Add all three new faces to the end of the matrix
+        updated_mesh_F.conservativeResize(updated_mesh_F.rows() + 3, Eigen::NoChange);
         updated_mesh_F.row(updated_mesh_F.rows() - 3) = new_face1;
         updated_mesh_F.row(updated_mesh_F.rows() - 2) = new_face2;
         updated_mesh_F.row(updated_mesh_F.rows() - 1) = new_face3;
@@ -246,60 +246,11 @@ void projectAndSplitMesh(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& 
             << (static_cast<double>(i + 1) / V2_pointcloud.rows()) * 100 << "% completed" << std::flush;
     }
 
-    std::cout << std::endl; // To move to the next line after the progress is complete
-}
-
-void projectAndReplaceVertices(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& mesh2_F,
-    const Eigen::MatrixXd& V2_pointcloud, Eigen::MatrixXd& V2_pointcloud_new,
-    Eigen::MatrixXd& updated_mesh_V, Eigen::MatrixXi& updated_mesh_F) {
-    // Copy original mesh vertices and faces
-    updated_mesh_V = mesh2_V;
-    updated_mesh_F = mesh2_F;
-
-    // Initialize V2_pointcloud_new as empty
-    V2_pointcloud_new.resize(0, 3);
-
-    for (int i = 0; i < V2_pointcloud.rows(); ++i) {
-        // Find the closest points and their associated faces
-        Eigen::VectorXd squared_distances;
-        Eigen::MatrixXi closest_faces;
-        Eigen::MatrixXd closest_vertices;
-        igl::point_mesh_squared_distance(V2_pointcloud.row(i), mesh2_V, mesh2_F, squared_distances, closest_faces, closest_vertices);
-
-        // Get the projected point on the mesh
-        Eigen::RowVector3d projected_point = closest_vertices.row(0);  // Closest point on mesh
-
-        // Find the closest vertex in the mesh to the projected point
-        int closest_vertex_idx = -1;
-        double min_distance = std::numeric_limits<double>::max();
-
-        for (int j = 0; j < updated_mesh_V.rows(); ++j) {
-            double distance = (updated_mesh_V.row(j) - projected_point).squaredNorm();
-            if (distance < min_distance) {
-                min_distance = distance;
-                closest_vertex_idx = j;
-            }
-        }
-
-        if (closest_vertex_idx == -1) {
-            std::cerr << "Error: No closest vertex found for projected point at index " << i << std::endl;
-            continue;
-        }
-
-        // Replace the closest vertex with the projected point
-        updated_mesh_V.row(closest_vertex_idx) = projected_point;
-
-        // Add the projected point to V2_pointcloud_new
-        V2_pointcloud_new.conservativeResize(V2_pointcloud_new.rows() + 1, Eigen::NoChange);
-        V2_pointcloud_new.row(V2_pointcloud_new.rows() - 1) = projected_point;
-
-        // Update progress
-        std::cout << "\rProcessing V2 point cloud: " << std::fixed << std::setprecision(2)
-            << (static_cast<double>(i + 1) / V2_pointcloud.rows()) * 100 << "% completed" << std::flush;
-    }
+    std::cout << "V, F output sizes:  " << updated_mesh_V.rows() << ", " << updated_mesh_F.rows() << std::endl;
 
     std::cout << std::endl; // To move to the next line after the progress is complete
 }
+
 
 
 

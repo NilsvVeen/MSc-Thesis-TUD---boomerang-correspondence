@@ -54,14 +54,15 @@ void UVToCorrespondence(
    // Point clouds for registration
     std::vector<Eigen::RowVector3d> pointCloudA; // Holds 3D points from V1
     std::vector<Eigen::RowVector3d> pointCloudB; // Holds 3D points from face vertices in V2
+    std::vector<Eigen::RowVector3d> pointCloudC; // Holds 3D points from face vertices in V2
 
     for (int i = 0; i < V1.rows(); ++i) {
         Eigen::RowVector3d a = V1.row(i);     // Vertex in 3D
         Eigen::RowVector2d b = UV1.row(i);   // Corresponding UV coordinate
 
         // Find the face in UV2 that contains b
-        //for (int j = 0; j < F2.rows(); ++j) {
-        for (int j = F2.rows()-1; j > 1; --j) {
+        for (int j = 0; j < F2.rows(); ++j) {
+        //for (int j = F2.rows()-1; j > 1; --j) {
             // Get the UV coordinates of the face vertices in UV2
             Eigen::RowVector2d A = UV2.row(F2(j, 0));
             Eigen::RowVector2d B = UV2.row(F2(j, 1));
@@ -76,9 +77,28 @@ void UVToCorrespondence(
                 pointCloudB.push_back(V2.row(F2(j, 1)));
                 pointCloudB.push_back(V2.row(F2(j, 2)));
 
-                polyscope::registerPointCloud("p1", pointCloudA);
-                polyscope::registerPointCloud("p2 triangle", pointCloudB);
+
                 
+
+
+                Eigen::Matrix2d T;
+                T.col(0) = B - A;
+                T.col(1) = C - A;
+                Eigen::RowVector2d v = b - A;
+
+                Eigen::Vector2d barycentric2D = T.inverse() * v.transpose();
+                double lambda1 = 1.0 - barycentric2D.sum();
+                double lambda2 = barycentric2D[0];
+                double lambda3 = barycentric2D[1];
+
+                // Interpolate 3D position in Mesh 2 (without modifying V2)
+                Eigen::RowVector3d interpolatedPoint =
+                    lambda1 * V2.row(F2(j, 0)) +
+                    lambda2 * V2.row(F2(j, 1)) +
+                    lambda3 * V2.row(F2(j, 2));
+
+                pointCloudC.push_back(interpolatedPoint);
+
 
                 //polyscope::show();
                 //polyscope::removeAllStructures();
@@ -87,6 +107,12 @@ void UVToCorrespondence(
             }
 
         }
+
+
+        polyscope::registerPointCloud("p1", pointCloudA);
+        polyscope::registerPointCloud("p2 triangle", pointCloudB);
+        polyscope::registerPointCloud("p3 ", pointCloudC);
+
         // Progress bar logic
         int progressWidth = 50; // Width of the progress bar
         double progress = static_cast<double>(i + 1) / V1.rows();

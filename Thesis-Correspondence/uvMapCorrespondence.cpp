@@ -121,6 +121,86 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXi> filterMeshUsingPoints(
 
 
 
+#include <Eigen/Dense>
+#include <vector>
+#include <iostream>
+#include <queue>
+#include <unordered_map>
+#include <unordered_set>
+#include <cmath>
+#include <limits>
+
+using namespace std;
+
+// Euclidean distance between two points
+double euclideanDistance(const Eigen::RowVector3d& p1, const Eigen::RowVector3d& p2) {
+    return (p1 - p2).norm();
+}
+
+// Build adjacency list based on the mesh faces
+unordered_map<int, unordered_set<int>> buildAdjacencyList(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+    unordered_map<int, unordered_set<int>> adjList;
+    for (int i = 0; i < F.rows(); ++i) {
+        for (int j = 0; j < 3; ++j) {
+            for (int k = j + 1; k < 3; ++k) {
+                adjList[F(i, j)].insert(F(i, k));
+                adjList[F(i, k)].insert(F(i, j));
+            }
+        }
+    }
+    return adjList;
+}
+
+// Dijkstra's algorithm to find the shortest path between two vertices
+vector<int> dijkstra(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, int startIdx, int endIdx) {
+    int numVertices = V.rows();
+    vector<double> dist(numVertices, std::numeric_limits<double>::infinity());
+    vector<int> prev(numVertices, -1);
+    priority_queue<pair<double, int>, vector<pair<double, int>>, greater<pair<double, int>>> pq;
+
+    dist[startIdx] = 0.0;
+    pq.push({ 0.0, startIdx });
+
+    // Build adjacency list from faces
+    unordered_map<int, unordered_set<int>> adjList = buildAdjacencyList(V, F);
+
+    // Dijkstra's algorithm
+    unordered_set<int> visited; // To avoid revisiting vertices
+    while (!pq.empty()) {
+        int u = pq.top().second;
+        pq.pop();
+
+        if (visited.find(u) != visited.end()) {
+            continue; // Skip if already visited
+        }
+
+        visited.insert(u); // Mark as visited
+
+        if (u == endIdx) break; // Short-circuit if we reached the target
+
+        for (int v : adjList[u]) {
+            if (visited.find(v) != visited.end()) {
+                continue; // Skip if already visited
+            }
+            double weight = euclideanDistance(V.row(u), V.row(v));
+            if (dist[u] + weight < dist[v]) {
+                dist[v] = dist[u] + weight;
+                prev[v] = u;
+                pq.push({ dist[v], v });
+            }
+        }
+    }
+
+    // Reconstruct the path from start to end
+    vector<int> path;
+    for (int u = endIdx; u != -1; u = prev[u]) {
+        path.push_back(u);
+    }
+
+    reverse(path.begin(), path.end());
+    return path;
+}
+
 
 
 void UVToCorrespondence(
@@ -135,20 +215,77 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
 ) {
 
+
+    // List to store unique vertices in order
+    std::vector<Eigen::RowVector3d> uniqueVerticesOrdered;
+
+    // Function to add unique vertices while preserving order
+    auto addUniqueVertex = [&uniqueVerticesOrdered](const Eigen::RowVector3d& vertex) {
+        // Check if the vertex already exists in the list
+        bool isDuplicate = false;
+        for (const auto& v : uniqueVerticesOrdered) {
+            if (v.isApprox(vertex)) {  // Use isApprox for floating-point comparison
+                isDuplicate = true;
+                break;
+            }
+        }
+        // If not duplicate, add it to the list
+        if (!isDuplicate) {
+            uniqueVerticesOrdered.push_back(vertex);
+        }
+    };
+
+    // Iterate over all pairs of consecutive boundary points (with wraparound for last case)
+    for (int i = 0; i < B1.rows(); ++i) {
+        int idxA = i;  // Boundary vertex a
+        int idxB = (i + 1) % B1.rows();  // Boundary vertex b, with wraparound
+
+        // Find corresponding indices of boundary vertices in V1
+        Eigen::RowVector3d pointA = B1.row(idxA);
+        Eigen::RowVector3d pointB = B1.row(idxB);
+
+        // Match B1.row(idxA) and B1.row(idxB) to the nearest vertices in V1
+        int vIdxA = -1, vIdxB = -1;
+        double minDistA = std::numeric_limits<double>::infinity(), minDistB = std::numeric_limits<double>::infinity();
+
+        for (int j = 0; j < V1.rows(); ++j) {
+            double distA = euclideanDistance(pointA, V1.row(j));
+            double distB = euclideanDistance(pointB, V1.row(j));
+
+            if (distA < minDistA) {
+                minDistA = distA;
+                vIdxA = j;
+            }
+            if (distB < minDistB) {
+                minDistB = distB;
+                vIdxB = j;
+            }
+        }
+
+        // Find the shortest path from vIdxA to vIdxB in V1
+        vector<int> path = dijkstra(V1, F1, vIdxA, vIdxB);
+
+        // Add all vertices in the path to the list, ensuring uniqueness
+        for (int idx : path) {
+            addUniqueVertex(V1.row(idx));
+        }
+    }
+
+    // Convert uniqueVerticesOrdered to a matrix for Polyscope
+    Eigen::MatrixXd uniqueVerticesMat(uniqueVerticesOrdered.size(), 3);
+    for (size_t i = 0; i < uniqueVerticesOrdered.size(); ++i) {
+        uniqueVerticesMat.row(i) = uniqueVerticesOrdered[i];
+        std::cout << i << " -- " << uniqueVerticesMat.row(i) << std::endl;
+    }
     polyscope::init();
-    polyscope::registerSurfaceMesh2D("uv1", UV1, F1);
-    polyscope::show();
 
+    polyscope::registerPointCloud("Unique Vertices", uniqueVerticesMat);
+    polyscope::registerPointCloud("Original Boundary Vertices", B1);
 
-    //std::vector<int> side1Faces, side2Faces;
-    //separateUVFaces(UV1, F1, side1Faces, side2Faces);
-
-    //std::cout << "LENGTHSSS " << F1.rows() << " - " << side1Faces.size() << " - " << side2Faces.size() << std::endl;
-
-
-    polyscope::init();
     polyscope::registerSurfaceMesh("M1", V1, F1);
     polyscope::registerSurfaceMesh("M2", V2, F2);
+    polyscope::show();
+
 
     // Point clouds for registration
     std::vector<Eigen::RowVector3d> pointCloudA;          // Holds 3D points from V1

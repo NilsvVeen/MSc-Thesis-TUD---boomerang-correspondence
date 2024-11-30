@@ -35,29 +35,6 @@ bool isPointInTriangle(const Eigen::RowVector2d& point, const Eigen::RowVector2d
 }
 
 
-bool isCorrectSide(
-    const Eigen::RowVector3d& vertex3D,
-    const Eigen::RowVector3d& interpolatedPoint,
-    const Eigen::RowVector3d& faceNormal3D,
-    const Eigen::RowVector3d& referenceNormal,
-    double threshold = 0.1 // Adjust based on your mesh scale
-) {
-    // Check proximity
-    double distance = (vertex3D - interpolatedPoint).norm();
-    if (distance > threshold) {
-        return false; // Interpolated point is too far
-    }
-
-    // Check normal alignment
-    double normalAlignment = faceNormal3D.dot(referenceNormal);
-    if (normalAlignment < 0.5) { // Adjust threshold as needed
-        return false; // Normals are not aligned
-    }
-
-    return true; // Passed all checks
-}
-
-
 std::pair<Eigen::MatrixXd, Eigen::MatrixXi> filterMeshUsingPoints(
     const Eigen::MatrixXd& V1,                  // Original vertices
     const Eigen::MatrixXi& F1,                 // Original faces
@@ -144,7 +121,90 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXi> filterMeshUsingPoints(
 
 
 
+// Custom hash function for Eigen::RowVector2d
+namespace std {
+    template <>
+    struct hash<Eigen::RowVector2d> {
+        size_t operator()(const Eigen::RowVector2d& v) const {
+            size_t h1 = std::hash<double>{}(v(0));
+            size_t h2 = std::hash<double>{}(v(1));
+            return h1 ^ (h2 << 1);  // Combine the two hash values
+        }
+    };
+}
 
+
+bool areFacesOverlapping(const Eigen::RowVector2d& A1, const Eigen::RowVector2d& B1, const Eigen::RowVector2d& C1,
+    const Eigen::RowVector2d& A2, const Eigen::RowVector2d& B2, const Eigen::RowVector2d& C2) {
+    // Helper lambda to sort vertices of an edge
+    auto sortEdge = [](const Eigen::RowVector2d& v1, const Eigen::RowVector2d& v2) -> std::pair<Eigen::RowVector2d, Eigen::RowVector2d> {
+        if (v1[0] < v2[0] || (v1[0] == v2[0] && v1[1] < v2[1])) {
+            return { v1, v2 };
+        }
+        else {
+            return { v2, v1 };
+        }
+    };
+
+    // Create a set of edges for the first face
+    std::unordered_set<std::pair<Eigen::RowVector2d, Eigen::RowVector2d>, boost::hash<std::pair<Eigen::RowVector2d, Eigen::RowVector2d>>> face1Edges;
+    face1Edges.insert(sortEdge(A1, B1));
+    face1Edges.insert(sortEdge(B1, C1));
+    face1Edges.insert(sortEdge(C1, A1));
+
+    // Check if any of the edges of the second face overlap with the first face
+    if (face1Edges.count(sortEdge(A2, B2)) > 0) return true;
+    if (face1Edges.count(sortEdge(B2, C2)) > 0) return true;
+    if (face1Edges.count(sortEdge(C2, A2)) > 0) return true;
+
+    return false;
+}
+
+
+void separateUVFaces(const Eigen::MatrixXd& UV, const Eigen::MatrixXi& F, std::vector<int>& side1Faces, std::vector<int>& side2Faces) {
+    std::vector<bool> assigned(F.rows(), false); // To track which faces are already assigned
+
+    int progressWidth = 50;  // Width of the progress bar
+    for (int i = 0; i < F.rows(); ++i) {
+        Eigen::RowVector2d A = UV.row(F(i, 0));
+        Eigen::RowVector2d B = UV.row(F(i, 1));
+        Eigen::RowVector2d C = UV.row(F(i, 2));
+
+        bool placed = false;
+
+        for (int j = 0; j < i; ++j) { // Check for overlaps with previously processed faces
+            Eigen::RowVector2d A2 = UV.row(F(j, 0));
+            Eigen::RowVector2d B2 = UV.row(F(j, 1));
+            Eigen::RowVector2d C2 = UV.row(F(j, 2));
+
+            if (areFacesOverlapping(A, B, C, A2, B2, C2)) {
+                // If they overlap, put them in a different list
+                side2Faces.push_back(i);
+                placed = true;
+                break;
+            }
+        }
+
+        if (!placed) {
+            // If no overlap, place it in the first list
+            side1Faces.push_back(i);
+        }
+
+        // Progress bar logic
+        double progress = static_cast<double>(i + 1) / F.rows();
+        int pos = static_cast<int>(progress * progressWidth);
+        std::cout << "\r[";
+        for (int k = 0; k < progressWidth; ++k) {
+            if (k < pos) std::cout << "=";
+            else if (k == pos) std::cout << ">";
+            else std::cout << " ";
+        }
+        std::cout << "] " << std::fixed << std::setprecision(1)
+            << (progress * 100.0) << "% completed" << std::flush;
+    }
+
+    std::cout << std::endl; // To move to the next line after the progress bar
+}
 
 
 void UVToCorrespondence(
@@ -158,6 +218,18 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& B2,  // Boundary 2 vertices   p x 3
     const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
 ) {
+
+    polyscope::init();
+    polyscope::registerSurfaceMesh2D("uv1", UV1, F1);
+    polyscope::show();
+
+
+    //std::vector<int> side1Faces, side2Faces;
+    //separateUVFaces(UV1, F1, side1Faces, side2Faces);
+
+    //std::cout << "LENGTHSSS " << F1.rows() << " - " << side1Faces.size() << " - " << side2Faces.size() << std::endl;
+
+
     polyscope::init();
     polyscope::registerSurfaceMesh("M1", V1, F1);
     polyscope::registerSurfaceMesh("M2", V2, F2);
@@ -179,6 +251,7 @@ void UVToCorrespondence(
             Eigen::RowVector2d B = UV2.row(F2(j, 1));
             Eigen::RowVector2d C = UV2.row(F2(j, 2));
 
+            int count = 0;
             if (isPointInTriangle(b, A, B, C)) {
                 Eigen::Matrix2d T;
                 T.col(0) = B - A;
@@ -213,11 +286,12 @@ void UVToCorrespondence(
                 if (interpolatedPoint.hasNaN() || interpolatedPoint.norm() > 1e6) {
                     continue; // Skip out-of-range points
                 }
-
+                count += 1;
                 pointCloudA.push_back(a);
                 pointCloudC.push_back(interpolatedPoint);
                 added = true;
-                break; // Move to the next vertex in V1
+                //break; // Move to the next vertex in V1
+                std::cout << j << "_--------" << count << std::endl;
             }
         }
         if (!added) {
@@ -243,9 +317,6 @@ void UVToCorrespondence(
     auto F1_new = VF.second;
     auto V1_new = VF.first;
     std::cout << " length2 : " << F1_new.rows() << std::endl;
-
-    //saveMeshToFile("aababababababbababbab.obj", V1_new, F1_new);
-    
 
 
     // Register point clouds in Polyscope

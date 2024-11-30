@@ -53,6 +53,7 @@ void UVToCorrespondence(
 
    // Point clouds for registration
     std::vector<Eigen::RowVector3d> pointCloudA; // Holds 3D points from V1
+    std::vector<Eigen::RowVector3d> pointCloudA_skipped; // Holds 3D points from V1
     std::vector<Eigen::RowVector3d> pointCloudB; // Holds 3D points from face vertices in V2
     std::vector<Eigen::RowVector3d> pointCloudC; // Holds 3D points from face vertices in V2
 
@@ -60,6 +61,7 @@ void UVToCorrespondence(
         Eigen::RowVector3d a = V1.row(i);     // Vertex in 3D
         Eigen::RowVector2d b = UV1.row(i);   // Corresponding UV coordinate
 
+        bool added = false;
         // Find the face in UV2 that contains b
         for (int j = 0; j < F2.rows(); ++j) {
         //for (int j = F2.rows()-1; j > 1; --j) {
@@ -70,26 +72,38 @@ void UVToCorrespondence(
 
             if (isPointInTriangle(b, A, B, C)) {
                 // Register point a from V1
-                pointCloudA.push_back(a);
+                //pointCloudA.push_back(a);
 
-                // Register corresponding vertices from the face in V2
-                pointCloudB.push_back(V2.row(F2(j, 0)));
-                pointCloudB.push_back(V2.row(F2(j, 1)));
-                pointCloudB.push_back(V2.row(F2(j, 2)));
-
-
-                
-
+                //// Register corresponding vertices from the face in V2
+                //pointCloudB.push_back(V2.row(F2(j, 0)));
+                //pointCloudB.push_back(V2.row(F2(j, 1)));
+                //pointCloudB.push_back(V2.row(F2(j, 2)));
 
                 Eigen::Matrix2d T;
                 T.col(0) = B - A;
                 T.col(1) = C - A;
                 Eigen::RowVector2d v = b - A;
 
-                Eigen::Vector2d barycentric2D = T.inverse() * v.transpose();
+                // Avoid invalid matrix inversions or suspicious barycentric coordinates
+                Eigen::Vector2d barycentric2D;
+                try {
+                    barycentric2D = T.inverse() * v.transpose();
+                }
+                catch (...) {
+                    //std::cerr << "Warning: Singular matrix detected. Skipping triangle." << std::endl;
+                    continue;
+                }
+
                 double lambda1 = 1.0 - barycentric2D.sum();
                 double lambda2 = barycentric2D[0];
                 double lambda3 = barycentric2D[1];
+
+                // Validate barycentric coordinates
+                if (lambda1 < 0.0 || lambda2 < 0.0 || lambda3 < 0.0 ||
+                    lambda1 > 1.0 || lambda2 > 1.0 || lambda3 > 1.0) {
+                    //std::cerr << "Warning: Invalid barycentric coordinates detected. Skipping triangle." << std::endl;
+                    continue;
+                }
 
                 // Interpolate 3D position in Mesh 2 (without modifying V2)
                 Eigen::RowVector3d interpolatedPoint =
@@ -97,19 +111,27 @@ void UVToCorrespondence(
                     lambda2 * V2.row(F2(j, 1)) +
                     lambda3 * V2.row(F2(j, 2));
 
+                // Additional sanity check for the interpolated point
+                if (interpolatedPoint.hasNaN() || interpolatedPoint.norm() > 1e6) {
+                    // Example threshold: Adjust `1e6` as needed based on the scale of your data
+                    //std::cerr << "Warning: Interpolated point out of range. Skipping." << std::endl;
+                    continue;
+                }
+
+                pointCloudA.push_back(a);
                 pointCloudC.push_back(interpolatedPoint);
-
-
-                //polyscope::show();
-                //polyscope::removeAllStructures();
-
+                added = true;
                 break; // Move to the next vertex in V1
             }
 
         }
+        if (!added) {
+            pointCloudA_skipped.push_back(a);
+        }
 
 
         polyscope::registerPointCloud("p1", pointCloudA);
+        polyscope::registerPointCloud("p1 skipped", pointCloudA_skipped);
         polyscope::registerPointCloud("p2 triangle", pointCloudB);
         polyscope::registerPointCloud("p3 ", pointCloudC);
 
@@ -133,7 +155,7 @@ void UVToCorrespondence(
     // Debug output
     std::cout << "Registered point clouds:" << std::endl;
     std::cout << "PointCloudA size: " << pointCloudA.size() << std::endl;
-    std::cout << "PointCloudB size: " << pointCloudB.size() << std::endl;
+    std::cout << "PointCloudB size: " << pointCloudC.size() << std::endl;
 
 
 }

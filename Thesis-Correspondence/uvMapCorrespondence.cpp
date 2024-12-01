@@ -333,12 +333,32 @@ std::pair<std::vector<int>, std::vector<int>> classifyFacesByBorder(
         for (int i = 0; i < F1.rows(); ++i) {
             if (visited[i] || !facesShareEdge(currentFace, i)) continue; // Skip visited or unconnected faces
 
-            // If the neighboring face touches the border, we mark it as visited but don't process further
-            if (faceTouchesBorder(i)) {
+            int borderVertexCount = 0;
+            for (int j = 0; j < 3; ++j) { // Loop through all vertices of the face
+                Eigen::RowVector3d vertex = V1.row(F1(i, j));
+                for (int k = 0; k < connectedBorder.rows(); ++k) {
+                    if (vertex.isApprox(connectedBorder.row(k))) {
+                        ++borderVertexCount;
+                        if (borderVertexCount >= 2) {
+                            break;  // If we already found 2 vertices, no need to check further
+                        }
+                    }
+                }
+                if (borderVertexCount >= 2) break;
+            }
+            if (borderVertexCount >= 2) {
                 visited[i] = true;
                 sideA.push_back(i); // Include in sideA since it touches the border
                 continue;
             }
+
+
+            //// If the neighboring face touches the border, we mark it as visited but don't process further
+            //if (faceTouchesBorder(i)) {
+            //    visited[i] = true;
+            //    sideA.push_back(i); // Include in sideA since it touches the border
+            //    continue;
+            //}
 
             // Assign the face to the same side as the current face
             visited[i] = true;

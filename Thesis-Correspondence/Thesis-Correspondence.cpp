@@ -550,7 +550,7 @@ int main()
         readMeshFromFile(surfaceParam + "/M1.obj", V1, F1);
         readMeshFromFile(surfaceParam + "/M2.obj", V2, F2);
         B1 = readVerticesFromPLY(surfaceParam + "/B1.obj");
-        B2 = readVerticesFromPLY(surfaceParam + "/B1.obj");
+        B2 = readVerticesFromPLY(surfaceParam + "/B2.obj");
         UV1 = readVerticesFromPLY2D(surfaceParam + "/UV1.obj");
         UV2 = readVerticesFromPLY2D(surfaceParam + "/UV2.obj");
 

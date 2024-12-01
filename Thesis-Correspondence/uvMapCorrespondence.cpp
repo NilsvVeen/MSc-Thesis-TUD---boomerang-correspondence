@@ -223,6 +223,8 @@ Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::Matr
         }
     };
 
+    std::cout << "Starting findConnectedBorder with B1 size: " << B1.rows() << " x " << B1.cols() << "\n";
+
     // Iterate over all pairs of consecutive boundary points (with wraparound for last case)
     for (int i = 0; i < B1.rows(); ++i) {
         int idxA = i;  // Boundary vertex a
@@ -231,6 +233,9 @@ Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::Matr
         // Find corresponding indices of boundary vertices in V1
         Eigen::RowVector3d pointA = B1.row(idxA);
         Eigen::RowVector3d pointB = B1.row(idxB);
+
+        //std::cout << "Processing boundary segment " << idxA << " -> " << idxB << "\n";
+        //std::cout << "Boundary points: A = " << pointA << ", B = " << pointB << "\n";
 
         // Match B1.row(idxA) and B1.row(idxB) to the nearest vertices in V1
         int vIdxA = -1, vIdxB = -1;
@@ -250,8 +255,22 @@ Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::Matr
             }
         }
 
+        //std::cout << "Nearest vertices in V1: vIdxA = " << vIdxA << ", vIdxB = " << vIdxB << "\n";
+        //std::cout << "Nearest vertices in V1: vA = " << V1.row(vIdxA) << ", vIdxB = " << V1.row(vIdxB) << "\n";
+        //std::cout << "Min distances: minDistA = " << minDistA << ", minDistB = " << minDistB << "\n";
+
+        if (vIdxA == -1 || vIdxB == -1) {
+            std::cerr << "Error: Could not find nearest vertices for boundary points!\n";
+            continue;
+        }
+
         // Find the shortest path from vIdxA to vIdxB in V1
         std::vector<int> path = dijkstra(V1, F1, vIdxA, vIdxB);
+        //std::cout << "Path from vIdxA to vIdxB: ";
+        for (int idx : path) {
+            std::cout << idx << " ";
+        }
+        std::cout << "\n";
 
         // Add all vertices in the path to the list, ensuring uniqueness
         for (int idx : path) {
@@ -265,9 +284,9 @@ Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::Matr
         uniqueVerticesMat.row(i) = uniqueVerticesOrdered[i];
     }
 
+    std::cout << "Completed findConnectedBorder. Total unique vertices: " << uniqueVerticesOrdered.size() << "\n";
     return uniqueVerticesMat;
 }
-
 
 
 
@@ -392,45 +411,46 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
 ) {
 
-//Eigen::MatrixXd connectedBorder = findConnectedBorder(V1, F1, B1);
-//
-//writeVerticesToPLY("borders.obj", connectedBorder);
+    //Eigen::MatrixXd connectedBorder = findConnectedBorder(V2, F2, B2);
+    ////
+    //writeVerticesToPLY("borders2.obj", connectedBorder);
 
-Eigen::MatrixXd connectedBorder = readVerticesFromPLY("borders.obj");
+    Eigen::MatrixXd connectedBorder = readVerticesFromPLY("borders.obj");
+    Eigen::MatrixXd connectedBorder2 = readVerticesFromPLY("borders2.obj");
 
-auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
+    auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
 
-// Print the face indices for each side
-std::cout << "Faces on Side A: " << sideA.size() << std::endl;
-std::cout << "Faces on Side B: " << sideB.size() << std::endl;
+    // Print the face indices for each side
+    std::cout << "Faces on Side A: " << sideA.size() << std::endl;
+    std::cout << "Faces on Side B: " << sideB.size() << std::endl;
 
-// Create a scalar field to color faces based on their classification
-Eigen::VectorXd faceColors(F1.rows());
-faceColors.setConstant(-1); // Default value for unclassified faces (optional)
+    // Create a scalar field to color faces based on their classification
+    Eigen::VectorXd faceColors(F1.rows());
+    faceColors.setConstant(-1); // Default value for unclassified faces (optional)
 
-// Assign colors to faces in sideA and sideB
-for (int faceIdx : sideA) {
-    faceColors(faceIdx) = 0; // Color for Side A
-}
-for (int faceIdx : sideB) {
-    faceColors(faceIdx) = 1; // Color for Side B
-}
+    // Assign colors to faces in sideA and sideB
+    for (int faceIdx : sideA) {
+        faceColors(faceIdx) = 0; // Color for Side A
+    }
+    for (int faceIdx : sideB) {
+        faceColors(faceIdx) = 1; // Color for Side B
+    }
 
-polyscope::init();
+    polyscope::init();
 
-// Register connected border as a point cloud
-polyscope::registerPointCloud("Unique Vertices", connectedBorder);
-// Register the original boundary vertices
-polyscope::registerPointCloud("Original Boundary Vertices", B1);
+    // Register connected border as a point cloud
+    polyscope::registerPointCloud("Unique Vertices", connectedBorder);
+    // Register the original boundary vertices
+    polyscope::registerPointCloud("Original Boundary Vertices", B1);
 
-// Register the mesh with the face scalar quantity
-polyscope::registerSurfaceMesh("M1", V1, F1)
-    ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
+    // Register the mesh with the face scalar quantity
+    polyscope::registerSurfaceMesh("M222", V1, F1)
+        ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
 
-// Optionally register another mesh
-polyscope::registerSurfaceMesh("M2", V2, F2);
+    // Optionally register another mesh
+    polyscope::registerSurfaceMesh("M2", V1, F1);
 
-polyscope::show();
+    polyscope::show();
 
 
 

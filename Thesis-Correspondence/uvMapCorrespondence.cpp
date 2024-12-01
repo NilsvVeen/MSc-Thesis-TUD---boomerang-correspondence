@@ -129,6 +129,7 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXi> filterMeshUsingPoints(
 #include <unordered_set>
 #include <cmath>
 #include <limits>
+#include <polyscope/curve_network.h>
 
 using namespace std;
 
@@ -396,6 +397,50 @@ std::pair<std::vector<int>, std::vector<int>> classifyFacesByBorder(
     return { sideA, sideB };
 }
 
+void visualizeResults(
+    const std::vector<Eigen::RowVector3d>& pointCloudA,
+    const std::vector<Eigen::RowVector3d>& pointCloudA_skipped,
+    const std::vector<Eigen::RowVector3d>& pointCloudC,
+    const Eigen::MatrixXi& F1_new) {
+
+    polyscope::init();
+
+    // Register point clouds
+    auto* pc1 = polyscope::registerPointCloud("P1 Original", pointCloudA);
+    auto* pc1_skipped = polyscope::registerPointCloud("P1 Skipped", pointCloudA_skipped);
+    auto* pc3_interpolated = polyscope::registerPointCloud("P3 Interpolated", pointCloudC);
+
+    // Register surface meshes
+    polyscope::registerSurfaceMesh("M1 New (Original Mesh)", pointCloudA, F1_new);
+    polyscope::registerSurfaceMesh("M2 New (Interpolated Mesh)", pointCloudC, F1_new);
+
+    // Customize options to toggle visibility of individual components
+    pc1->setEnabled(true);                // Enable P1 point cloud by default
+    pc1_skipped->setEnabled(false);       // Disable skipped points by default
+    pc3_interpolated->setEnabled(true);   // Enable P3 interpolated points by default
+
+    // Concatenate point clouds A and C
+    std::vector<Eigen::RowVector3d> points = pointCloudA;
+    points.insert(points.end(), pointCloudC.begin(), pointCloudC.end());
+
+    // Create edges between corresponding points in pointCloudA and pointCloudC
+    std::vector<std::array<int, 2>> edges;
+    int numPoints = pointCloudA.size();  // Assume pointCloudA and pointCloudC have the same size
+
+    for (int i = 0; i < numPoints; ++i) {
+        edges.push_back({ i, numPoints + i });  // Corresponding points: A[i] -> C[i]
+    }
+
+    // Register the curve network (lines) between the selected vertices
+    auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines", points, edges);
+
+    auto radius_default = 0.005;
+    // Set the radius of the curve network
+    curveNetwork->setRadius(radius_default);
+
+    // Show Polyscope GUI
+    polyscope::show();
+}
 
 
 
@@ -578,14 +623,11 @@ void UVToCorrespondence(
     auto V1_new = VF.first;
     std::cout << " length2 : " << F1_new.rows() << std::endl;
 
-    polyscope::init();
-    // Register point clouds in Polyscope
-    polyscope::registerPointCloud("p1", pointCloudA);
-    polyscope::registerPointCloud("p1 skipped", pointCloudA_skipped);
-    polyscope::registerPointCloud("p3 interpolated", pointCloudC);
-
-    polyscope::registerSurfaceMesh("M1_new", pointCloudA, F1_new);
-    polyscope::registerSurfaceMesh("M2_new", pointCloudC, F1_new);
+    visualizeResults(
+        pointCloudA,
+        pointCloudA_skipped,
+        pointCloudC,
+        F1_new);
 
 
     polyscope::show();

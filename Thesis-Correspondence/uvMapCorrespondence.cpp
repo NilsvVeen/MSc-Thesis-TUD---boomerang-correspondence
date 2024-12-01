@@ -434,15 +434,25 @@ void visualizeResults(
         edges.push_back({ i, numPoints + i });  // Corresponding points: A[i] -> C[i]
     }
 
-    // SECTION 5: Register Curve Network (Lines between Corresponding Points)
-    {
-        auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines", points, edges);
+    // SECTION 5: Split Curve Network into Smaller Parts
+    int numParts = 10;  // You can adjust the number of parts based on your needs
+    int partSize = numPoints / numParts;
 
-        // SECTION 6: Apply Rainbow Color Mapping
-        // The curve network will use a color gradient along its length
-        Eigen::VectorXd colorValues(numPoints);  // One value per edge for color mapping
-        for (int i = 0; i < numPoints; ++i) {
-            colorValues[i] = static_cast<double>(i) / (numPoints - 1);  // Normalize the indices to [0, 1]
+    for (int part = 0; part < numParts; ++part) {
+        // Determine the range of indices for this part
+        int startIdx = part * partSize;
+        int endIdx = (part == numParts - 1) ? numPoints : (part + 1) * partSize;
+
+        // Extract the edges for this part
+        std::vector<std::array<int, 2>> partEdges(edges.begin() + startIdx, edges.begin() + endIdx);
+
+        // Register the curve network for this part
+        auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines Part " + std::to_string(part + 1), points, partEdges);
+
+        // SECTION 6: Apply Rainbow Color Mapping for the Part
+        Eigen::VectorXd colorValues(endIdx - startIdx);  // One value per edge for color mapping
+        for (int i = startIdx; i < endIdx; ++i) {
+            colorValues[i - startIdx] = static_cast<double>(i) / (numPoints - 1);  // Normalize the indices to [0, 1]
         }
 
         curveNetwork->addEdgeColorQuantity("Rainbow", colorValues);
@@ -454,6 +464,7 @@ void visualizeResults(
     // Show Polyscope GUI
     polyscope::show();
 }
+
 
 
 

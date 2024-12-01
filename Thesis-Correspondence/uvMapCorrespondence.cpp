@@ -333,8 +333,12 @@ std::pair<std::vector<int>, std::vector<int>> classifyFacesByBorder(
         for (int i = 0; i < F1.rows(); ++i) {
             if (visited[i] || !facesShareEdge(currentFace, i)) continue; // Skip visited or unconnected faces
 
-            // Check if the neighboring face crosses the border
-            if (faceTouchesBorder(i)) continue;
+            // If the neighboring face touches the border, we mark it as visited but don't process further
+            if (faceTouchesBorder(i)) {
+                visited[i] = true;
+                sideA.push_back(i); // Include in sideA since it touches the border
+                continue;
+            }
 
             // Assign the face to the same side as the current face
             visited[i] = true;
@@ -352,6 +356,7 @@ std::pair<std::vector<int>, std::vector<int>> classifyFacesByBorder(
 
     return { sideA, sideB };
 }
+
 
 
 

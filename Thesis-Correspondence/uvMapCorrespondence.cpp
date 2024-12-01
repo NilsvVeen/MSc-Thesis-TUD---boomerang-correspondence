@@ -405,42 +405,56 @@ void visualizeResults(
 
     polyscope::init();
 
-    // Register point clouds
-    auto* pc1 = polyscope::registerPointCloud("P1 Original", pointCloudA);
-    auto* pc1_skipped = polyscope::registerPointCloud("P1 Skipped", pointCloudA_skipped);
-    auto* pc3_interpolated = polyscope::registerPointCloud("P3 Interpolated", pointCloudC);
+    // SECTION 1: Register Point Clouds
+    {
+        auto* pc1 = polyscope::registerPointCloud("P1 Original", pointCloudA);
+        auto* pc1_skipped = polyscope::registerPointCloud("P1 Skipped", pointCloudA_skipped);
+        auto* pc3_interpolated = polyscope::registerPointCloud("P3 Interpolated", pointCloudC);
 
-    // Register surface meshes
-    polyscope::registerSurfaceMesh("M1 New (Original Mesh)", pointCloudA, F1_new);
-    polyscope::registerSurfaceMesh("M2 New (Interpolated Mesh)", pointCloudC, F1_new);
+        // Toggle visibility for point clouds
+        pc1->setEnabled(true);                // Enable P1 point cloud by default
+        pc1_skipped->setEnabled(false);       // Disable skipped points by default
+        pc3_interpolated->setEnabled(true);   // Enable P3 interpolated points by default
+    }
 
-    // Customize options to toggle visibility of individual components
-    pc1->setEnabled(true);                // Enable P1 point cloud by default
-    pc1_skipped->setEnabled(false);       // Disable skipped points by default
-    pc3_interpolated->setEnabled(true);   // Enable P3 interpolated points by default
+    // SECTION 2: Register Surface Meshes
+    {
+        polyscope::registerSurfaceMesh("M1 New (Original Mesh)", pointCloudA, F1_new);
+        polyscope::registerSurfaceMesh("M2 New (Interpolated Mesh)", pointCloudC, F1_new);
+    }
 
-    // Concatenate point clouds A and C
+    // SECTION 3: Concatenate Point Clouds A and C
     std::vector<Eigen::RowVector3d> points = pointCloudA;
     points.insert(points.end(), pointCloudC.begin(), pointCloudC.end());
 
-    // Create edges between corresponding points in pointCloudA and pointCloudC
+    // SECTION 4: Create Edges for Corresponding Points
     std::vector<std::array<int, 2>> edges;
     int numPoints = pointCloudA.size();  // Assume pointCloudA and pointCloudC have the same size
-
     for (int i = 0; i < numPoints; ++i) {
         edges.push_back({ i, numPoints + i });  // Corresponding points: A[i] -> C[i]
     }
 
-    // Register the curve network (lines) between the selected vertices
-    auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines", points, edges);
+    // SECTION 5: Register Curve Network (Lines between Corresponding Points)
+    {
+        auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines", points, edges);
 
-    auto radius_default = 0.005;
-    // Set the radius of the curve network
-    curveNetwork->setRadius(radius_default);
+        // SECTION 6: Apply Rainbow Color Mapping
+        // The curve network will use a color gradient along its length
+        Eigen::VectorXd colorValues(numPoints);  // One value per edge for color mapping
+        for (int i = 0; i < numPoints; ++i) {
+            colorValues[i] = static_cast<double>(i) / (numPoints - 1);  // Normalize the indices to [0, 1]
+        }
+
+        curveNetwork->addEdgeColorQuantity("Rainbow", colorValues);
+
+        // Set the radius of the curve network
+        curveNetwork->setRadius(0.005);
+    }
 
     // Show Polyscope GUI
     polyscope::show();
 }
+
 
 
 

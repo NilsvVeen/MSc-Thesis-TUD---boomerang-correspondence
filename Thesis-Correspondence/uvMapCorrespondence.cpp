@@ -424,8 +424,8 @@ void UVToCorrespondence(
     // Print the face indices for each side
     std::cout << "Faces on Side A: " << sideA.size() << std::endl;
     std::cout << "Faces on Side B: " << sideB.size() << std::endl;
-    std::cout << "2: Faces on Side A: " << sideA.size() << std::endl;
-    std::cout << "2: Faces on Side B: " << sideB.size() << std::endl;
+    std::cout << "2: Faces on Side A: " << sideA2.size() << std::endl;
+    std::cout << "2: Faces on Side B: " << sideB2.size() << std::endl;
 
     //// Create a scalar field to color faces based on their classification
     //Eigen::VectorXd faceColors(F1.rows());
@@ -459,25 +459,59 @@ void UVToCorrespondence(
 
 
 
-    // Point clouds for registration
     std::vector<Eigen::RowVector3d> pointCloudA;          // Holds 3D points from V1
     std::vector<Eigen::RowVector3d> pointCloudA_skipped;  // Holds skipped points from V1
     std::vector<Eigen::RowVector3d> pointCloudC;          // Holds interpolated points in V2
+
 
     for (int i = 0; i < V1.rows(); ++i) {
         Eigen::RowVector3d a = V1.row(i);   // Vertex in 3D
         Eigen::RowVector2d b = UV1.row(i); // Corresponding UV coordinate
 
+        // Check which side `a` belongs to
+        bool isInSideA = false, isInSideB = false;
+        for (int f : sideA) {
+            if ((F1.row(f).array() == i).any()) {  // If vertex `i` is part of a face in `sideA`
+                isInSideA = true;
+                break;
+            }
+        }
+        if (!isInSideA) {
+            for (int f : sideB) {
+                if ((F1.row(f).array() == i).any()) {  // If vertex `i` is part of a face in `sideB`
+                    isInSideB = true;
+                    break;
+                }
+            }
+        }
+
+        if (!isInSideA && !isInSideB) {
+            std::cerr << "Error: Vertex " << i << " does not belong to any side.\n";
+            pointCloudA_skipped.push_back(a);
+            continue;
+        }
+
         bool added = false;
-        // Find the face in UV2 that contains b
+
+        // Find the face in UV2 that contains `b`
         for (int j = 0; j < F2.rows(); ++j) {
             // Get the UV coordinates of the face vertices in UV2
             Eigen::RowVector2d A = UV2.row(F2(j, 0));
             Eigen::RowVector2d B = UV2.row(F2(j, 1));
             Eigen::RowVector2d C = UV2.row(F2(j, 2));
 
-            int count = 0;
+            // Check if `b` lies in the UV triangle
             if (isPointInTriangle(b, A, B, C)) {
+                // Check if this face belongs to the correct side
+                bool isInSideA2 = std::find(sideA2.begin(), sideA2.end(), j) != sideA2.end();
+                bool isInSideB2 = std::find(sideB2.begin(), sideB2.end(), j) != sideB2.end();
+
+                if ((isInSideA && !isInSideA2) || (isInSideB && !isInSideB2)) {
+                    // Skip the triangle if it’s on the wrong side
+                    continue;
+                }
+
+                // Compute barycentric coordinates
                 Eigen::Matrix2d T;
                 T.col(0) = B - A;
                 T.col(1) = C - A;
@@ -511,13 +545,15 @@ void UVToCorrespondence(
                 if (interpolatedPoint.hasNaN() || interpolatedPoint.norm() > 1e6) {
                     continue; // Skip out-of-range points
                 }
-                count += 1;
+
+                // Add the vertex and its interpolated point
                 pointCloudA.push_back(a);
                 pointCloudC.push_back(interpolatedPoint);
                 added = true;
                 break; // Move to the next vertex in V1
             }
         }
+
         if (!added) {
             pointCloudA_skipped.push_back(a);
         }
@@ -542,7 +578,7 @@ void UVToCorrespondence(
     auto V1_new = VF.first;
     std::cout << " length2 : " << F1_new.rows() << std::endl;
 
-
+    polyscope::init();
     // Register point clouds in Polyscope
     polyscope::registerPointCloud("p1", pointCloudA);
     polyscope::registerPointCloud("p1 skipped", pointCloudA_skipped);

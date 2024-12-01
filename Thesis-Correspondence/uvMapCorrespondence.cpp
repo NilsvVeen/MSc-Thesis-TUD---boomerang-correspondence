@@ -367,41 +367,41 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
 ) {
 
-    auto connectedBorder = findConnectedBorder(V1, F1, B1);
+auto connectedBorder = findConnectedBorder(V1, F1, B1);
 
-    auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
+auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
 
-    // Print the face indices for each side
-    std::cout << "Faces on Side A: " << sideA.size() << std::endl;
-    std::cout << "Faces on Side B: " << sideB.size() << std::endl;
+// Print the face indices for each side
+std::cout << "Faces on Side A: " << sideA.size() << std::endl;
+std::cout << "Faces on Side B: " << sideB.size() << std::endl;
 
-    // Create a scalar field to color faces based on their classification
-    Eigen::VectorXd faceColors(F1.rows());
-    faceColors.setConstant(-1); // Default value for unclassified faces (optional)
+// Create a scalar field to color faces based on their classification
+Eigen::VectorXd faceColors(F1.rows());
+faceColors.setConstant(-1); // Default value for unclassified faces (optional)
 
-    // Assign colors to faces in sideA and sideB
-    for (int faceIdx : sideA) {
-        faceColors(faceIdx) = 0; // Color for Side A
-    }
-    for (int faceIdx : sideB) {
-        faceColors(faceIdx) = 1; // Color for Side B
-    }
+// Assign colors to faces in sideA and sideB
+for (int faceIdx : sideA) {
+    faceColors(faceIdx) = 0; // Color for Side A
+}
+for (int faceIdx : sideB) {
+    faceColors(faceIdx) = 1; // Color for Side B
+}
 
-    polyscope::init();
+polyscope::init();
 
-    // Register connected border as a point cloud
-    polyscope::registerPointCloud("Unique Vertices", connectedBorder);
-    // Register the original boundary vertices
-    polyscope::registerPointCloud("Original Boundary Vertices", B1);
+// Register connected border as a point cloud
+polyscope::registerPointCloud("Unique Vertices", connectedBorder);
+// Register the original boundary vertices
+polyscope::registerPointCloud("Original Boundary Vertices", B1);
 
-    // Register the mesh with the face scalar quantity
-    polyscope::registerSurfaceMesh("M1", V1, F1)
-        ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
+// Register the mesh with the face scalar quantity
+polyscope::registerSurfaceMesh("M1", V1, F1)
+    ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
 
-    // Optionally register another mesh
-    polyscope::registerSurfaceMesh("M2", V2, F2);
+// Optionally register another mesh
+polyscope::registerSurfaceMesh("M2", V2, F2);
 
-    polyscope::show();
+polyscope::show();
 
 
 

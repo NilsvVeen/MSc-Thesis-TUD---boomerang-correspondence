@@ -203,19 +203,7 @@ vector<int> dijkstra(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, int sta
 
 
 
-void UVToCorrespondence(
-    const Eigen::MatrixXd& V1,  // Mesh 1 vertices       n x 3
-    const Eigen::MatrixXi& F1, // Mesh 1 faces          m x 3
-    const Eigen::MatrixXd& B1, // Boundary 1 vertices   p x 3
-    const Eigen::MatrixXd& UV1, // UV map of mesh 1     n x 2
-
-    const Eigen::MatrixXd& V2,  // Mesh 2 vertices       s x 3
-    const Eigen::MatrixXi& F2,  // Mesh 2 faces          q x 3
-    const Eigen::MatrixXd& B2,  // Boundary 2 vertices   p x 3
-    const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
-) {
-
-
+Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1, const Eigen::MatrixXd& B1) {
     // List to store unique vertices in order
     std::vector<Eigen::RowVector3d> uniqueVerticesOrdered;
 
@@ -249,8 +237,8 @@ void UVToCorrespondence(
         double minDistA = std::numeric_limits<double>::infinity(), minDistB = std::numeric_limits<double>::infinity();
 
         for (int j = 0; j < V1.rows(); ++j) {
-            double distA = euclideanDistance(pointA, V1.row(j));
-            double distB = euclideanDistance(pointB, V1.row(j));
+            double distA = (pointA - V1.row(j)).norm();
+            double distB = (pointB - V1.row(j)).norm();
 
             if (distA < minDistA) {
                 minDistA = distA;
@@ -263,7 +251,7 @@ void UVToCorrespondence(
         }
 
         // Find the shortest path from vIdxA to vIdxB in V1
-        vector<int> path = dijkstra(V1, F1, vIdxA, vIdxB);
+        std::vector<int> path = dijkstra(V1, F1, vIdxA, vIdxB);
 
         // Add all vertices in the path to the list, ensuring uniqueness
         for (int idx : path) {
@@ -271,20 +259,150 @@ void UVToCorrespondence(
         }
     }
 
-    // Convert uniqueVerticesOrdered to a matrix for Polyscope
+    // Convert uniqueVerticesOrdered to a matrix
     Eigen::MatrixXd uniqueVerticesMat(uniqueVerticesOrdered.size(), 3);
     for (size_t i = 0; i < uniqueVerticesOrdered.size(); ++i) {
         uniqueVerticesMat.row(i) = uniqueVerticesOrdered[i];
-        std::cout << i << " -- " << uniqueVerticesMat.row(i) << std::endl;
     }
+
+    return uniqueVerticesMat;
+}
+
+
+
+
+
+std::pair<std::vector<int>, std::vector<int>> classifyFacesByBorder(
+    const Eigen::MatrixXd& V1,
+    const Eigen::MatrixXi& F1,
+    const Eigen::MatrixXd& connectedBorder)
+{
+    // Data structures to store classified faces
+    std::vector<int> sideA, sideB;
+    std::vector<bool> visited(F1.rows(), false);
+
+    // Helper function to determine if a face contains a vertex from the connected border
+    auto faceTouchesBorder = [&](int faceIdx) {
+        for (int i = 0; i < 3; ++i) {
+            Eigen::RowVector3d vertex = V1.row(F1(faceIdx, i));
+            for (int j = 0; j < connectedBorder.rows(); ++j) {
+                if (vertex.isApprox(connectedBorder.row(j))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    // Helper function to check if two faces share an edge
+    auto facesShareEdge = [&](int f1, int f2) {
+        int sharedVertices = 0;
+        for (int vi = 0; vi < 3; ++vi) {
+            for (int vj = 0; vj < 3; ++vj) {
+                if (F1(f1, vi) == F1(f2, vj)) {
+                    ++sharedVertices;
+                }
+            }
+        }
+        return sharedVertices >= 2; // Shared edge means at least 2 vertices in common
+    };
+
+    // Start classification from a seed face (on side A) that touches the border
+    int seedFace = -1;
+    for (int i = 0; i < F1.rows(); ++i) {
+        if (faceTouchesBorder(i)) {
+            seedFace = i;
+            break;
+        }
+    }
+    if (seedFace == -1) {
+        throw std::runtime_error("No seed face found adjacent to the border!");
+    }
+
+    // Flood-fill to classify the faces
+    std::queue<int> faceQueue;
+    faceQueue.push(seedFace);
+    visited[seedFace] = true;
+    sideA.push_back(seedFace);
+
+    while (!faceQueue.empty()) {
+        int currentFace = faceQueue.front();
+        faceQueue.pop();
+
+        // Check all neighbors of the current face
+        for (int i = 0; i < F1.rows(); ++i) {
+            if (visited[i] || !facesShareEdge(currentFace, i)) continue; // Skip visited or unconnected faces
+
+            // Check if the neighboring face crosses the border
+            if (faceTouchesBorder(i)) continue;
+
+            // Assign the face to the same side as the current face
+            visited[i] = true;
+            sideA.push_back(i);
+            faceQueue.push(i);
+        }
+    }
+
+    // Remaining unvisited faces are on the other side
+    for (int i = 0; i < F1.rows(); ++i) {
+        if (!visited[i]) {
+            sideB.push_back(i);
+        }
+    }
+
+    return { sideA, sideB };
+}
+
+
+
+void UVToCorrespondence(
+    const Eigen::MatrixXd& V1,  // Mesh 1 vertices       n x 3
+    const Eigen::MatrixXi& F1, // Mesh 1 faces          m x 3
+    const Eigen::MatrixXd& B1, // Boundary 1 vertices   p x 3
+    const Eigen::MatrixXd& UV1, // UV map of mesh 1     n x 2
+
+    const Eigen::MatrixXd& V2,  // Mesh 2 vertices       s x 3
+    const Eigen::MatrixXi& F2,  // Mesh 2 faces          q x 3
+    const Eigen::MatrixXd& B2,  // Boundary 2 vertices   p x 3
+    const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
+) {
+
+    auto connectedBorder = findConnectedBorder(V1, F1, B1);
+
+    auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
+
+    // Print the face indices for each side
+    std::cout << "Faces on Side A: " << sideA.size() << std::endl;
+    std::cout << "Faces on Side B: " << sideB.size() << std::endl;
+
+    // Create a scalar field to color faces based on their classification
+    Eigen::VectorXd faceColors(F1.rows());
+    faceColors.setConstant(-1); // Default value for unclassified faces (optional)
+
+    // Assign colors to faces in sideA and sideB
+    for (int faceIdx : sideA) {
+        faceColors(faceIdx) = 0; // Color for Side A
+    }
+    for (int faceIdx : sideB) {
+        faceColors(faceIdx) = 1; // Color for Side B
+    }
+
     polyscope::init();
 
-    polyscope::registerPointCloud("Unique Vertices", uniqueVerticesMat);
+    // Register connected border as a point cloud
+    polyscope::registerPointCloud("Unique Vertices", connectedBorder);
+    // Register the original boundary vertices
     polyscope::registerPointCloud("Original Boundary Vertices", B1);
 
-    polyscope::registerSurfaceMesh("M1", V1, F1);
+    // Register the mesh with the face scalar quantity
+    polyscope::registerSurfaceMesh("M1", V1, F1)
+        ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
+
+    // Optionally register another mesh
     polyscope::registerSurfaceMesh("M2", V2, F2);
+
     polyscope::show();
+
 
 
     // Point clouds for registration

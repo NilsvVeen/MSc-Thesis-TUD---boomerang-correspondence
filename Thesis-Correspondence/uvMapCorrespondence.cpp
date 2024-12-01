@@ -367,7 +367,11 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
 ) {
 
-auto connectedBorder = findConnectedBorder(V1, F1, B1);
+//Eigen::MatrixXd connectedBorder = findConnectedBorder(V1, F1, B1);
+//
+//writeVerticesToPLY("borders.obj", connectedBorder);
+
+Eigen::MatrixXd connectedBorder = readVerticesFromPLY("borders.obj");
 
 auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
 

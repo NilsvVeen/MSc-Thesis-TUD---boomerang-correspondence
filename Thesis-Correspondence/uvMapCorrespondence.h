@@ -13,6 +13,7 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& V2,  // Mesh 2 vertices       s x 3
     const Eigen::MatrixXi& F2,  // Mesh 2 faces          q x 3
     const Eigen::MatrixXd& B2,  // Boundary 2 vertices   p x 3
-    const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
+    const Eigen::MatrixXd& UV2,  // UV map of mesh 2     s x 2
+    const std::string correspondence3dMatched
 );
  

@@ -39,7 +39,9 @@ static const bool shiftAll = false;
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = true;
+static const bool uvMapCorrespondence = false;
+
+static const bool evaluateCorrespondence = true;
 
 
 
@@ -534,6 +536,9 @@ int main()
 
     }
 
+
+    const std::string correspondence3dMatched = "correspondence3dMatched";
+
     if (uvMapCorrespondence) {
 
 
@@ -565,8 +570,27 @@ int main()
         std::cout << "B2: " << B2.rows() << " x " << B2.cols() << std::endl;
         std::cout << "UV2: " << UV2.rows() << " x " << UV2.cols() << std::endl;
 
-        UVToCorrespondence(V1, F1, B1, UV1, V2, F2, B2, UV2);
+        UVToCorrespondence(V1, F1, B1, UV1, V2, F2, B2, UV2, correspondence3dMatched);
     }
+
+    if (evaluateCorrespondence) {
+
+        
+
+        Eigen::MatrixXd V1; // Mesh 1 vertices       n x 3
+        Eigen::MatrixXi F1; // Mesh 1 faces          m x 3
+        Eigen::MatrixXd V2; // mesh 2 vertices       s x 3
+        Eigen::MatrixXi F2; // mesh 2 faces          q x 3
+        readMeshFromFile(correspondence3dMatched + "/M1.obj", V1, F1);
+        readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
+
+        polyscope::init();
+        polyscope::registerSurfaceMesh("M1", V1, F1);
+        polyscope::registerSurfaceMesh("M2", V2, F2);
+        polyscope::show();
+
+    }
+
 
 
     return 0;

@@ -130,6 +130,7 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXi> filterMeshUsingPoints(
 #include <cmath>
 #include <limits>
 #include <polyscope/curve_network.h>
+#include "file_utils.h"
 
 using namespace std;
 
@@ -480,7 +481,8 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& V2,  // Mesh 2 vertices       s x 3
     const Eigen::MatrixXi& F2,  // Mesh 2 faces          q x 3
     const Eigen::MatrixXd& B2,  // Boundary 2 vertices   p x 3
-    const Eigen::MatrixXd& UV2  // UV map of mesh 2     s x 2
+    const Eigen::MatrixXd& UV2,  // UV map of mesh 2     s x 2
+    const std::string correspondence3dMatched
 ) {
 
     //Eigen::MatrixXd connectedBorder = findConnectedBorder(V2, F2, B2);
@@ -663,5 +665,25 @@ void UVToCorrespondence(
     std::cout << "Registered point clouds:" << std::endl;
     std::cout << "PointCloudA size: " << pointCloudA.size() << std::endl;
     std::cout << "PointCloudC size: " << pointCloudC.size() << std::endl;
+
+    createDirectory(correspondence3dMatched);
+    clearDirectory(correspondence3dMatched);
+
+
+    Eigen::MatrixXd pointCloudMatrixA(pointCloudA.size(), 3);  // Create a matrix with the same number of rows as the vector
+    for (size_t i = 0; i < pointCloudA.size(); ++i) {
+        pointCloudMatrixA.row(i) = pointCloudA[i];  // Copy each RowVector3d into a row of the matrix
+    }
+
+    Eigen::MatrixXd pointCloudMatrixC(pointCloudC.size(), 3);  // Create a matrix with the same number of rows as the vector
+    for (size_t i = 0; i < pointCloudC.size(); ++i) {
+        pointCloudMatrixC.row(i) = pointCloudC[i];  // Copy each RowVector3d into a row of the matrix
+    }
+
+
+    saveMeshToFile(correspondence3dMatched + "/M1.obj", pointCloudMatrixA, F1_new);
+    saveMeshToFile(correspondence3dMatched + "/M2.obj", pointCloudMatrixC, F1_new);
+   
+
 }
 

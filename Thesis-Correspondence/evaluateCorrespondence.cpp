@@ -75,15 +75,59 @@ void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
 }
 
 
+// Reusable function to compute statistics and highlight top n% distortions
+void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
+    double nPercent,
+    Eigen::VectorXd& highlightMask,
+    std::string distortionType) {
+    int numTriangles = distortions.size();
+    int topN = static_cast<int>(std::ceil(nPercent / 100.0 * numTriangles));
+
+    // Compute statistics
+    double minDistortion = distortions.minCoeff();
+    double maxDistortion = distortions.maxCoeff();
+    double meanDistortion = distortions.mean();
+    double stdDevDistortion = std::sqrt((distortions.array() - meanDistortion).square().mean());
+
+    // Print statistics
+    std::cout << distortionType << " Distortion - Min: " << minDistortion
+        << ", Max: " << maxDistortion
+        << ", Mean: " << meanDistortion
+        << ", StdDev: " << stdDevDistortion << std::endl;
+
+    // Highlight top n% distortions
+    std::vector<std::pair<double, int>> distortionsWithIndices;
+    for (int i = 0; i < numTriangles; ++i) {
+        distortionsWithIndices.emplace_back(distortions[i], i);
+    }
+    std::sort(distortionsWithIndices.rbegin(), distortionsWithIndices.rend());
+
+    highlightMask.setZero(numTriangles);
+    for (int i = 0; i < topN; ++i) {
+        highlightMask[distortionsWithIndices[i].second] = 1.0; // Mark top n% triangles
+    }
+
+    std::cout << "Highlighted top " << nPercent << "% triangles with the largest "
+        << distortionType << " distortion." << std::endl;
+}
+
+
+
 
 // Main analysis and visualization function
 void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
     const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2) {
 
-    // Compute area ratios
+    double nPercent = 5;
+
     // Compute area and shear distortions
     Eigen::VectorXd areaDistortions, shearDistortions;
     computeAreaAndShear(V1, F1, V2, F2, areaDistortions, shearDistortions);
+
+    // Compute and highlight distortions separately
+    Eigen::VectorXd areaHighlightMask, shearHighlightMask;
+    computeStatisticsAndHighlight(areaDistortions, nPercent, areaHighlightMask, "Area");
+    computeStatisticsAndHighlight(shearDistortions, nPercent, shearHighlightMask, "Shear");
 
 
     // Initialize Polyscope
@@ -93,7 +137,8 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
     auto* mesh1 = polyscope::registerSurfaceMesh("Mesh 1", V1, F1);
     mesh1->addFaceScalarQuantity("Area Distortion", areaDistortions);
     mesh1->addFaceScalarQuantity("Shear Distortion", shearDistortions);
-    //polyscope::registerSurfaceMesh("Mesh 1", V1, F1)->addFaceScalarQuantity("Area Ratio", areaRatios);
+    mesh1->addFaceScalarQuantity("Highlighted Area Distortion", areaHighlightMask);
+    mesh1->addFaceScalarQuantity("Highlighted Shear Distortion", shearHighlightMask);
     polyscope::registerSurfaceMesh("Mesh 2", V2, F2);
 
     // Show the visualization

@@ -435,7 +435,7 @@ void visualizeResults(
     }
 
     // SECTION 5: Split Curve Network into Smaller Parts
-    int numParts = 10;  // You can adjust the number of parts based on your needs
+    int numParts = 100;  // You can adjust the number of parts based on your needs
     int partSize = numPoints / numParts;
 
     for (int part = 0; part < numParts; ++part) {
@@ -448,6 +448,8 @@ void visualizeResults(
 
         // Register the curve network for this part
         auto* curveNetwork = polyscope::registerCurveNetwork("Corresponding Lines Part " + std::to_string(part + 1), points, partEdges);
+
+        curveNetwork->setEnabled(false);
 
         // SECTION 6: Apply Rainbow Color Mapping for the Part
         Eigen::VectorXd colorValues(endIdx - startIdx);  // One value per edge for color mapping

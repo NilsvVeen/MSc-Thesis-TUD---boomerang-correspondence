@@ -22,6 +22,7 @@
 #include <regex>
 #include "splitMesh.h"
 #include "uvMapCorrespondence.h"
+#include "evaluateCorrespondence.h"
 
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
@@ -584,10 +585,12 @@ int main()
         readMeshFromFile(correspondence3dMatched + "/M1.obj", V1, F1);
         readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
 
-        polyscope::init();
-        polyscope::registerSurfaceMesh("M1", V1, F1);
-        polyscope::registerSurfaceMesh("M2", V2, F2);
-        polyscope::show();
+        //polyscope::init();
+        //polyscope::registerSurfaceMesh("M1", V1, F1);
+        //polyscope::registerSurfaceMesh("M2", V2, F2);
+        //polyscope::show();
+
+        analyzeAndVisualizeCorrespondence(V1, F1, V2, F2);
 
     }
 

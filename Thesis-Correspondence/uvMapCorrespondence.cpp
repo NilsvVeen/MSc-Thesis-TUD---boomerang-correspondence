@@ -596,6 +596,8 @@ void UVToCorrespondence(
                     barycentric2D = T.inverse() * v.transpose();
                 }
                 catch (...) {
+
+                    std::cout << "???????WARNING" << std::endl;
                     continue; // Skip this triangle if there's an error
                 }
 
@@ -604,8 +606,12 @@ void UVToCorrespondence(
                 double lambda3 = barycentric2D[1];
 
                 // Validate barycentric coordinates
-                if (lambda1 < 0.0 || lambda2 < 0.0 || lambda3 < 0.0 ||
-                    lambda1 > 1.0 || lambda2 > 1.0 || lambda3 > 1.0) {
+                const double epsilon = 1e-8; // Tolerance for numerical precision
+                if (lambda1 < -epsilon || lambda2 < -epsilon || lambda3 < -epsilon ||
+                    lambda1 > 1.0 + epsilon || lambda2 > 1.0 + epsilon || lambda3 > 1.0 + epsilon) {
+                    std::cout << "Invalid Barycentric Coordinates for Vertex " << i << ":\n";
+                    std::cout << "  lambda1 = " << lambda1 << ", lambda2 = " << lambda2 << ", lambda3 = " << lambda3 << "\n";
+
                     continue; // Skip invalid coordinates
                 }
 
@@ -617,6 +623,9 @@ void UVToCorrespondence(
 
                 // Additional sanity check for the interpolated point
                 if (interpolatedPoint.hasNaN() || interpolatedPoint.norm() > 1e6) {
+
+                    std::cout << "???????out???" << std::endl;
+
                     continue; // Skip out-of-range points
                 }
 

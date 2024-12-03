@@ -673,6 +673,7 @@ void UVToCorrespondence(
     // Debug output
     std::cout << "Registered point clouds:" << std::endl;
     std::cout << "PointCloudA size: " << pointCloudA.size() << std::endl;
+    std::cout << "SKIPPED: " << pointCloudA_skipped.size() << std::endl;
     std::cout << "PointCloudC size: " << pointCloudC.size() << std::endl;
 
     createDirectory(correspondence3dMatched);

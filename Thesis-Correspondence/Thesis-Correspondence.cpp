@@ -37,11 +37,11 @@ static const bool ParameterizeObjects = false;
 static const bool shiftAll = false;
 
 
-static const bool correspondences2dto3d = true;
+static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
 static const bool uvMapCorrespondence = false;
-static const bool evaluateCorrespondence = false;
+static const bool evaluateCorrespondence = true;
 
 
 
@@ -236,12 +236,25 @@ int main()
         auto count = 0;
         auto count2 = 0;
         std::cout << "match V1" << std::endl;
-        // Process correspondences for V1 (Exact match x, y, use z from Mesh1)
+
+        // Compute the average Z-coordinate for Mesh1
+        double averageZ1 = Mesh1_V.col(2).mean(); // Assuming Mesh1_V is Eigen::MatrixXd (Nx3)
+
+        // Set the Z-coordinate of all vertices in V1_pointclouds to averageZ1
         for (Eigen::MatrixXd& V1 : V1_pointclouds) {
             count += V1.rows();
-            std::vector<int> duplicates_XXX = std::vector<int>();
+            V1.col(2).setConstant(averageZ1); // Set all Z values of V1 to averageZ1
+        }
 
-            findExactCorrespondences(Mesh1_V, V1, duplicates_XXX);
+        // Project and replace vertices for each point cloud in V1_pointclouds
+        Eigen::MatrixXd Mesh1_V_new = Mesh1_V; // Start with the original mesh
+        Eigen::MatrixXi Mesh1_F_new = Mesh1_F; // Original faces
+        std::vector<Eigen::MatrixXd> V1_pointclouds_new; // Store the updated point clouds
+
+        for (Eigen::MatrixXd& V1 : V1_pointclouds) {
+            Eigen::MatrixXd V1_pointcloud_new; // Temporary variable for updated point cloud
+            projectAndReplaceVertices(Mesh1_V_new, Mesh1_F_new, V1, V1_pointcloud_new, Mesh1_V_new, Mesh1_F_new);
+            V1_pointclouds_new.push_back(V1_pointcloud_new); // Store the updated point cloud
             count2 += V1.rows();
         }
 
@@ -271,11 +284,6 @@ int main()
 
         polyscope::show();
 
-        // Compute the average Z-coordinate
-        double avgZ = Mesh2_V.col(2).mean(); // Assuming Mesh2_V is an Eigen::MatrixXd with 3 columns (x, y, z)
-
-        // Set the Z-coordinate of all vertices to the average Z value
-        Mesh2_V.col(2).setConstant(avgZ);
 
         auto count_fake = 0;
         auto count_fake2 = 0;
@@ -312,11 +320,11 @@ int main()
             return -1;
         }
 
-        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V, Mesh1_F, Mesh2_V_new, Mesh2_F_new, V1_pointclouds, V2_pointclouds_new);
+        writeOutputsToFolder(Curve2dTo3dFolder, Mesh1_V_new, Mesh1_F_new, Mesh2_V_new, Mesh2_F_new, V1_pointclouds_new, V2_pointclouds_new);
         //saveMeshToFile(DEFAULT_2dto3d_FOLDER + "/V2_new.obj", Mesh2_V_new, Mesh2_F_new);
  
         // Show them in Polyscope with the common color
-        showInPolyscope(Mesh1_V, Mesh1_F, Mesh2_V_new, Mesh2_F_new, V1_pointclouds, V2_pointclouds_new);
+        showInPolyscope(Mesh1_V_new, Mesh1_F_new, Mesh2_V_new, Mesh2_F_new, V1_pointclouds_new, V2_pointclouds_new);
 
 
         int numHoles = countHoles(Mesh2_V_new, Mesh2_F_new);

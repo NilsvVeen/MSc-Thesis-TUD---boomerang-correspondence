@@ -286,3 +286,57 @@ void writeOutputsToFolder(const std::string& outputFolder,
 
     std::cout << "Outputs saved to: " << outputFolder << std::endl;
 }
+
+
+void projectAndReplaceVertices(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& mesh2_F,
+    const Eigen::MatrixXd& V2_pointcloud, Eigen::MatrixXd& V2_pointcloud_new,
+    Eigen::MatrixXd& updated_mesh_V, Eigen::MatrixXi& updated_mesh_F) {
+    // Copy original mesh vertices and faces
+    updated_mesh_V = mesh2_V;
+    updated_mesh_F = mesh2_F;
+
+    // Initialize V2_pointcloud_new as empty
+    V2_pointcloud_new.resize(0, 3);
+
+    for (int i = 0; i < V2_pointcloud.rows(); ++i) {
+        // Find the closest points and their associated faces
+        Eigen::VectorXd squared_distances;
+        Eigen::MatrixXi closest_faces;
+        Eigen::MatrixXd closest_vertices;
+        igl::point_mesh_squared_distance(V2_pointcloud.row(i), mesh2_V, mesh2_F, squared_distances, closest_faces, closest_vertices);
+
+        // Get the projected point on the mesh
+        Eigen::RowVector3d projected_point = closest_vertices.row(0);  // Closest point on mesh
+
+        // Find the closest vertex in the mesh to the projected point
+        int closest_vertex_idx = -1;
+        double min_distance = std::numeric_limits<double>::max();
+
+        for (int j = 0; j < updated_mesh_V.rows(); ++j) {
+            double distance = (updated_mesh_V.row(j) - projected_point).squaredNorm();
+            if (distance < min_distance) {
+                min_distance = distance;
+                closest_vertex_idx = j;
+            }
+        }
+
+        if (closest_vertex_idx == -1) {
+            std::cerr << "Error: No closest vertex found for projected point at index " << i << std::endl;
+            continue;
+        }
+
+        // Replace the closest vertex with the projected point
+        updated_mesh_V.row(closest_vertex_idx) = projected_point;
+
+        // Add the projected point to V2_pointcloud_new
+        V2_pointcloud_new.conservativeResize(V2_pointcloud_new.rows() + 1, Eigen::NoChange);
+        V2_pointcloud_new.row(V2_pointcloud_new.rows() - 1) = projected_point;
+
+        // Update progress
+        std::cout << "\rProcessing V2 point cloud: " << std::fixed << std::setprecision(2)
+            << (static_cast<double>(i + 1) / V2_pointcloud.rows()) * 100 << "% completed" << std::flush;
+    }
+
+    std::cout << std::endl; // To move to the next line after the progress is complete
+}
+

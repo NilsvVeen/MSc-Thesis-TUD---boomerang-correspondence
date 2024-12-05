@@ -1,4 +1,4 @@
-#include <Eigen/Core>       // For Eigen::MatrixXd, Eigen::MatrixXi, and basic matrix operations
+﻿#include <Eigen/Core>       // For Eigen::MatrixXd, Eigen::MatrixXi, and basic matrix operations
 #include <Eigen/Dense>      // For additional dense matrix operations (e.g., decomposition)
 #include <Eigen/Geometry>   // For geometric transformations if required (e.g., rotations)
 #include <iostream>
@@ -10,7 +10,7 @@
 #include <polyscope/surface_mesh.h>
 #include "stl_utils.h"
 
-
+const double epsilon = 1e-8;
 
 
 
@@ -468,6 +468,65 @@ void visualizeResults(
     polyscope::show();
 }
 
+double pointToSegmentDistance(
+    const Eigen::RowVector2d& point,
+    const Eigen::RowVector2d& segA,
+    const Eigen::RowVector2d& segB)
+{
+    Eigen::RowVector2d v = segB - segA;
+    Eigen::RowVector2d w = point - segA;
+
+    double c1 = w.dot(v);
+    if (c1 <= 0.0) return (point - segA).norm();
+
+    double c2 = v.dot(v);
+    if (c2 <= c1) return (point - segB).norm();
+
+    double b = c1 / c2;
+    Eigen::RowVector2d proj = segA + b * v;
+    return (point - proj).norm();
+}
+
+double computePointToTriangleDistance(
+    const Eigen::RowVector2d& point,
+    const Eigen::RowVector2d& A,
+    const Eigen::RowVector2d& B,
+    const Eigen::RowVector2d& C)
+{
+    // Barycentric coordinates
+    Eigen::RowVector2d v0 = B - A;
+    Eigen::RowVector2d v1 = C - A;
+    Eigen::RowVector2d v2 = point - A;
+
+    double d00 = v0.dot(v0);
+    double d01 = v0.dot(v1);
+    double d11 = v1.dot(v1);
+    double d20 = v2.dot(v0);
+    double d21 = v2.dot(v1);
+
+    double denom = d00 * d11 - d01 * d01;
+    double u = (d11 * d20 - d01 * d21) / denom;
+    double v = (d00 * d21 - d01 * d20) / denom;
+
+    // Check if point is inside triangle
+    if (u >= 0 && v >= 0 && (u + v) <= 1) {
+        return 0.0; // Point is inside the triangle
+    }
+
+    // Compute distances to triangle edges and vertices
+    double distA = (point - A).norm();
+    double distB = (point - B).norm();
+    double distC = (point - C).norm();
+    double edgeDist1 = pointToSegmentDistance(point, A, B);
+    double edgeDist2 = pointToSegmentDistance(point, B, C);
+    double edgeDist3 = pointToSegmentDistance(point, C, A);
+
+    return std::min({ distA, distB, distC, edgeDist1, edgeDist2, edgeDist3 });
+}
+
+
+
+
 
 
 
@@ -485,9 +544,11 @@ void UVToCorrespondence(
     const std::string correspondence3dMatched
 ) {
 
-    //Eigen::MatrixXd connectedBorder = findConnectedBorder(V2, F2, B2);
-    ////
-    //writeVerticesToPLY("borders2.obj", connectedBorder);
+    //Eigen::MatrixXd connectedBorder = findConnectedBorder(V1, F1, B1);
+    //writeVerticesToPLY("borders.obj", connectedBorder);
+
+    //Eigen::MatrixXd connectedBorder2 = findConnectedBorder(V2, F2, B2);
+    //writeVerticesToPLY("borders2.obj", connectedBorder2);
 
     Eigen::MatrixXd connectedBorder = readVerticesFromPLY("borders.obj");
     Eigen::MatrixXd connectedBorder2 = readVerticesFromPLY("borders2.obj");
@@ -501,33 +562,47 @@ void UVToCorrespondence(
     std::cout << "2: Faces on Side A: " << sideA2.size() << std::endl;
     std::cout << "2: Faces on Side B: " << sideB2.size() << std::endl;
 
-    //// Create a scalar field to color faces based on their classification
-    //Eigen::VectorXd faceColors(F1.rows());
-    //faceColors.setConstant(-1); // Default value for unclassified faces (optional)
+    // Create a scalar field to color faces based on their classification
+    Eigen::VectorXd faceColors(F1.rows());
+    faceColors.setConstant(-1); // Default value for unclassified faces (optional)
+    // Assign colors to faces in sideA and sideB
+    for (int faceIdx : sideA) {
+        faceColors(faceIdx) = 0; // Color for Side A
+    }
+    for (int faceIdx : sideB) {
+        faceColors(faceIdx) = 1; // Color for Side B
+    }
+    polyscope::init();
+    // Register connected border as a point cloud
+    polyscope::registerPointCloud("Unique Vertices", connectedBorder);
+    // Register the original boundary vertices
+    polyscope::registerPointCloud("Original Boundary Vertices", B1);
+    // Register the mesh with the face scalar quantity
+    polyscope::registerSurfaceMesh("M111", V1, F1)
+        ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
 
-    //// Assign colors to faces in sideA and sideB
-    //for (int faceIdx : sideA) {
-    //    faceColors(faceIdx) = 0; // Color for Side A
-    //}
-    //for (int faceIdx : sideB) {
-    //    faceColors(faceIdx) = 1; // Color for Side B
-    //}
 
-    //polyscope::init();
 
-    //// Register connected border as a point cloud
-    //polyscope::registerPointCloud("Unique Vertices", connectedBorder);
-    //// Register the original boundary vertices
-    //polyscope::registerPointCloud("Original Boundary Vertices", B1);
+    Eigen::VectorXd faceColors2(F2.rows());
+    faceColors2.setConstant(-1); // Default value for unclassified faces (optional)
+    // Assign colors to faces in sideA and sideB
+    for (int faceIdx : sideA2) {
+        faceColors2(faceIdx) = 0; // Color for Side A
+    }
+    for (int faceIdx : sideB2) {
+        faceColors2(faceIdx) = 1; // Color for Side B
+    }
+    polyscope::registerPointCloud("Unique Vertices2", connectedBorder2);
+    polyscope::registerPointCloud("Original Boundary Vertices2", B2);
 
-    //// Register the mesh with the face scalar quantity
-    //polyscope::registerSurfaceMesh("M222", V1, F1)
-    //    ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
 
-    //// Optionally register another mesh
-    //polyscope::registerSurfaceMesh("M2", V1, F1);
+    // Optionally register another mesh
+    polyscope::registerSurfaceMesh("M222", V2, F2)
+        ->addFaceScalarQuantity("Side Classification2", faceColors2, polyscope::DataType::SYMMETRIC);;
 
-    //polyscope::show();
+
+
+    polyscope::show();
 
 
 
@@ -538,6 +613,8 @@ void UVToCorrespondence(
     std::vector<Eigen::RowVector3d> pointCloudC;          // Holds interpolated points in V2
 
 
+
+    std::vector<int> indicesSkipped;
     for (int i = 0; i < V1.rows(); ++i) {
         Eigen::RowVector3d a = V1.row(i);   // Vertex in 3D
         Eigen::RowVector2d b = UV1.row(i); // Corresponding UV coordinate
@@ -581,7 +658,7 @@ void UVToCorrespondence(
                 bool isInSideB2 = std::find(sideB2.begin(), sideB2.end(), j) != sideB2.end();
 
                 if ((isInSideA && !isInSideA2) || (isInSideB && !isInSideB2)) {
-                    // Skip the triangle if it�s on the wrong side
+                    // Skip the triangle if its on the wrong side
                     continue;
                 }
 
@@ -606,7 +683,6 @@ void UVToCorrespondence(
                 double lambda3 = barycentric2D[1];
 
                 // Validate barycentric coordinates
-                const double epsilon = 1e-8; // Tolerance for numerical precision
                 if (lambda1 < -epsilon || lambda2 < -epsilon || lambda3 < -epsilon ||
                     lambda1 > 1.0 + epsilon || lambda2 > 1.0 + epsilon || lambda3 > 1.0 + epsilon) {
                     std::cout << "Invalid Barycentric Coordinates for Vertex " << i << ":\n";
@@ -637,8 +713,83 @@ void UVToCorrespondence(
             }
         }
 
+
+
+
+
+
+
+
+
+        // it 2
+        if (!added) {
+            // Find the face in UV2 that contains `b`
+            for (int j = 0; j < F2.rows(); ++j) {
+                // Get the UV coordinates of the face vertices in UV2
+                Eigen::RowVector2d A = UV2.row(F2(j, 0));
+                Eigen::RowVector2d B = UV2.row(F2(j, 1));
+                Eigen::RowVector2d C = UV2.row(F2(j, 2));
+
+                // Check if `b` lies in the UV triangle
+                if (isPointInTriangle(b, A, B, C)) {
+
+                    // Compute barycentric coordinates
+                    Eigen::Matrix2d T;
+                    T.col(0) = B - A;
+                    T.col(1) = C - A;
+                    Eigen::RowVector2d v = b - A;
+
+                    Eigen::Vector2d barycentric2D;
+                    try {
+                        barycentric2D = T.inverse() * v.transpose();
+                    }
+                    catch (...) {
+
+                        std::cout << "???????WARNING" << std::endl;
+                        continue; // Skip this triangle if there's an error
+                    }
+
+                    double lambda1 = 1.0 - barycentric2D.sum();
+                    double lambda2 = barycentric2D[0];
+                    double lambda3 = barycentric2D[1];
+
+                    // Validate barycentric coordinates
+                    if (lambda1 < -epsilon || lambda2 < -epsilon || lambda3 < -epsilon ||
+                        lambda1 > 1.0 + epsilon || lambda2 > 1.0 + epsilon || lambda3 > 1.0 + epsilon) {
+                        std::cout << "Invalid Barycentric Coordinates for Vertex " << i << ":\n";
+                        std::cout << "  lambda1 = " << lambda1 << ", lambda2 = " << lambda2 << ", lambda3 = " << lambda3 << "\n";
+
+                        continue; // Skip invalid coordinates
+                    }
+
+                    // Interpolate 3D position in Mesh 2
+                    Eigen::RowVector3d interpolatedPoint =
+                        lambda1 * V2.row(F2(j, 0)) +
+                        lambda2 * V2.row(F2(j, 1)) +
+                        lambda3 * V2.row(F2(j, 2));
+
+                    // Additional sanity check for the interpolated point
+                    if (interpolatedPoint.hasNaN() || interpolatedPoint.norm() > 1e6) {
+
+                        std::cout << "???????out???" << std::endl;
+
+                        continue; // Skip out-of-range points
+                    }
+
+                    // Add the vertex and its interpolated point
+                    pointCloudA.push_back(a);
+                    pointCloudC.push_back(interpolatedPoint);
+                    added = true;
+                    break; // Move to the next vertex in V1
+                }
+            }
+        }
+
+
+
         if (!added) {
             pointCloudA_skipped.push_back(a);
+            indicesSkipped.push_back(i);
         }
 
         // Progress bar logic
@@ -654,6 +805,28 @@ void UVToCorrespondence(
         std::cout << "] " << std::fixed << std::setprecision(1)
             << (progress * 100.0) << "% completed" << std::flush;
     }
+
+    // Print summary of skipped points
+    std::cout << "\nSkipped vertices summary:\n";
+    std::cout << "  original skipped: " << pointCloudA_skipped.size() << "\n";
+    std::cout << "  A: " << pointCloudA.size() << "\n";
+    std::cout << "  C: " << pointCloudC.size() << "\n";
+
+
+ polyscope::init();
+    // Visualize in Polyscope
+polyscope::registerSurfaceMesh("Mesh", V1, F1); // Register the first mesh
+polyscope::registerSurfaceMesh("Mesh 2", V2, F2); // Register the second mesh
+
+
+// Show Polyscope (blocks execution until window is closed)
+polyscope::show();
+polyscope::removeAllGroups();
+polyscope::removeAllStructures();
+
+
+
+
 
     std::cout << " length: " << F1.rows() << std::endl;
     auto VF = filterMeshUsingPoints(V1, F1, pointCloudA_skipped);

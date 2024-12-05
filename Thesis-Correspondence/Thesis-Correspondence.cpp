@@ -581,6 +581,8 @@ int main()
         UVToCorrespondence(V1, F1, B1, UV1, V2, F2, B2, UV2, correspondence3dMatched);
     }
 
+    const std::string evaluateCorrespondenceFolder = "EvaluteFolder";
+
     if (evaluateCorrespondence) {
 
         
@@ -593,7 +595,7 @@ int main()
         readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
 
 
-        analyzeAndVisualizeCorrespondence(V1, F1, V2, F2);
+        analyzeAndVisualizeCorrespondence(V1, F1, V2, F2, evaluateCorrespondenceFolder);
 
     }
 

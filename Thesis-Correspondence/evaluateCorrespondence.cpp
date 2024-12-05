@@ -4,9 +4,10 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include "file_utils.h"
 
 
-
+#include <fstream>
 
 
 
@@ -72,6 +73,9 @@ void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
 
     std::cout << "Average Area Distortion: " << avgAreaDistortion << std::endl;
     std::cout << "Average Shear Distortion: " << avgShearDistortion << std::endl;
+
+
+
 }
 
 
@@ -116,13 +120,39 @@ void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
 
 // Main analysis and visualization function
 void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
-    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2) {
+    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2, const std::string evaluateCorrespondenceFolder) {
 
     double nPercent = 5;
 
     // Compute area and shear distortions
     Eigen::VectorXd areaDistortions, shearDistortions;
     computeAreaAndShear(V1, F1, V2, F2, areaDistortions, shearDistortions);
+
+    createDirectory(evaluateCorrespondenceFolder);
+    createDirectory(evaluateCorrespondenceFolder);
+
+    std::string areaDistortionsFile = evaluateCorrespondenceFolder + "/area_distortions.txt";
+    std::ofstream areaFile(areaDistortionsFile);
+    if (areaFile.is_open()) {
+        areaFile << areaDistortions << "\n";
+        areaFile.close();
+        std::cout << "Area distortions written to: " << areaDistortionsFile << "\n";
+    }
+    else {
+        std::cerr << "Error: Could not write to file " << areaDistortionsFile << "\n";
+    }
+    // Step 4: Write shear distortions to a file
+    std::string shearDistortionsFile = evaluateCorrespondenceFolder + "/shear_distortions.txt";
+    std::ofstream shearFile(shearDistortionsFile);
+    if (shearFile.is_open()) {
+        shearFile << shearDistortions << "\n";
+        shearFile.close();
+        std::cout << "Shear distortions written to: " << shearDistortionsFile << "\n";
+    }
+    else {
+        std::cerr << "Error: Could not write to file " << shearDistortionsFile << "\n";
+    }
+
 
     // Compute and highlight distortions separately
     Eigen::VectorXd areaHighlightMask, shearHighlightMask;

@@ -40,8 +40,8 @@ static const bool shiftAll = false;
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = false;
-static const bool evaluateCorrespondence = true;
+static const bool uvMapCorrespondence = true;
+static const bool evaluateCorrespondence = false;
 
 
 

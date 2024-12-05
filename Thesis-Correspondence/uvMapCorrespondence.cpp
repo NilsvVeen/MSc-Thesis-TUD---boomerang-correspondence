@@ -468,61 +468,9 @@ void visualizeResults(
     polyscope::show();
 }
 
-double pointToSegmentDistance(
-    const Eigen::RowVector2d& point,
-    const Eigen::RowVector2d& segA,
-    const Eigen::RowVector2d& segB)
-{
-    Eigen::RowVector2d v = segB - segA;
-    Eigen::RowVector2d w = point - segA;
 
-    double c1 = w.dot(v);
-    if (c1 <= 0.0) return (point - segA).norm();
 
-    double c2 = v.dot(v);
-    if (c2 <= c1) return (point - segB).norm();
 
-    double b = c1 / c2;
-    Eigen::RowVector2d proj = segA + b * v;
-    return (point - proj).norm();
-}
-
-double computePointToTriangleDistance(
-    const Eigen::RowVector2d& point,
-    const Eigen::RowVector2d& A,
-    const Eigen::RowVector2d& B,
-    const Eigen::RowVector2d& C)
-{
-    // Barycentric coordinates
-    Eigen::RowVector2d v0 = B - A;
-    Eigen::RowVector2d v1 = C - A;
-    Eigen::RowVector2d v2 = point - A;
-
-    double d00 = v0.dot(v0);
-    double d01 = v0.dot(v1);
-    double d11 = v1.dot(v1);
-    double d20 = v2.dot(v0);
-    double d21 = v2.dot(v1);
-
-    double denom = d00 * d11 - d01 * d01;
-    double u = (d11 * d20 - d01 * d21) / denom;
-    double v = (d00 * d21 - d01 * d20) / denom;
-
-    // Check if point is inside triangle
-    if (u >= 0 && v >= 0 && (u + v) <= 1) {
-        return 0.0; // Point is inside the triangle
-    }
-
-    // Compute distances to triangle edges and vertices
-    double distA = (point - A).norm();
-    double distB = (point - B).norm();
-    double distC = (point - C).norm();
-    double edgeDist1 = pointToSegmentDistance(point, A, B);
-    double edgeDist2 = pointToSegmentDistance(point, B, C);
-    double edgeDist3 = pointToSegmentDistance(point, C, A);
-
-    return std::min({ distA, distB, distC, edgeDist1, edgeDist2, edgeDist3 });
-}
 
 
 

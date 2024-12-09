@@ -559,6 +559,7 @@ void UVToCorrespondence(
     std::vector<Eigen::RowVector3d> pointCloudA;          // Holds 3D points from V1
     std::vector<Eigen::RowVector3d> pointCloudA_skipped;  // Holds skipped points from V1
     std::vector<Eigen::RowVector3d> pointCloudC;          // Holds interpolated points in V2
+    std::vector<Eigen::RowVector2d> pointCloudC_UV;          // Holds interpolated points in V2
 
 
 
@@ -736,6 +737,7 @@ void UVToCorrespondence(
 
 
         if (!added) {
+            pointCloudC_UV.push_back(b);
             pointCloudA_skipped.push_back(a);
             indicesSkipped.push_back(i);
         }
@@ -765,6 +767,9 @@ void UVToCorrespondence(
     // Visualize in Polyscope
 polyscope::registerSurfaceMesh("Mesh", V1, F1); // Register the first mesh
 polyscope::registerSurfaceMesh("Mesh 2", V2, F2); // Register the second mesh
+polyscope::registerSurfaceMesh2D("UV M`1", UV1, F1); // Register the second mesh
+polyscope::registerSurfaceMesh2D("UV M`2", UV2, F2); // Register the second mesh
+polyscope::registerPointCloud2D("skipped points", pointCloudC_UV); // Register the second mesh
 
 
 // Show Polyscope (blocks execution until window is closed)

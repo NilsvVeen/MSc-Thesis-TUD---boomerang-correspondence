@@ -6,7 +6,6 @@
 // main.cpp
 #include "geometry.h"
 #include "file_utils.h"
-#include "sfml_utils.h"
 #include "stl_utils.h"
 #include "border_vertex_extraction.h"
 #include "stl_utils.h"
@@ -16,13 +15,14 @@
 
 #include "parameterizeSurface.h"
 
-#ifndef PI
-#define PI 3.14159265358979323846
-#endif
+//#ifndef PI
+//#define PI 3.14159265358979323846
+//#endif
 #include <regex>
 #include "splitMesh.h"
 #include "uvMapCorrespondence.h"
 #include "evaluateCorrespondence.h"
+#include "intermediateShape.h"
 
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
@@ -40,8 +40,13 @@ static const bool shiftAll = false;
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = true;
+static const bool uvMapCorrespondence = false;
 static const bool evaluateCorrespondence = false;
+
+
+
+
+static const bool newShapeMake = true;
 
 
 
@@ -598,6 +603,22 @@ int main()
 
 
         analyzeAndVisualizeCorrespondence(V1, F1, V2, F2, evaluateCorrespondenceFolder);
+
+    }
+
+
+
+    if (newShapeMake) {
+        Eigen::MatrixXd V1; // Mesh 1 vertices       n x 3
+        Eigen::MatrixXi F1; // Mesh 1 faces          m x 3
+
+        Eigen::MatrixXd V2; // mesh 2 vertices       s x 3
+        Eigen::MatrixXi F2; // mesh 2 faces          q x 3
+
+        readMeshFromFile(correspondence3dMatched + "/M1.obj", V1, F1);
+        readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
+
+        main_phase2(V1, F1, V2, F2);
 
     }
 

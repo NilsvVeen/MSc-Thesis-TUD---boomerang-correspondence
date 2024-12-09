@@ -579,7 +579,7 @@ int main()
         std::cout << "UV2: " << UV2.rows() << " x " << UV2.cols() << std::endl;
 
 
-
+        createDirectory(correspondence3dMatched);
         UVToCorrespondence(V1, F1, B1, UV1, V2, F2, B2, UV2, correspondence3dMatched);
     }
 

@@ -517,14 +517,25 @@ void UVToCorrespondence(
     const std::string correspondence3dMatched
 ) {
 
-    //Eigen::MatrixXd connectedBorder = findConnectedBorder(V1, F1, B1);
-    //writeVerticesToPLY("borders.obj", connectedBorder);
+    Eigen::MatrixXd connectedBorder;
+    Eigen::MatrixXd connectedBorder2;
 
-    //Eigen::MatrixXd connectedBorder2 = findConnectedBorder(V2, F2, B2);
-    //writeVerticesToPLY("borders2.obj", connectedBorder2);
+    bool readExisting = true;
+    if (readExisting) {
+        connectedBorder = readVerticesFromPLY(correspondence3dMatched + "/borders.obj");
+        connectedBorder2 = readVerticesFromPLY(correspondence3dMatched + "/borders2.obj");
+    }
+    else {
+        connectedBorder = findConnectedBorder(V1, F1, B1);
+        writeVerticesToPLY(correspondence3dMatched  + "/borders.obj", connectedBorder);
 
-    Eigen::MatrixXd connectedBorder = readVerticesFromPLY("borders.obj");
-    Eigen::MatrixXd connectedBorder2 = readVerticesFromPLY("borders2.obj");
+        connectedBorder2 = findConnectedBorder(V2, F2, B2);
+        writeVerticesToPLY(correspondence3dMatched + "/borders2.obj", connectedBorder2);
+    }
+
+
+
+
 
     auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
     auto [sideA2, sideB2] = classifyFacesByBorder(V2, F2, connectedBorder2);
@@ -762,7 +773,7 @@ void UVToCorrespondence(
 
         // todo
         // in this case it is no triangles, but outside the uv map. 
-        if (!added) {
+        if (!added && false) {
             // Find the nearest face in UV2 to `b`
             double minDistance = std::numeric_limits<double>::max();
             int nearestFaceIdx = -1;
@@ -893,8 +904,8 @@ polyscope::removeAllStructures();
     std::cout << "SKIPPED: " << pointCloudA_skipped.size() << std::endl;
     std::cout << "PointCloudC size: " << pointCloudC.size() << std::endl;
 
-    createDirectory(correspondence3dMatched);
-    clearDirectory(correspondence3dMatched);
+    //createDirectory(correspondence3dMatched);
+    //clearDirectory(correspondence3dMatched);
 
 
     Eigen::MatrixXd pointCloudMatrixA(pointCloudA.size(), 3);  // Create a matrix with the same number of rows as the vector

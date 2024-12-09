@@ -474,7 +474,32 @@ void visualizeResults(
 
 
 
+double pointToTriangleDistance(
+    const Eigen::RowVector2d& p,
+    const Eigen::RowVector2d& A,
+    const Eigen::RowVector2d& B,
+    const Eigen::RowVector2d& C) {
+    // Compute distances to the edges and vertices
+    double d1 = (p - A).norm();
+    double d2 = (p - B).norm();
+    double d3 = (p - C).norm();
+    return std::min({ d1, d2, d3 });
+}
 
+Eigen::RowVector2d projectPointOntoTriangle(
+    const Eigen::RowVector2d& p,
+    const Eigen::RowVector2d& A,
+    const Eigen::RowVector2d& B,
+    const Eigen::RowVector2d& C) {
+    // For simplicity, return the closest vertex (full projection is more complex)
+    double d1 = (p - A).squaredNorm();
+    double d2 = (p - B).squaredNorm();
+    double d3 = (p - C).squaredNorm();
+
+    if (d1 < d2 && d1 < d3) return A;
+    if (d2 < d1 && d2 < d3) return B;
+    return C;
+}
 
 
 
@@ -593,6 +618,7 @@ void UVToCorrespondence(
 
         bool added = false;
 
+        // matching side cases
         // Find the face in UV2 that contains `b`
         for (int j = 0; j < F2.rows(); ++j) {
             // Get the UV coordinates of the face vertices in UV2
@@ -670,7 +696,7 @@ void UVToCorrespondence(
 
 
 
-        // it 2
+        // not matching side, but needed for near boundary cases
         if (!added) {
             // Find the face in UV2 that contains `b`
             for (int j = 0; j < F2.rows(); ++j) {
@@ -734,6 +760,71 @@ void UVToCorrespondence(
             }
         }
 
+        // todo
+        // in this case it is no triangles, but outside the uv map. 
+        if (!added) {
+            // Find the nearest face in UV2 to `b`
+            double minDistance = std::numeric_limits<double>::max();
+            int nearestFaceIdx = -1;
+
+            for (int j = 0; j < F2.rows(); ++j) {
+                // Get the UV coordinates of the face vertices in UV2
+                Eigen::RowVector2d A = UV2.row(F2(j, 0));
+                Eigen::RowVector2d B = UV2.row(F2(j, 1));
+                Eigen::RowVector2d C = UV2.row(F2(j, 2));
+
+                // Compute the distance from `b` to the face
+                double distance = pointToTriangleDistance(b, A, B, C);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestFaceIdx = j;
+                }
+            }
+
+            if (nearestFaceIdx != -1) {
+                // Project `b` onto the nearest face
+                Eigen::RowVector2d A = UV2.row(F2(nearestFaceIdx, 0));
+                Eigen::RowVector2d B = UV2.row(F2(nearestFaceIdx, 1));
+                Eigen::RowVector2d C = UV2.row(F2(nearestFaceIdx, 2));
+
+                Eigen::RowVector2d projectedPoint = projectPointOntoTriangle(b, A, B, C);
+
+                // Compute barycentric coordinates for the projected point
+                Eigen::Matrix2d T;
+                T.col(0) = B - A;
+                T.col(1) = C - A;
+                Eigen::RowVector2d v = projectedPoint - A;
+
+                Eigen::Vector2d barycentric2D;
+                try {
+                    barycentric2D = T.inverse() * v.transpose();
+                }
+                catch (...) {
+                    std::cerr << "WARNING: Barycentric coordinate calculation failed.\n";
+                    return;
+                }
+
+                double lambda1 = 1.0 - barycentric2D.sum();
+                double lambda2 = barycentric2D[0];
+                double lambda3 = barycentric2D[1];
+
+                // Interpolate the 3D position in V2
+                Eigen::RowVector3d interpolatedPoint =
+                    lambda1 * V2.row(F2(nearestFaceIdx, 0)) +
+                    lambda2 * V2.row(F2(nearestFaceIdx, 1)) +
+                    lambda3 * V2.row(F2(nearestFaceIdx, 2));
+
+                // Add the vertex and its interpolated point
+                added = true;
+                pointCloudA.push_back(a);
+                pointCloudC.push_back(interpolatedPoint);
+            }
+            else {
+                // If no face is found (extremely rare), log and skip the point
+                std::cerr << "WARNING: Could not find a nearest face for vertex " << i << ".\n";
+            }
+        }
 
 
         if (!added) {

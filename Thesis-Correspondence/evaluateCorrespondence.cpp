@@ -8,11 +8,11 @@
 
 
 #include <fstream>
+#include <numeric>
 
 
 
 
-// Function to compute area and shear distortions
 void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
     const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2,
     Eigen::VectorXd& areaDistortions, Eigen::VectorXd& shearDistortions) {
@@ -40,8 +40,8 @@ void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
         edge2 = v2_3 - v2_1;
         double area2 = 0.5 * edge1.cross(edge2).norm();
 
-        // Calculate area distortion
-        double areaDistortion = area1 / area2;
+        // Calculate area distortion, handle degenerate triangles
+        double areaDistortion = (area2 > 1e-8) ? area1 / area2 : std::numeric_limits<double>::quiet_NaN();
         areaDistortions[i] = areaDistortion;
 
         // Compute edge lengths in V1 and V2
@@ -54,44 +54,57 @@ void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
         double edgeLength3_V2 = (v2_1 - v2_3).norm();
 
         // Compute shear distortion
-        double shearDistortion1 = edgeLength1_V2 / edgeLength1_V1;
-        double shearDistortion2 = edgeLength2_V2 / edgeLength2_V1;
-        double shearDistortion3 = edgeLength3_V2 / edgeLength3_V1;
+        double shearDistortion1 = (edgeLength1_V1 > 1e-8) ? edgeLength1_V2 / edgeLength1_V1 : std::numeric_limits<double>::quiet_NaN();
+        double shearDistortion2 = (edgeLength2_V1 > 1e-8) ? edgeLength2_V2 / edgeLength2_V1 : std::numeric_limits<double>::quiet_NaN();
+        double shearDistortion3 = (edgeLength3_V1 > 1e-8) ? edgeLength3_V2 / edgeLength3_V1 : std::numeric_limits<double>::quiet_NaN();
 
-        // Average shear distortion
-        double avgShearDistortion = (shearDistortion1 + shearDistortion2 + shearDistortion3) / 3.0;
+        // Average shear distortion, handle NaN values
+        double avgShearDistortion = (std::isfinite(shearDistortion1) + std::isfinite(shearDistortion2) + std::isfinite(shearDistortion3)) > 0
+            ? (std::isfinite(shearDistortion1) * shearDistortion1 +
+                std::isfinite(shearDistortion2) * shearDistortion2 +
+                std::isfinite(shearDistortion3) * shearDistortion3) /
+            (std::isfinite(shearDistortion1) + std::isfinite(shearDistortion2) + std::isfinite(shearDistortion3))
+            : std::numeric_limits<double>::quiet_NaN();
+
         shearDistortions[i] = avgShearDistortion;
 
         std::cout << "Triangle " << i
             << " - Area Distortion: " << areaDistortion
             << ", Average Shear Distortion: " << avgShearDistortion << std::endl;
     }
-
-    // Compute and print average metrics
-    double avgAreaDistortion = areaDistortions.mean();
-    double avgShearDistortion = shearDistortions.mean();
-
-    std::cout << "Average Area Distortion: " << avgAreaDistortion << std::endl;
-    std::cout << "Average Shear Distortion: " << avgShearDistortion << std::endl;
-
-
-
 }
 
 
-// Reusable function to compute statistics and highlight top n% distortions
+
 void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
     double nPercent,
     Eigen::VectorXd& highlightMask,
     std::string distortionType) {
+
     int numTriangles = distortions.size();
-    int topN = static_cast<int>(std::ceil(nPercent / 100.0 * numTriangles));
+
+    // Filter valid (finite) values
+    std::vector<double> validDistortions;
+    for (int i = 0; i < numTriangles; ++i) {
+        if (std::isfinite(distortions[i])) {
+            validDistortions.push_back(distortions[i]);
+        }
+    }
+
+    if (validDistortions.empty()) {
+        std::cout << "No valid " << distortionType << " values to compute statistics." << std::endl;
+        highlightMask.setZero(numTriangles);
+        return;
+    }
 
     // Compute statistics
-    double minDistortion = distortions.minCoeff();
-    double maxDistortion = distortions.maxCoeff();
-    double meanDistortion = distortions.mean();
-    double stdDevDistortion = std::sqrt((distortions.array() - meanDistortion).square().mean());
+    double minDistortion = *std::min_element(validDistortions.begin(), validDistortions.end());
+    double maxDistortion = *std::max_element(validDistortions.begin(), validDistortions.end());
+    double meanDistortion = std::accumulate(validDistortions.begin(), validDistortions.end(), 0.0) / validDistortions.size();
+    double stdDevDistortion = std::sqrt(std::accumulate(validDistortions.begin(), validDistortions.end(), 0.0,
+        [meanDistortion](double sum, double val) {
+            return sum + (val - meanDistortion) * (val - meanDistortion);
+        }) / validDistortions.size());
 
     // Print statistics
     std::cout << distortionType << " Distortion - Min: " << minDistortion
@@ -102,10 +115,13 @@ void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
     // Highlight top n% distortions
     std::vector<std::pair<double, int>> distortionsWithIndices;
     for (int i = 0; i < numTriangles; ++i) {
-        distortionsWithIndices.emplace_back(distortions[i], i);
+        if (std::isfinite(distortions[i])) {
+            distortionsWithIndices.emplace_back(distortions[i], i);
+        }
     }
     std::sort(distortionsWithIndices.rbegin(), distortionsWithIndices.rend());
 
+    int topN = static_cast<int>(std::ceil(nPercent / 100.0 * distortionsWithIndices.size()));
     highlightMask.setZero(numTriangles);
     for (int i = 0; i < topN; ++i) {
         highlightMask[distortionsWithIndices[i].second] = 1.0; // Mark top n% triangles
@@ -114,6 +130,7 @@ void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
     std::cout << "Highlighted top " << nPercent << "% triangles with the largest "
         << distortionType << " distortion." << std::endl;
 }
+
 
 
 

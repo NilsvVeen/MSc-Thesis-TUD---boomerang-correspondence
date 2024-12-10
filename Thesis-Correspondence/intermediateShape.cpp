@@ -10,7 +10,13 @@
 // Other includes
 #include <Eigen/Dense>
 #include <Polyscope/polyscope.h>
-#include <polyscope/surface_mesh.h>
+#include <Polyscope/surface_mesh.h>
+#include <iostream>
+
+// Global variables for mesh storage
+Eigen::MatrixXd V1, V2, V_new;
+Eigen::MatrixXi F1, F2;
+double t = 0.5; // Interpolation factor
 
 // Interpolate vertices
 Eigen::MatrixXd interpolateVertices(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, double t) {
@@ -34,23 +40,54 @@ Eigen::MatrixXd performARAP(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) 
     return V_new;
 }
 
-// Main
-void main_phase2(Eigen::MatrixXd V1, Eigen::MatrixXi F1, Eigen::MatrixXd V2, Eigen::MatrixXi F2 ) {
-    Eigen::MatrixXd V_new;
-
+// Callback to update the intermediate shape
+void updateIntermediateShape() {
+    std::cout << "Updating intermediate shape..." << std::endl;
 
     // Interpolate vertices
-    double t = 0.5; // Intermediate shape
     V_new = interpolateVertices(V1, V2, t);
 
     // Optimize for rigidity
     V_new = performARAP(V_new, F1);
 
-    // Visualize with Polyscope
+    // Update Polyscope visualization
+    polyscope::getSurfaceMesh("Interpolated Shape")->updateVertexPositions(V_new);
+}
+
+// Main function
+void main_phase2(Eigen::MatrixXd inputV1, Eigen::MatrixXi inputF1, Eigen::MatrixXd inputV2, Eigen::MatrixXi inputF2) {
+    // Initialize global variables
+    V1 = inputV1;
+    F1 = inputF1;
+    V2 = inputV2;
+    F2 = inputF2;
+
+    // Initialize Polyscope
     polyscope::init();
-    polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F1);
+
+    // Register initial meshes
     polyscope::registerSurfaceMesh("Shape 1", V1, F1);
     polyscope::registerSurfaceMesh("Shape 2", V2, F2);
-    polyscope::show();
 
+    // Register the interpolated shape mesh
+    V_new = interpolateVertices(V1, V2, t); // Initial interpolation
+    polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F1);
+
+    // Add GUI callback to update the intermediate shape
+    polyscope::state::userCallback = []() {
+        ImGui::Text("Update Intermediate Shape");
+
+        // Use float for the slider since ImGui does not support double
+        float t_float = static_cast<float>(t);
+        if (ImGui::SliderFloat("Interpolation Factor (t)", &t_float, 0.0f, 1.0f)) {
+            t = static_cast<double>(t_float); // Update the global double variable
+        }
+        if (ImGui::Button("Generate New Shape")) {
+            updateIntermediateShape();
+        }
+    };
+
+    // Show the Polyscope GUI
+    polyscope::show();
 }
+

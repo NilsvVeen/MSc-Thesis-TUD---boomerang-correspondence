@@ -73,8 +73,12 @@ Eigen::MatrixXd performARAP(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) 
 void updateIntermediateShape() {
     std::cout << "Updating intermediate shape..." << std::endl;
 
+    // Apply transformations to both meshes first
+    Eigen::MatrixXd transformedV1 = applyTransformations(V1, rotationMatrix1, translation1);
+    Eigen::MatrixXd transformedV2 = applyTransformations(V2, rotationMatrix2, translation2);
+
     // Interpolate vertices
-    V_new = interpolateVertices(V1, V2, t);
+    V_new = interpolateVertices(transformedV1, transformedV2, t);
 
     // Optimize for rigidity
     V_new = performARAP(V_new, F1);
@@ -104,7 +108,12 @@ void main_phase2(Eigen::MatrixXd inputV1, Eigen::MatrixXi inputF1, Eigen::Matrix
     polyscope::registerSurfaceMesh("Shape 1", V1, F1);
     polyscope::registerSurfaceMesh("Shape 2", V2, F2);
 
-    V_new = interpolateVertices(V1, V2, t);
+    // Apply transformations to V1 and V2 before interpolation
+    Eigen::MatrixXd transformedV1 = applyTransformations(V1, rotationMatrix1, translation1);
+    Eigen::MatrixXd transformedV2 = applyTransformations(V2, rotationMatrix2, translation2);
+
+    // Interpolate the transformed meshes
+    V_new = interpolateVertices(transformedV1, transformedV2, t);
     polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F1);
 
     polyscope::state::userCallback = []() {

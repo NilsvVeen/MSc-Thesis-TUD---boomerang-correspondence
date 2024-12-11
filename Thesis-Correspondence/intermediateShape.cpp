@@ -15,15 +15,16 @@
 #include <Polyscope/polyscope.h>
 #include <Polyscope/surface_mesh.h>
 #include <iostream>
+#include <vector>
 
 // Global variables for mesh storage
-Eigen::MatrixXd V1, V2, V_new;
-Eigen::MatrixXi F1, F2;
-double t = 0.5; // Interpolation factor
-Eigen::Matrix3d rotationMatrix1 = Eigen::Matrix3d::Identity();
-Eigen::Matrix3d rotationMatrix2 = Eigen::Matrix3d::Identity();
-Eigen::Vector2d translation1(0, 0);
-Eigen::Vector2d translation2(0, 0);
+std::vector<Eigen::MatrixXd> vertices;
+std::vector<Eigen::MatrixXi> faces;
+std::vector<Eigen::Matrix3d> rotationMatrices;
+std::vector<Eigen::Vector2d> translations;
+Eigen::MatrixXd V_new;
+Eigen::MatrixXi F_new;
+std::vector<double> weights; // Interpolation weights
 
 // Function to compute the center of gravity of a mesh
 Eigen::RowVector3d computeCOG(const Eigen::MatrixXd& V) {
@@ -47,9 +48,15 @@ Eigen::MatrixXd applyTransformations(const Eigen::MatrixXd& V, const Eigen::Matr
     return transformedV;
 }
 
-// Interpolate vertices
-Eigen::MatrixXd interpolateVertices(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& V2, double t) {
-    return (1.0 - t) * V1 + t * V2;
+// Interpolate vertices across multiple shapes
+Eigen::MatrixXd interpolateVertices(const std::vector<Eigen::MatrixXd>& vertices, const std::vector<double>& weights) {
+    Eigen::MatrixXd result = Eigen::MatrixXd::Zero(vertices[0].rows(), vertices[0].cols());
+
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        result += weights[i] * vertices[i];
+    }
+
+    return result;
 }
 
 // Perform ARAP for rigidity preservation
@@ -73,15 +80,16 @@ Eigen::MatrixXd performARAP(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) 
 void updateIntermediateShape() {
     std::cout << "Updating intermediate shape..." << std::endl;
 
-    // Apply transformations to both meshes first
-    Eigen::MatrixXd transformedV1 = applyTransformations(V1, rotationMatrix1, translation1);
-    Eigen::MatrixXd transformedV2 = applyTransformations(V2, rotationMatrix2, translation2);
+    std::vector<Eigen::MatrixXd> transformedVertices;
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        transformedVertices.push_back(applyTransformations(vertices[i], rotationMatrices[i], translations[i]));
+    }
 
     // Interpolate vertices
-    V_new = interpolateVertices(transformedV1, transformedV2, t);
+    V_new = interpolateVertices(transformedVertices, weights);
 
     // Optimize for rigidity
-    V_new = performARAP(V_new, F1);
+    V_new = performARAP(V_new, F_new);
 
     // Update Polyscope visualization
     polyscope::getSurfaceMesh("Interpolated Shape")->updateVertexPositions(V_new);
@@ -89,85 +97,78 @@ void updateIntermediateShape() {
 
 // Update transformations and Polyscope
 void updateMeshTransformations() {
-    Eigen::MatrixXd transformedV1 = applyTransformations(V1, rotationMatrix1, translation1);
-    Eigen::MatrixXd transformedV2 = applyTransformations(V2, rotationMatrix2, translation2);
-
-    polyscope::getSurfaceMesh("Shape 1")->updateVertexPositions(transformedV1);
-    polyscope::getSurfaceMesh("Shape 2")->updateVertexPositions(transformedV2);
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        Eigen::MatrixXd transformedV = applyTransformations(vertices[i], rotationMatrices[i], translations[i]);
+        polyscope::getSurfaceMesh("Shape " + std::to_string(i + 1))->updateVertexPositions(transformedV);
+    }
 }
 
 // Main function
-void main_phase2(Eigen::MatrixXd inputV1, Eigen::MatrixXi inputF1, Eigen::MatrixXd inputV2, Eigen::MatrixXi inputF2) {
-    V1 = inputV1;
-    F1 = inputF1;
-    V2 = inputV2;
-    F2 = inputF2;
+void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
+    vertices.clear();
+    faces.clear();
+    rotationMatrices.clear();
+    translations.clear();
+    weights.clear();
+
+    for (const auto& shape : inputShapes) {
+        vertices.push_back(shape.first);
+        faces.push_back(shape.second);
+        rotationMatrices.emplace_back(Eigen::Matrix3d::Identity());
+        translations.emplace_back(Eigen::Vector2d::Zero());
+        weights.push_back(1.0 / inputShapes.size()); // Default equal weights
+    }
+
+    F_new = faces[0]; // Assume all shapes have the same topology
 
     polyscope::init();
 
-    polyscope::registerSurfaceMesh("Shape 1", V1, F1);
-    polyscope::registerSurfaceMesh("Shape 2", V2, F2);
-
-    // Apply transformations to V1 and V2 before interpolation
-    Eigen::MatrixXd transformedV1 = applyTransformations(V1, rotationMatrix1, translation1);
-    Eigen::MatrixXd transformedV2 = applyTransformations(V2, rotationMatrix2, translation2);
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        polyscope::registerSurfaceMesh("Shape " + std::to_string(i + 1), vertices[i], faces[i]);
+    }
 
     // Interpolate the transformed meshes
-    V_new = interpolateVertices(transformedV1, transformedV2, t);
-    polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F1);
+    V_new = interpolateVertices(vertices, weights);
+    polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F_new);
 
     polyscope::state::userCallback = []() {
-        ImGui::Text("Object 1 Transformations");
-        static float rotation1 = 0.0f;
-        static float translationX1 = 0.0f;
-        static float translationY1 = 0.0f;
+        for (size_t i = 0; i < vertices.size(); ++i) {
+            ImGui::Text("Object %zu Transformations", i + 1);
+            static float rotation = 0.0f;
+            static float translationX = 0.0f;
+            static float translationY = 0.0f;
 
-        if (ImGui::SliderFloat("Rotation 1 (degrees)", &rotation1, 0.0f, 360.0f)) {
-            double angleRad = rotation1 * M_PI / 180.0;
-            rotationMatrix1 << cos(angleRad), -sin(angleRad), 0,
-                sin(angleRad), cos(angleRad), 0,
-                0, 0, 1;
-            updateMeshTransformations();
-        }
-        if (ImGui::SliderFloat("Translation X1", &translationX1, -50.0f, 50.0f)) {
-            translation1.x() = translationX1;
-            updateMeshTransformations();
-        }
-        if (ImGui::SliderFloat("Translation Y1", &translationY1, -50.0f, 50.0f)) {
-            translation1.y() = translationY1;
-            updateMeshTransformations();
-        }
+            if (ImGui::SliderFloat(("Rotation " + std::to_string(i + 1) + " (degrees)").c_str(), &rotation, 0.0f, 360.0f)) {
+                double angleRad = rotation * M_PI / 180.0;
+                rotationMatrices[i] << cos(angleRad), -sin(angleRad), 0,
+                    sin(angleRad), cos(angleRad), 0,
+                    0, 0, 1;
+                updateMeshTransformations();
+            }
+            if (ImGui::SliderFloat(("Translation X" + std::to_string(i + 1)).c_str(), &translationX, -50.0f, 50.0f)) {
+                translations[i].x() = translationX;
+                updateMeshTransformations();
+            }
+            if (ImGui::SliderFloat(("Translation Y" + std::to_string(i + 1)).c_str(), &translationY, -50.0f, 50.0f)) {
+                translations[i].y() = translationY;
+                updateMeshTransformations();
+            }
 
-        ImGui::Separator();
-
-        ImGui::Text("Object 2 Transformations");
-        static float rotation2 = 0.0f;
-        static float translationX2 = 0.0f;
-        static float translationY2 = 0.0f;
-
-        if (ImGui::SliderFloat("Rotation 2 (degrees)", &rotation2, 0.0f, 360.0f)) {
-            double angleRad = rotation2 * M_PI / 180.0;
-            rotationMatrix2 << cos(angleRad), -sin(angleRad), 0,
-                sin(angleRad), cos(angleRad), 0,
-                0, 0, 1;
-            updateMeshTransformations();
+            ImGui::Separator();
         }
-        if (ImGui::SliderFloat("Translation X2", &translationX2, -50.0f, 50.0f)) {
-            translation2.x() = translationX2;
-            updateMeshTransformations();
-        }
-        if (ImGui::SliderFloat("Translation Y2", &translationY2, -50.0f, 50.0f)) {
-            translation2.y() = translationY2;
-            updateMeshTransformations();
-        }
-
-        ImGui::Separator();
 
         ImGui::Text("Interpolation");
-        float t_float = static_cast<float>(t);
-        if (ImGui::SliderFloat("Interpolation Factor (t)", &t_float, 0.0f, 1.0f)) {
-            t = static_cast<double>(t_float);
+        static std::vector<float> weightsFloat;
+        if (weightsFloat.empty()) {
+            weightsFloat.resize(weights.size(), 1.0f / weights.size());
         }
+
+        for (size_t i = 0; i < weights.size(); ++i) {
+            if (ImGui::SliderFloat(("Weight " + std::to_string(i + 1)).c_str(), &weightsFloat[i], 0.0f, 1.0f)) {
+                weights[i] = static_cast<double>(weightsFloat[i]);
+            }
+        }
+
         if (ImGui::Button("Generate New Shape")) {
             updateIntermediateShape();
         }

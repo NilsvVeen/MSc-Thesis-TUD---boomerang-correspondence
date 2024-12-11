@@ -609,16 +609,22 @@ int main()
 
 
     if (newShapeMake) {
-        Eigen::MatrixXd V1; // Mesh 1 vertices       n x 3
-        Eigen::MatrixXi F1; // Mesh 1 faces          m x 3
-
-        Eigen::MatrixXd V2; // mesh 2 vertices       s x 3
-        Eigen::MatrixXi F2; // mesh 2 faces          q x 3
+        Eigen::MatrixXd V1, V2, V3;
+        Eigen::MatrixXi F1, F2, F3;
 
         readMeshFromFile(correspondence3dMatched + "/M1.obj", V1, F1);
         readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
+        readMeshFromFile(correspondence3dMatched + "/M2.obj", V3, F3);
 
-        main_phase2(V1, F1, V2, F2);
+        // Combine into a vector of pairs
+        std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
+            {V1, F1},
+            {V2, F2},
+            {V3, F3}
+        };
+
+        // Call the main_phase2 function
+        main_phase2(inputShapes);
 
     }
 

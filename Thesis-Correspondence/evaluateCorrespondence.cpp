@@ -133,37 +133,8 @@ void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
 
 
 
-// Function to compute mean Geodesic Error (mGE)
-double computeMeanGeodesicError(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
-    const Eigen::MatrixXd& V2, const Eigen::MatrixXi& F2) {
-    double epsilon = 0.0;
-    int Nq = 0;
-    int Nm = F1.rows();
 
-    // Loop through each point in V1
-    for (int i = 0; i < V1.rows(); ++i) {
-        Eigen::RowVector3d p = V1.row(i);
 
-        // Find closest point x in V2 (this is a placeholder for actual geodesic computation)
-        double minDist = std::numeric_limits<double>::infinity();
-        Eigen::RowVector3d x;
-        for (int j = 0; j < V2.rows(); ++j) {
-            double dist = (V2.row(j) - p).norm();
-            if (dist < minDist) {
-                minDist = dist;
-                x = V2.row(j);
-            }
-        }
-
-        // Compute geodesic distance (placeholder, replace with actual geodesic computation)
-        double geodesicDist = minDist;  // Replace this with d_geo(q, x)
-        epsilon += geodesicDist;
-        Nq++;
-    }
-
-    // Compute mGE
-    return epsilon / (Nq * Nm);
-}
 
 // Main analysis and visualization function
 void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
@@ -207,8 +178,6 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
     computeStatisticsAndHighlight(shearDistortions, nPercent, shearHighlightMask, "Shear");
 
 
-    double mGE = computeMeanGeodesicError(V1, F1, V2, F2);
-    std::cout << "Mean Geodesic Error (mGE): " << mGE << "\n";
 
 
 

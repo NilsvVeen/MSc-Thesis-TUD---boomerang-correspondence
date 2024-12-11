@@ -163,11 +163,47 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
             weightsFloat.resize(weights.size(), 1.0f / weights.size());
         }
 
+        // Track the sum of weights
+        float totalWeight = 0.0f;
+        for (float w : weightsFloat) {
+            totalWeight += w;
+        }
+
         for (size_t i = 0; i < weights.size(); ++i) {
+            float oldValue = weightsFloat[i];
             if (ImGui::SliderFloat(("Weight " + std::to_string(i + 1)).c_str(), &weightsFloat[i], 0.0f, 1.0f)) {
-                weights[i] = static_cast<double>(weightsFloat[i]);
+                // Adjust other weights to keep total <= 1
+                float diff = weightsFloat[i] - oldValue;
+                float remainingAdjustment = diff;
+
+                // Redistribute the adjustment proportionally across other sliders
+                for (size_t j = 0; j < weightsFloat.size(); ++j) {
+                    if (j == i) continue; // Skip the currently modified slider
+                    float adjustment = -remainingAdjustment * (weightsFloat[j] / (totalWeight - oldValue));
+                    weightsFloat[j] = std::max(0.0f, std::min(1.0f, weightsFloat[j] + adjustment));
+                    remainingAdjustment += adjustment; // Keep track of remaining adjustment
+                }
+
+                // Recalculate total weight and ensure normalization
+                totalWeight = 0.0f;
+                for (float w : weightsFloat) {
+                    totalWeight += w;
+                }
+
+                // Normalize all sliders if total exceeds 1
+                if (totalWeight > 1.0f) {
+                    for (float& w : weightsFloat) {
+                        w /= totalWeight;
+                    }
+                }
+
+                // Update the double weights
+                for (size_t k = 0; k < weights.size(); ++k) {
+                    weights[k] = static_cast<double>(weightsFloat[k]);
+                }
             }
         }
+
 
         if (ImGui::Button("Generate New Shape")) {
             updateIntermediateShape();

@@ -41,12 +41,12 @@ static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
 static const bool uvMapCorrespondence = false;
-static const bool evaluateCorrespondence = false;
+static const bool evaluateCorrespondence = true;
 
 
 
 
-static const bool newShapeMake = true;
+static const bool newShapeMake = false;
 
 
 

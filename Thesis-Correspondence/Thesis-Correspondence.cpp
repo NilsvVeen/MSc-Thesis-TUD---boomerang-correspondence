@@ -40,8 +40,8 @@ static const bool shiftAll = false;
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = false;
-static const bool evaluateCorrespondence = true;
+static const bool uvMapCorrespondence = true;
+static const bool evaluateCorrespondence = false;
 
 
 
@@ -96,7 +96,7 @@ int main()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_11_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_10_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -162,21 +162,39 @@ int main()
 
             showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
         }
+
+        // Convert shiftVector to Eigen::MatrixXd
+        Eigen::MatrixXd vertices(1, 3);
+        vertices.row(0) = shiftVector.transpose(); // Convert row vector format
+        writeVerticesToPLY(DEFAULT_CORRESPONDENCES_FOLDER + "/shiftvector.obj", vertices);
+
+
     }
 
-    std::cout << "official shift vector to use!!!!!!!!!!!!!!!!! : " << shiftVector << std::endl;
 
 
     const std::string shiftMeshAndCurve = "shiftMeshAndCurve";
     if (shiftAll) {
         std::cout << "Step 3.5 ---------- Shift Mesh 2 by shift vector" << std::endl;
 
+
+        Eigen::MatrixXd readVertices = readVerticesFromPLY(DEFAULT_CORRESPONDENCES_FOLDER + "/shiftvector.obj");
+
+
+
+
+        shiftVector = readVertices.row(0).transpose();
+
+        std::cout << "official shift vector to use!!!!!!!!!!!!!!!!! : " << shiftVector << std::endl;
+
         //shiftVector << 538, 496 , 349; // normal case
         //shiftVector << 538, 505 , 349; // decimated 01  case
         //shiftVector << 856, 84,  317; // decimated 01  case
-        shiftVector << 913 ,84 ,319; // decimated 01  case
+        //shiftVector << 913 ,84 ,319; // decimated 01  case
         //shiftVector << 213, 0 , 0; // decimated 01  case
 
+
+        //shiftVector << 913, 84, 319; // decimated 01  case
 
 
         Eigen::RowVector3d shiftVectorRow = shiftVector.transpose();

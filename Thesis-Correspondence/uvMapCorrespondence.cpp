@@ -520,7 +520,7 @@ void UVToCorrespondence(
     Eigen::MatrixXd connectedBorder;
     Eigen::MatrixXd connectedBorder2;
 
-    bool readExisting = true;
+    bool readExisting = false;
     if (readExisting) {
         connectedBorder = readVerticesFromPLY(correspondence3dMatched + "/borders.obj");
         connectedBorder2 = readVerticesFromPLY(correspondence3dMatched + "/borders2.obj");

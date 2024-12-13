@@ -40,13 +40,13 @@ static const bool shiftAll = false;
 static const bool correspondences2dto3d = false;
 
 static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = true;
+static const bool uvMapCorrespondence = false;
 static const bool evaluateCorrespondence = false;
 
 
 
 
-static const bool newShapeMake = false;
+static const bool newShapeMake = true;
 
 
 
@@ -96,7 +96,7 @@ int main()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_10_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_13_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -152,7 +152,7 @@ int main()
             else {
                 // Sort vertices by proximity and reverse order
                 sortedVertices = reverseOrder(sortVerticesByProximity(V));
-                sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
+                sortedVertices2 = sortVerticesByProximity(V2);
 
                 // Write sorted vertices to file
                 savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
@@ -627,18 +627,20 @@ int main()
 
 
     if (newShapeMake) {
-        Eigen::MatrixXd V1, V2, V3;
-        Eigen::MatrixXi F1, F2, F3;
+        Eigen::MatrixXd V1, V2, V3, V4;
+        Eigen::MatrixXi F1, F2, F3, F4;
 
-        readMeshFromFile(correspondence3dMatched + "/M1.obj", V1, F1);
-        readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
-        readMeshFromFile(correspondence3dMatched + "/M2.obj", V3, F3);
+        readMeshFromFile( "backup_09_10/" + correspondence3dMatched + "/M1.obj", V1, F1);
+        readMeshFromFile("backup_09_10/" + correspondence3dMatched + "/M2.obj", V2, F2);
+        readMeshFromFile("backup_09_11/" + correspondence3dMatched + "/M2.obj", V3, F3);
+        readMeshFromFile("backup_09_13/" + correspondence3dMatched + "/M2.obj", V4, F4);
 
         // Combine into a vector of pairs
         std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
             {V1, F1},
             {V2, F2},
-            {V3, F3}
+            {V3, F3},
+            {V4, F4}
         };
 
         // Call the main_phase2 function

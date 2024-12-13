@@ -773,7 +773,7 @@ void UVToCorrespondence(
 
         // todo
         // in this case it is no triangles, but outside the uv map. 
-        if (!added && false) {
+        if (!added) {
             // Find the nearest face in UV2 to `b`
             double minDistance = std::numeric_limits<double>::max();
             int nearestFaceIdx = -1;

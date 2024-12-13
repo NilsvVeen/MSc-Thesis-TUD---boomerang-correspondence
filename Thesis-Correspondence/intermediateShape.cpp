@@ -145,11 +145,11 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
                     0, 0, 1;
                 updateMeshTransformations();
             }
-            if (ImGui::SliderFloat(("Translation X" + std::to_string(i + 1)).c_str(), &translationX, -50.0f, 50.0f)) {
+            if (ImGui::SliderFloat(("Translation X" + std::to_string(i + 1)).c_str(), &translationX, -500.0f, 500.0f)) {
                 translations[i].x() = translationX;
                 updateMeshTransformations();
             }
-            if (ImGui::SliderFloat(("Translation Y" + std::to_string(i + 1)).c_str(), &translationY, -50.0f, 50.0f)) {
+            if (ImGui::SliderFloat(("Translation Y" + std::to_string(i + 1)).c_str(), &translationY, -500.0f, 500.0f)) {
                 translations[i].y() = translationY;
                 updateMeshTransformations();
             }

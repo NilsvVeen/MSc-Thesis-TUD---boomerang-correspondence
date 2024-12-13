@@ -1210,6 +1210,8 @@ void showSideBySideSelectionWithVertexSelection(const Eigen::MatrixXd& V1, const
         if (ImGui::Button("parameterize")) {
             // Call the parameterize function when the button is pressed
             //parameterizeWithControls(V1, V2_offset, selectedVertices1, selectedVertices2);
+
+
             parameterizeWithControls(V1_rotated, V2_rotated, selectedVertices1, selectedVertices2, dir);
         }
 

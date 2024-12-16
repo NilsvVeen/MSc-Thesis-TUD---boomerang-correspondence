@@ -217,7 +217,7 @@ void handleMeshRotation(Eigen::MatrixXd& alignedV, const Eigen::MatrixXi& aligne
 
 
 // Main function to fit plane, align mesh, and show results
-std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false) {
+std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, double& alpha, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false) {
 
 
     Eigen::MatrixXd V; // Vertices
@@ -310,7 +310,8 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
         initializePolyscopeAndRegisterMesh("Convex Hull", V_hull, F_hull);
 
         // Try 2D Alpha Shape from CGAL
-        double alpha = 15.0; // Alpha for the alpha shape
+        //double alpha = 15.0; // Alpha for the alpha shape
+
         findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha);
 
         if (!borderVertices.empty()) {

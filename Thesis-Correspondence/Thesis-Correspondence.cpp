@@ -39,14 +39,14 @@ static const bool shiftAll = false;
 
 static const bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = true;
+static const bool parameterizeSurfaceBool = false;
 static const bool uvMapCorrespondence = false;
 static const bool evaluateCorrespondence = false;
 
 
 
 
-static const bool newShapeMake = false;
+static const bool newShapeMake = true;
 
 
 
@@ -80,8 +80,11 @@ int main()
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
 
+        double alpha = 13.0; // Alpha for the alpha shape
+
+
         // get outlining vertices of object
-        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName);
+        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName, alpha);
     }
 
     // get 2d outline
@@ -107,8 +110,11 @@ int main()
         readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
         readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
 
+        double alpha = 15.0; // Alpha for the alpha shape
+
+
         // get outlining vertices of object
-        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2);
+        std::vector<Eigen::Vector2d> border_vertices = fitPlaneAndAlignMesh(modelPath, directoryName2, alpha);
 
     }
 
@@ -635,7 +641,7 @@ int main()
         readMeshFromFile( "backup_09_10/" + correspondence3dMatched + "/M1.obj", V1, F1);
         readMeshFromFile("backup_09_10/" + correspondence3dMatched + "/M2.obj", V2, F2);
         readMeshFromFile("backup_09_11/" + correspondence3dMatched + "/M2.obj", V3, F3);
-        readMeshFromFile("backup_09_13/" + correspondence3dMatched + "/M2.obj", V4, F4);
+        readMeshFromFile("backup_09_13_v2/" + correspondence3dMatched + "/M2.obj", V4, F4);
 
         // Combine into a vector of pairs
         std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {

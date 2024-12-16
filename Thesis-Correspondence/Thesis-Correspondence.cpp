@@ -39,14 +39,14 @@ static const bool shiftAll = false;
 
 static const bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = false;
+static const bool parameterizeSurfaceBool = true;
 static const bool uvMapCorrespondence = false;
 static const bool evaluateCorrespondence = false;
 
 
 
 
-static const bool newShapeMake = true;
+static const bool newShapeMake = false;
 
 
 
@@ -362,7 +362,7 @@ int main()
     if (parameterizeSurfaceBool) {
 
         std::cout << "surface Parameterization:" << std::endl;
-
+        polyscope::init();
         createDirectory(surfaceParam);
         clearDirectory(surfaceParam);
 
@@ -382,16 +382,19 @@ int main()
         std::string V2_regex = "V2_pointcloud_(\\d+)\\.txt";
 
         Eigen::MatrixXd V3 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V1_regex);
+        polyscope::registerPointCloud("V3 ob1 old", V3);
         auto xx = V3.rows();
         std::vector<int> duplicatesV1 = std::vector<int>();
         findExactCorrespondences(Mesh1_V, V3, duplicatesV1);
         auto xx2 = V3.rows();
 
 
+
         std::cout << "----------------After matching V1, size difference: " << std::to_string(xx) << " -- to -- " << std::to_string(xx2) <<  " length: " << duplicatesV1.size() << std::endl;
 
 
         Eigen::MatrixXd V3_obj2 = readAndConcatenatePointClouds(DEFAULT_2dto3d_FOLDER, V2_regex);
+        polyscope::registerPointCloud("V3 ob2 old", V3_obj2);
 
         for (int j = duplicatesV1.size() - 1; j >= 0; j--) {
             int row_to_remove = duplicatesV1[j];
@@ -424,7 +427,7 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
-            polyscope::registerPointCloud("borderV3", V3);
+            polyscope::registerPointCloud("borderV3 Obj1", V3);
             if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true, V3)) {
                 std::cerr << "Surface parameterization failed.\n";
                 return EXIT_FAILURE;
@@ -440,9 +443,8 @@ int main()
             Eigen::MatrixXd UV_map;
             polyscope::init();
 
-            polyscope::init();
             polyscope::options::programName = "No Split Mesh LCSM, projection";
-            polyscope::registerPointCloud("border V3 shift", V3_obj2);
+            polyscope::registerPointCloud("border V3 Obj2", V3_obj2);
 
 
             CalculateGenus(Mesh2_V, Mesh2_F);

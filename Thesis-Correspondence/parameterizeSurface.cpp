@@ -16,6 +16,7 @@
 #include <igl/harmonic.h>
 #include <igl/edges.h>
 #include <igl/flip_avoiding_line_search.h>
+#include <igl/arap.h>
 
 // Function to read and concatenate point clouds in numeric order from files matching a pattern
 Eigen::MatrixXd readAndConcatenatePointClouds(const std::string& folderPath, const std::string& filePatternStr) {
@@ -102,27 +103,27 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     std::cout << "Input V size: " << V.rows() << " x " << V.cols() << std::endl;
     std::cout << "Input F size: " << F.rows() << " x " << F.cols() << std::endl;
 
-    // Print the first 5 rows of V (if there are at least 5)
-    std::cout << "First 5 rows of V:" << std::endl;
-    for (int i = 0; i < std::min(5, static_cast<int>(V.rows())); ++i) {
-        std::cout << "V(" << i << ") = [";
-        for (int j = 0; j < V.cols(); ++j) {
-            std::cout << V(i, j);
-            if (j < V.cols() - 1) std::cout << ", ";
-        }
-        std::cout << "]" << std::endl;
-    }
+    //// Print the first 5 rows of V (if there are at least 5)
+    //std::cout << "First 5 rows of V:" << std::endl;
+    //for (int i = 0; i < std::min(5, static_cast<int>(V.rows())); ++i) {
+    //    std::cout << "V(" << i << ") = [";
+    //    for (int j = 0; j < V.cols(); ++j) {
+    //        std::cout << V(i, j);
+    //        if (j < V.cols() - 1) std::cout << ", ";
+    //    }
+    //    std::cout << "]" << std::endl;
+    //}
 
-    // Print the first 5 rows of F (if there are at least 5)
-    std::cout << "First 5 rows of F:" << std::endl;
-    for (int i = 0; i < std::min(5, static_cast<int>(F.rows())); ++i) {
-        std::cout << "F(" << i << ") = [";
-        for (int j = 0; j < F.cols(); ++j) {
-            std::cout << F(i, j);
-            if (j < F.cols() - 1) std::cout << ", ";
-        }
-        std::cout << "]" << std::endl;
-    }
+    //// Print the first 5 rows of F (if there are at least 5)
+    //std::cout << "First 5 rows of F:" << std::endl;
+    //for (int i = 0; i < std::min(5, static_cast<int>(F.rows())); ++i) {
+    //    std::cout << "F(" << i << ") = [";
+    //    for (int j = 0; j < F.cols(); ++j) {
+    //        std::cout << F(i, j);
+    //        if (j < F.cols() - 1) std::cout << ", ";
+    //    }
+    //    std::cout << "]" << std::endl;
+    //}
 
     UV.resize(V.rows(), 2);  // UV coordinates need two dimensions (u, v)
 
@@ -151,6 +152,8 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
     // Perform LSCM parametrization
     std::cout << "Performing LSCM parametrization..." << std::endl;
+
+    Eigen::MatrixXd boundaryUV(boundary_vertices.rows(), 2);
 
     if (boundaryEnabled) {
         // Initialize boundary constraints
@@ -190,6 +193,8 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
             if (ProjectionUV) {
                 BC(i, 0) = boundary_vertices_other(i, 0);  // u-coordinate
                 BC(i, 1) = boundary_vertices_other(i, 1);  // v-coordinate
+                boundaryUV(i, 0) = BC(i, 0);
+                boundaryUV(i, 1) = BC(i, 1);
             }
         }
 
@@ -199,8 +204,14 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
                 << ", UV: (" << BC(i, 0) << ", " << BC(i, 1) << ")" << std::endl;
         }
 
-        // Apply LSCM parameterization
+
+        // Perform LSCM with additional parameters
         igl::lscm(V, F, B, BC, UV);
+        //igl::harmonic(V, F, B, BC, 2, UV); // The last parameter is the harmonic order
+
+
+
+
 
     }
     else {
@@ -208,15 +219,6 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
     }
 
 
-    //for (int i = 0; i < F.rows(); ++i) {
-    //    Eigen::Vector2d p0 = UV.row(F(i, 0));
-    //    Eigen::Vector2d p1 = UV.row(F(i, 1));
-    //    Eigen::Vector2d p2 = UV.row(F(i, 2));
-    //    double area = (p1 - p0).x() * (p2 - p0).y() - (p1 - p0).y() * (p2 - p0).x();
-    //    if (area <= 0) {
-    //        std::cerr << "Inverted or degenerate triangle at face " << i << std::endl;
-    //    }
-    //}
 
 
 
@@ -287,7 +289,21 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         }
     };
 
+    auto* meshUVaaa = polyscope::registerPointCloud2D("boundary", boundaryUV);
+
     CalculateGenus(V, F);
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Launch Polyscope's GUI
     polyscope::show();

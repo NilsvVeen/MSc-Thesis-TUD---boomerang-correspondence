@@ -30,27 +30,24 @@ static const bool ReadCalculateSortedVertices = false; // only enable if already
 
 
 
-static const bool ProcessObjects = false;
-static const bool ParameterizeObjects = false;
+static  bool ProcessObjects = false;
+static  bool ParameterizeObjects = false;
 
 
-static const bool shiftAll = false;
+static  bool shiftAll = false;
 
 
-static const bool correspondences2dto3d = false;
+static  bool correspondences2dto3d = false;
 
-static const bool parameterizeSurfaceBool = false;
-static const bool uvMapCorrespondence = false;
-static const bool evaluateCorrespondence = false;
+static  bool parameterizeSurfaceBool = false;
+static  bool uvMapCorrespondence = false;
+static  bool evaluateCorrespondence = false;
 
-
-
-
-static const bool newShapeMake = true;
+static  bool newShapeMake = false;
 
 
 
-int main()
+int main2()
 {
 
 
@@ -99,7 +96,7 @@ int main()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_13_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -110,7 +107,7 @@ int main()
         readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
         readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
 
-        double alpha = 15.0; // Alpha for the alpha shape
+        double alpha = 8.0; // Alpha for the alpha shape
 
 
         // get outlining vertices of object
@@ -158,7 +155,8 @@ int main()
             else {
                 // Sort vertices by proximity and reverse order
                 sortedVertices = reverseOrder(sortVerticesByProximity(V));
-                sortedVertices2 = sortVerticesByProximity(V2);
+                //sortedVertices2 = sortVerticesByProximity(V2);
+                sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
 
                 // Write sorted vertices to file
                 savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
@@ -228,12 +226,20 @@ int main()
         savePointCloudToFile(shiftMeshAndCurve + "/B1.obj", sortedVertices);
         savePointCloudToFile(shiftMeshAndCurve + "/B2.obj", sortedVertices2);
 
-        polyscope::init();
-        polyscope::registerSurfaceMesh("M1", Mesh1_V, Mesh1_F);
-        polyscope::registerSurfaceMesh("M2", Mesh2_V, Mesh2_F);
-        polyscope::registerPointCloud("B1", sortedVertices);
-        polyscope::registerPointCloud("B2", sortedVertices2);
-        polyscope::show();
+        std::cout << "Mesh1_V: " << Mesh1_V.rows() << "x" << Mesh1_V.cols() << std::endl;
+        std::cout << "Mesh1_F: " << Mesh1_F.rows() << "x" << Mesh1_F.cols() << std::endl;
+        std::cout << "Mesh2_V: " << Mesh2_V.rows() << "x" << Mesh2_V.cols() << std::endl;
+        std::cout << "Mesh2_F: " << Mesh2_F.rows() << "x" << Mesh2_F.cols() << std::endl;
+        std::cout << "sortedVertices: " << sortedVertices.rows() << "x" << sortedVertices.cols() << std::endl;
+        std::cout << "sortedVertices2: " << sortedVertices2.rows() << "x" << sortedVertices2.cols() << std::endl;
+
+
+        //polyscope::init();
+        //polyscope::registerSurfaceMesh("M1", Mesh1_V, Mesh1_F);
+        //polyscope::registerSurfaceMesh("M2", Mesh2_V, Mesh2_F);
+        //polyscope::registerPointCloud("B1", sortedVertices);
+        //polyscope::registerPointCloud("B2", sortedVertices2);
+        //polyscope::show();
 
 
     }
@@ -635,20 +641,22 @@ int main()
 
 
     if (newShapeMake) {
-        Eigen::MatrixXd V1, V2, V3, V4;
-        Eigen::MatrixXi F1, F2, F3, F4;
+        Eigen::MatrixXd V1, V2, V3, V4, V5;
+        Eigen::MatrixXi F1, F2, F3, F4, F5;
 
         readMeshFromFile( "backup_09_10/" + correspondence3dMatched + "/M1.obj", V1, F1);
         readMeshFromFile("backup_09_10/" + correspondence3dMatched + "/M2.obj", V2, F2);
         readMeshFromFile("backup_09_11/" + correspondence3dMatched + "/M2.obj", V3, F3);
         readMeshFromFile("backup_09_13_v2/" + correspondence3dMatched + "/M2.obj", V4, F4);
+        readMeshFromFile("backup_09_12/" + correspondence3dMatched + "/M2.obj", V5, F5);
 
         // Combine into a vector of pairs
         std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
             {V1, F1},
             {V2, F2},
             {V3, F3},
-            {V4, F4}
+            {V4, F4},
+            {V5, F5}
         };
 
         // Call the main_phase2 function
@@ -663,3 +671,188 @@ int main()
 
 
 
+// Function that gets called when toggling any button
+void performAction() {
+    std::cout << "Action performed with settings:\n";
+    std::cout << "ProcessObjects: " << ProcessObjects << "\n";
+    std::cout << "ParameterizeObjects: " << ParameterizeObjects << "\n";
+    std::cout << "shiftAll: " << shiftAll << "\n";
+    std::cout << "correspondences2dto3d: " << correspondences2dto3d << "\n";
+    std::cout << "parameterizeSurfaceBool: " << parameterizeSurfaceBool << "\n";
+    std::cout << "uvMapCorrespondence: " << uvMapCorrespondence << "\n";
+    std::cout << "evaluateCorrespondence: " << evaluateCorrespondence << "\n";
+    std::cout << "newShapeMake: " << newShapeMake << "\n";
+
+    polyscope::removeAllGroups();
+    polyscope::removeAllStructures();
+    polyscope::state::userCallback = [&]() {};
+    main2();
+}
+
+// Define control IDs for each button
+#define ID_BUTTON_PROCESS 101
+#define ID_BUTTON_PARAM 102
+#define ID_BUTTON_SHIFT 103
+#define ID_BUTTON_CORRESPONDENCE 104
+#define ID_BUTTON_SURFACE 105
+#define ID_BUTTON_UVMAP 106
+#define ID_BUTTON_EVALUATE 107
+#define ID_BUTTON_NEWSHAPE 108  // New button for newShapeMake
+
+// Window procedure to handle window messages
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    switch (uMsg) {
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+
+    case WM_COMMAND: {
+        int wmId = LOWORD(wParam);
+
+        // Toggle the corresponding boolean based on button click
+        switch (wmId) {
+        case ID_BUTTON_PROCESS:
+            ProcessObjects = !ProcessObjects;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_PARAM:
+            ParameterizeObjects = !ParameterizeObjects;
+            ProcessObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_SHIFT:
+            shiftAll = !shiftAll;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_CORRESPONDENCE:
+            correspondences2dto3d = !correspondences2dto3d;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_SURFACE:
+            parameterizeSurfaceBool = !parameterizeSurfaceBool;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_UVMAP:
+            uvMapCorrespondence = !uvMapCorrespondence;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_EVALUATE:
+            evaluateCorrespondence = !evaluateCorrespondence;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            newShapeMake = false;
+            break;
+        case ID_BUTTON_NEWSHAPE:
+            newShapeMake = !newShapeMake;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            break;
+        }
+        performAction();
+        return 0;
+    }
+
+    default:
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    }
+}
+
+// Entry point of the program
+int main() {
+    HINSTANCE hInstance = GetModuleHandle(NULL);
+
+    // Register the window class
+    WNDCLASS wc = { 0 };
+    wc.lpfnWndProc = WindowProc;
+    wc.hInstance = hInstance;
+    wc.lpszClassName = "SimpleWindowClass";
+    RegisterClass(&wc);
+
+    // Create the window
+    HWND hwnd = CreateWindowEx(
+        0,
+        wc.lpszClassName,
+        "Simple GUI with Win32 API",
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT, 400, 450,  // Increased height for extra button
+        NULL, NULL, hInstance, NULL
+    );
+
+    // Create buttons for each boolean variable
+    CreateWindowEx(0, "BUTTON", "Process Objects", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 20, 150, 30, hwnd, (HMENU)ID_BUTTON_PROCESS, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "Parameterize Objects", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 60, 150, 30, hwnd, (HMENU)ID_BUTTON_PARAM, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "Shift All", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 100, 150, 30, hwnd, (HMENU)ID_BUTTON_SHIFT, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "Correspondences 2D to 3D", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 140, 200, 30, hwnd, (HMENU)ID_BUTTON_CORRESPONDENCE, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "Parameterize Surface", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 180, 200, 30, hwnd, (HMENU)ID_BUTTON_SURFACE, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "UV Map Correspondence", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 220, 200, 30, hwnd, (HMENU)ID_BUTTON_UVMAP, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "Evaluate Correspondence", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 260, 200, 30, hwnd, (HMENU)ID_BUTTON_EVALUATE, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "New Shape Make", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 300, 200, 30, hwnd, (HMENU)ID_BUTTON_NEWSHAPE, hInstance, NULL);  // New button
+
+    // Set the first button to be selected by default (optional)
+    CheckRadioButton(hwnd, ID_BUTTON_PROCESS, ID_BUTTON_NEWSHAPE, ID_BUTTON_PROCESS);
+
+    // Show the window
+    ShowWindow(hwnd, SW_SHOW);
+    UpdateWindow(hwnd);
+
+    // Message loop
+    MSG msg = { 0 };
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+
+    return 0;
+}

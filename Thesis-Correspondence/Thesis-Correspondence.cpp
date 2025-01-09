@@ -639,7 +639,7 @@ int main2()
     }
 
 
-    const std::string ObjectsMatchedPath = "Matched";
+    const std::string ObjectsMatchedPath = "Matched/";
     if (newShapeMake) {
         Eigen::MatrixXd V1, V2, V3, V4, V5;
         Eigen::MatrixXi F1, F2, F3, F4, F5;
@@ -659,8 +659,8 @@ int main2()
             {V5, F5}
         };
 
-        createDirectory(ObjectsMatchedPath);
-        clearDirectory(ObjectsMatchedPath);
+        //createDirectory(ObjectsMatchedPath);
+        //clearDirectory(ObjectsMatchedPath);
 
 
         // Call the main_phase2 function

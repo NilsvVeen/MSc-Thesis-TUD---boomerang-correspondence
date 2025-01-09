@@ -16,6 +16,9 @@
 #include <Polyscope/surface_mesh.h>
 #include <iostream>
 #include <vector>
+#include "stl_utils.h"
+#include "file_utils.h"
+#include "file_utils.h"
 
 // Global variables for mesh storage
 std::vector<Eigen::MatrixXd> vertices;
@@ -105,7 +108,10 @@ void updateMeshTransformations() {
 }
 
 // Main function
-void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
+void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes
+) {
+
+
     vertices.clear();
     faces.clear();
     rotationMatrices.clear();
@@ -231,6 +237,39 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
                 updateMeshTransformations();
             }
         }
+
+        std::string outputFolder = "Matched/";
+        //// Button to save all transformed shapes and the interpolated shape
+        if (ImGui::Button("Save All Shapes")) {
+            // Folder to save the shapes
+
+            createDirectory(outputFolder);
+            clearDirectory(outputFolder);
+
+
+            // Save each transformed shape
+            for (size_t i = 0; i < vertices.size(); ++i) {
+                // Apply transformations to the vertices
+                Eigen::MatrixXd transformedVertices = (rotationMatrices[i] * vertices[i].transpose()).transpose();
+                transformedVertices.rowwise() += translations[i].transpose();
+
+                // Construct filename for each shape
+                std::string shapeFilename = outputFolder + "/Shape_" + std::to_string(i + 1) + ".obj";
+
+                // Save the transformed vertices and faces
+                saveMeshToFile(shapeFilename, transformedVertices, faces[i]);
+            }
+
+
+            // Save the interpolated shape
+            std::string interpolatedFilename = outputFolder + "Interpolated_Shape.obj";
+            saveMeshToFile(interpolatedFilename, V_new, F_new);
+
+            // Notify the user
+            std::cout << "All shapes saved to folder: " << outputFolder << std::endl;
+        }
+
+
 
         ImGui::Separator();
 

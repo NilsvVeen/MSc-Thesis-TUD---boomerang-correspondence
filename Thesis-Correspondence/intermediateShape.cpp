@@ -21,7 +21,7 @@
 std::vector<Eigen::MatrixXd> vertices;
 std::vector<Eigen::MatrixXi> faces;
 std::vector<Eigen::Matrix3d> rotationMatrices;
-std::vector<Eigen::Vector2d> translations;
+std::vector<Eigen::Vector3d> translations;
 Eigen::MatrixXd V_new;
 Eigen::MatrixXi F_new;
 std::vector<double> weights; // Interpolation weights
@@ -32,7 +32,7 @@ Eigen::RowVector3d computeCOG(const Eigen::MatrixXd& V) {
 }
 
 // Apply transformations (rotation and translation) around COG
-Eigen::MatrixXd applyTransformations(const Eigen::MatrixXd& V, const Eigen::Matrix3d& R, const Eigen::Vector2d& T) {
+Eigen::MatrixXd applyTransformations(const Eigen::MatrixXd& V, const Eigen::Matrix3d& R, const Eigen::Vector3d& T) {
     Eigen::RowVector3d cog = computeCOG(V);
     Eigen::MatrixXd transformedV = V;
 
@@ -44,6 +44,7 @@ Eigen::MatrixXd applyTransformations(const Eigen::MatrixXd& V, const Eigen::Matr
     // Apply translation in XY plane
     transformedV.col(0).array() += T(0);
     transformedV.col(1).array() += T(1);
+    transformedV.col(2).array() += T(2);
 
     return transformedV;
 }
@@ -115,7 +116,7 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
         vertices.push_back(shape.first);
         faces.push_back(shape.second);
         rotationMatrices.emplace_back(Eigen::Matrix3d::Identity());
-        translations.emplace_back(Eigen::Vector2d::Zero());
+        translations.emplace_back(Eigen::Vector3d::Zero());
         weights.push_back(1.0 / inputShapes.size()); // Default equal weights
     }
 
@@ -204,6 +205,34 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
             }
         }
 
+        //// Button to calculate the average position of the first model and translate all other models to align with it
+        if (ImGui::Button("Align All Models to First Model's Average Position")) {
+            // Calculate the average position of the first model
+            std::cout << "1" << std::endl;
+            Eigen::Vector3d firstModelAverage = vertices[0].colwise().mean().transpose();
+
+            std::cout << "2222" << std::endl;
+
+
+            // Translate all other models to align with the first model's average position
+            for (size_t i = 1; i < vertices.size(); ++i) { // Skip the first model
+
+                std::cout << "i" << std::endl;
+
+                Eigen::Vector3d currentAverage = vertices[i].colwise().mean().transpose();
+                Eigen::Vector3d translationVector = firstModelAverage - currentAverage;
+
+                // Apply translation to the transformation vector
+                translations[i].x() = translationVector.x();
+                translations[i].y() = translationVector.y();
+                translations[i].z() = translationVector.z();
+
+                // Update mesh transformations
+                updateMeshTransformations();
+            }
+        }
+
+        ImGui::Separator();
 
         if (ImGui::Button("Generate New Shape")) {
             updateIntermediateShape();
@@ -212,3 +241,4 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
 
     polyscope::show();
 }
+

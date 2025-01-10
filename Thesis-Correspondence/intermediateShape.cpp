@@ -28,6 +28,7 @@ std::vector<Eigen::Vector3d> translations;
 Eigen::MatrixXd V_new;
 Eigen::MatrixXi F_new;
 std::vector<double> weights; // Interpolation weights
+std::string outputFolderCopy;
 
 // Function to compute the center of gravity of a mesh
 Eigen::RowVector3d computeCOG(const Eigen::MatrixXd& V) {
@@ -108,10 +109,10 @@ void updateMeshTransformations() {
 }
 
 // Main function
-void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes
+void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes, const std::string outputFolder
 ) {
 
-
+    outputFolderCopy = outputFolder;
     vertices.clear();
     faces.clear();
     rotationMatrices.clear();
@@ -238,36 +239,40 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
             }
         }
 
-        std::string outputFolder = "Matched/";
+
+
+        //std::string outputFolder = "Matched/";
         //// Button to save all transformed shapes and the interpolated shape
         if (ImGui::Button("Save All Shapes")) {
-            // Folder to save the shapes
+            // Explicitly capture 'outputFolder' in the lambda function
+                // Ensure the output folder exists and is clean
+                createDirectory(outputFolderCopy);
+                clearDirectory(outputFolderCopy);
 
-            createDirectory(outputFolder);
-            clearDirectory(outputFolder);
+                // Save each transformed shape
+                for (size_t i = 0; i < vertices.size(); ++i) {
+                    // Apply transformations to the vertices
+                    Eigen::MatrixXd transformedVertices = (rotationMatrices[i] * vertices[i].transpose()).transpose();
+                    transformedVertices.rowwise() += translations[i].transpose();
 
+                    // Construct filename for each shape
+                    std::string shapeFilename = outputFolderCopy + "/Shape_" + std::to_string(i + 1) + ".obj";
 
-            // Save each transformed shape
-            for (size_t i = 0; i < vertices.size(); ++i) {
-                // Apply transformations to the vertices
-                Eigen::MatrixXd transformedVertices = (rotationMatrices[i] * vertices[i].transpose()).transpose();
-                transformedVertices.rowwise() += translations[i].transpose();
+                    // Save the transformed vertices and faces
+                    saveMeshToFile(shapeFilename, transformedVertices, faces[i]);
+                }
 
-                // Construct filename for each shape
-                std::string shapeFilename = outputFolder + "/Shape_" + std::to_string(i + 1) + ".obj";
+                // Save the interpolated shape
+                std::string interpolatedFilename = outputFolderCopy + "/Interpolated_Shape.obj";
+                saveMeshToFile(interpolatedFilename, V_new, F_new);
 
-                // Save the transformed vertices and faces
-                saveMeshToFile(shapeFilename, transformedVertices, faces[i]);
-            }
-
-
-            // Save the interpolated shape
-            std::string interpolatedFilename = outputFolder + "Interpolated_Shape.obj";
-            saveMeshToFile(interpolatedFilename, V_new, F_new);
-
-            // Notify the user
-            std::cout << "All shapes saved to folder: " << outputFolder << std::endl;
+                // Notify the user
+                std::cout << "All shapes saved to folder: " << outputFolderCopy << std::endl;
         }
+
+
+
+
 
 
 

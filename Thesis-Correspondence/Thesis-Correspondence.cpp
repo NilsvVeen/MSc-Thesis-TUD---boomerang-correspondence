@@ -639,7 +639,7 @@ int main2()
     }
 
 
-    const std::string ObjectsMatchedPath = "Matched/";
+    const std::string objectsMatchedPath = "Matched/";
     if (newShapeMake) {
         Eigen::MatrixXd V1, V2, V3, V4, V5;
         Eigen::MatrixXi F1, F2, F3, F4, F5;
@@ -664,7 +664,36 @@ int main2()
 
 
         // Call the main_phase2 function
-        main_phase2(inputShapes);
+        main_phase2(inputShapes, objectsMatchedPath);
+
+    }
+
+    if (PCA) {
+        Eigen::MatrixXd V1, V2, V3, V4, V5;
+        Eigen::MatrixXi F1, F2, F3, F4, F5;
+
+        readMeshFromFile(objectsMatchedPath + "Shape_1.obj", V1, F1);
+        readMeshFromFile(objectsMatchedPath + "Shape_2.obj", V2, F2);
+        readMeshFromFile(objectsMatchedPath + "Shape_3.obj", V3, F3);
+        readMeshFromFile(objectsMatchedPath + "Shape_4.obj", V4, F4);
+        readMeshFromFile(objectsMatchedPath + "Shape_5.obj", V5, F5);
+
+
+        // Combine into a vector of pairs
+        std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
+            {V1, F1},
+            {V2, F2},
+            {V3, F3},
+            {V4, F4},
+            {V5, F5}
+        };
+
+        //createDirectory(ObjectsMatchedPath);
+        //clearDirectory(ObjectsMatchedPath);
+
+
+        // Call the main_phase2 function
+        main_phase2(inputShapes, objectsMatchedPath);
 
     }
 

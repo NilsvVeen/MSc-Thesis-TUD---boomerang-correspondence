@@ -23,6 +23,7 @@
 #include "uvMapCorrespondence.h"
 #include "evaluateCorrespondence.h"
 #include "intermediateShape.h"
+#include "pca.h"
 
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
@@ -44,6 +45,7 @@ static  bool uvMapCorrespondence = false;
 static  bool evaluateCorrespondence = false;
 
 static  bool newShapeMake = false;
+static  bool PCA = false;
 
 
 
@@ -669,6 +671,8 @@ int main2()
     }
 
     if (PCA) {
+
+        std::cout << "PCA" << std::endl;
         Eigen::MatrixXd V1, V2, V3, V4, V5;
         Eigen::MatrixXi F1, F2, F3, F4, F5;
 
@@ -688,12 +692,7 @@ int main2()
             {V5, F5}
         };
 
-        //createDirectory(ObjectsMatchedPath);
-        //clearDirectory(ObjectsMatchedPath);
-
-
-        // Call the main_phase2 function
-        main_phase2(inputShapes, objectsMatchedPath);
+        performPCAAndEditWithVisualization(inputShapes);
 
     }
 
@@ -731,6 +730,8 @@ void performAction() {
 #define ID_BUTTON_UVMAP 106
 #define ID_BUTTON_EVALUATE 107
 #define ID_BUTTON_NEWSHAPE 108  // New button for newShapeMake
+#define ID_BUTTON_PCA 109
+
 
 // Window procedure to handle window messages
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -824,6 +825,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             break;
+        case ID_BUTTON_PCA:
+            PCA = !PCA;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            newShapeMake = false;
+            break;
+
         }
         performAction();
         return 0;
@@ -872,6 +885,9 @@ int main() {
         20, 260, 200, 30, hwnd, (HMENU)ID_BUTTON_EVALUATE, hInstance, NULL);
     CreateWindowEx(0, "BUTTON", "New Shape Make", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
         20, 300, 200, 30, hwnd, (HMENU)ID_BUTTON_NEWSHAPE, hInstance, NULL);  // New button
+    CreateWindowEx(0, "BUTTON", "Perform PCA", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 340, 200, 30, hwnd, (HMENU)ID_BUTTON_PCA, hInstance, NULL);
+
 
     // Set the first button to be selected by default (optional)
     CheckRadioButton(hwnd, ID_BUTTON_PROCESS, ID_BUTTON_NEWSHAPE, ID_BUTTON_PROCESS);

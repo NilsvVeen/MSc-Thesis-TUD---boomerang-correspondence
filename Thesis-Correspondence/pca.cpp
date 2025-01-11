@@ -67,7 +67,7 @@ void performPCAAndEditWithVisualization(
     polyscope::init();
 
     // Add the deformed shape to Polyscope as a surface mesh
-    polyscope::registerSurfaceMesh("Deformed Shape", meanShape, inputShapes[0].second);
+    polyscope::registerSurfaceMesh("Deformed Shape", deformedShape, inputShapes[0].second);
 
     // Optionally, add vertex colors (e.g., distance from mean)
     Eigen::VectorXd vertexColors(numVertices);

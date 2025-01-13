@@ -74,7 +74,7 @@ int main2()
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/test1.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -98,7 +98,7 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/test1.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);

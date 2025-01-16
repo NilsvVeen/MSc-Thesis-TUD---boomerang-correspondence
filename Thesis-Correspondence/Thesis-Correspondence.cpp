@@ -378,7 +378,7 @@ int main2()
         std::cout << "surface Parameterization:" << std::endl;
         polyscope::init();
         createDirectory(surfaceParam);
-        clearDirectory(surfaceParam);
+        //clearDirectory(surfaceParam);
 
         Eigen::MatrixXd Mesh1_V;
         Eigen::MatrixXi Mesh1_F;
@@ -436,8 +436,23 @@ int main2()
         }
 
         //unused now
-        Eigen::MatrixXd connectedBorder = findConnectedBorder(Mesh1_V, Mesh1_F, V3);
-        Eigen::MatrixXd connectedBorder2 = findConnectedBorder(Mesh2_V, Mesh2_F, V3_obj2);
+        Eigen::MatrixXd connectedBorder;
+        Eigen::MatrixXd connectedBorder2;
+
+        bool alreadyRead = true;
+        if (alreadyRead) {
+            std::cout << "already read bonnected boundary before" << std::endl;
+            connectedBorder = readVerticesFromPLY(surfaceParam + "/B1_connected.obj");
+            connectedBorder2 = readVerticesFromPLY(surfaceParam + "/B2_connected.obj");
+        }
+        else {
+            std::cout << "calculate connected boundary" << std::endl;
+
+            connectedBorder = findConnectedBorder(Mesh1_V, Mesh1_F, V3);
+            connectedBorder2 = findConnectedBorder(Mesh2_V, Mesh2_F, V3_obj2);
+            writeVerticesToPLY(surfaceParam + "/B1_connected.obj", connectedBorder);
+            writeVerticesToPLY(surfaceParam + "/B2_connected.obj", connectedBorder2);
+        }
         std::cout << "--------------------vertices Connected border " << connectedBorder.rows() << std::endl;
         std::cout << "--------------------vertices Connected border 2 " << connectedBorder2.rows() << std::endl;
 

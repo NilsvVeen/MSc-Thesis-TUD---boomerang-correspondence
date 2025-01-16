@@ -317,17 +317,20 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
 
 void CompleteBorderCorrespondence(
-     Eigen::MatrixXd& V1,  Eigen::MatrixXi& F1,
-     Eigen::MatrixXd& V2,  Eigen::MatrixXi& F2,
-     Eigen::MatrixXd& border_1,  Eigen::MatrixXd& border_connected_1,
-     Eigen::MatrixXd& border_2,  Eigen::MatrixXd& border_connected_2
+    Eigen::MatrixXd& V1, Eigen::MatrixXi& F1,
+    Eigen::MatrixXd& V2, Eigen::MatrixXi& F2,
+    Eigen::MatrixXd& border_1, Eigen::MatrixXd& border_connected_1,
+    Eigen::MatrixXd& border_2, Eigen::MatrixXd& border_connected_2
 ) {
+    std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
+    std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
-    std::vector<int> newPointsIndices; // Use std::vector for dynamic resizing
+    // Step 1: Find new points in `border_connected_1` that are not in `border_1`
+    std::vector<int> newPointsIndices;
     for (int i = 0; i < border_connected_1.rows(); ++i) {
         bool found = false;
         for (int j = 0; j < border_1.rows(); ++j) {
-            if (border_connected_1.row(i).isApprox(border_1.row(j))) {
+            if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) { // Adjust tolerance if needed
                 found = true;
                 break;
             }
@@ -336,13 +339,52 @@ void CompleteBorderCorrespondence(
             newPointsIndices.push_back(i);
         }
     }
-    std::cout << "new indices" <<  newPointsIndices.size() << std::endl;
+    Eigen::VectorXi newPointsIndicesEigen = Eigen::Map<Eigen::VectorXi>(newPointsIndices.data(), newPointsIndices.size());
+    std::cout << "New indices: " << newPointsIndices.size() << std::endl;
 
-    std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
-    std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
+    // Step 2: For each new point, find its leftmost and rightmost neighbors in `border_1`
+    for (int idx : newPointsIndices) {
+        Eigen::RowVectorXd newPoint = border_connected_1.row(idx);
 
+        // Find the closest point to the left in `border_1`
+        int leftIndex = -1;
+        for (int i = idx - 1; i >= 0; --i) {
+            // Compare the current row with all rows in `border_1`
+            for (int j = 0; j < border_1.rows(); ++j) {
+                if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
+                    leftIndex = i;
+                    break;
+                }
+            }
+            if (leftIndex != -1) break; // Exit the outer loop if found
+        }
+
+        // Find the closest point to the right in `border_1`
+        int rightIndex = -1;
+        for (int i = idx + 1; i < border_connected_1.rows(); ++i) {
+            // Compare the current row with all rows in `border_1`
+            for (int j = 0; j < border_1.rows(); ++j) {
+                if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
+                    rightIndex = i;
+                    break;
+                }
+            }
+            if (rightIndex != -1) break; // Exit the outer loop if found
+        }
+
+        // Print results for debugging
+        std::cout << "New Point Index: " << idx
+            << ", Left Point Index: " << leftIndex
+            << ", Right Point Index: " << rightIndex << std::endl;
+
+        if (leftIndex != -1 && rightIndex != -1) {
+            std::cout << "Left Point: " << border_connected_1.row(leftIndex)
+                << ", Right Point: " << border_connected_1.row(rightIndex) << std::endl;
+        }
+    }
 
 }
+
 
 
 

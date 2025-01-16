@@ -372,7 +372,7 @@ void CompleteBorderCorrespondence(
     Eigen::MatrixXd& V2, Eigen::MatrixXi& F2,
     Eigen::MatrixXd& border_1, Eigen::MatrixXd& border_connected_1,
     Eigen::MatrixXd& border_2, Eigen::MatrixXd& border_connected_2
-){
+) {
     std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
     std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
@@ -399,10 +399,12 @@ void CompleteBorderCorrespondence(
 
         // Find the closest point to the left in `border_1`
         int leftIndex = -1;
+        int leftIndexInBorder = -1;  // Index in border_1
         for (int i = idx - 1; i >= 0; --i) {
             for (int j = 0; j < border_1.rows(); ++j) {
                 if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                     leftIndex = i;
+                    leftIndexInBorder = j;
                     break;
                 }
             }
@@ -411,10 +413,12 @@ void CompleteBorderCorrespondence(
 
         // Find the closest point to the right in `border_1`
         int rightIndex = -1;
+        int rightIndexInBorder = -1;  // Index in border_1
         for (int i = idx + 1; i < border_connected_1.rows(); ++i) {
             for (int j = 0; j < border_1.rows(); ++j) {
                 if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                     rightIndex = i;
+                    rightIndexInBorder = j;
                     break;
                 }
             }
@@ -429,6 +433,10 @@ void CompleteBorderCorrespondence(
         if (leftIndex != -1 && rightIndex != -1) {
             std::cout << "Left Point: " << border_connected_1.row(leftIndex)
                 << ", Right Point: " << border_connected_1.row(rightIndex) << std::endl;
+
+            // Output the corresponding indices in border_1
+            std::cout << "Left Point Index in border_1: " << leftIndexInBorder
+                << ", Right Point Index in border_1: " << rightIndexInBorder << std::endl;
 
             // Step 3: Go over the path from left to right and calculate distances
             std::vector<int> pathIndices;
@@ -461,12 +469,15 @@ void CompleteBorderCorrespondence(
                 std::cout << idx << " ";
             }
             std::cout << std::endl;
+
+            double percentage_distance = std::round(distanceLeftToPoint * 10e3) / 10e3;
+
+            std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
             std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;
             std::cout << "Distance from Left to New Point: " << distanceLeftToPoint << std::endl;
         }
     }
 }
-
 
 
 

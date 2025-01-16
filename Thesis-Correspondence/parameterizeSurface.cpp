@@ -367,28 +367,12 @@ void ComputePathAndDistances(
 
 
 
-#include <Eigen/Dense>
-#include <vector>
-#include <iostream>
-#include <queue>
-#include <functional>
-#include <limits>
-
-struct Node {
-    int index;
-    double distance;
-
-    bool operator>(const Node& other) const {
-        return distance > other.distance;
-    }
-};
-
 void CompleteBorderCorrespondence(
     Eigen::MatrixXd& V1, Eigen::MatrixXi& F1,
     Eigen::MatrixXd& V2, Eigen::MatrixXi& F2,
     Eigen::MatrixXd& border_1, Eigen::MatrixXd& border_connected_1,
     Eigen::MatrixXd& border_2, Eigen::MatrixXd& border_connected_2
-) {
+){
     std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
     std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
@@ -397,7 +381,7 @@ void CompleteBorderCorrespondence(
     for (int i = 0; i < border_connected_1.rows(); ++i) {
         bool found = false;
         for (int j = 0; j < border_1.rows(); ++j) {
-            if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) { // Adjust tolerance if needed
+            if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                 found = true;
                 break;
             }
@@ -422,7 +406,7 @@ void CompleteBorderCorrespondence(
                     break;
                 }
             }
-            if (leftIndex != -1) break;
+            if (leftIndex != -1) break; // Exit if left point is found
         }
 
         // Find the closest point to the right in `border_1`
@@ -434,78 +418,52 @@ void CompleteBorderCorrespondence(
                     break;
                 }
             }
-            if (rightIndex != -1) break;
+            if (rightIndex != -1) break; // Exit if right point is found
         }
 
-        if (leftIndex == -1 || rightIndex == -1) {
-            std::cerr << "Invalid left or right index for new point at index " << idx << std::endl;
-            continue;
-        }
+        // Debugging print
+        std::cout << "New Point Index: " << idx
+            << ", Left Point Index: " << leftIndex
+            << ", Right Point Index: " << rightIndex << std::endl;
 
-        // Step 3: Dijkstra’s algorithm to find the shortest path from leftIndex to rightIndex
-        std::vector<double> distances(border_connected_1.rows(), std::numeric_limits<double>::infinity());
-        std::vector<int> previous(border_connected_1.rows(), -1);
-        std::priority_queue<Node, std::vector<Node>, std::greater<Node>> pq;
+        if (leftIndex != -1 && rightIndex != -1) {
+            std::cout << "Left Point: " << border_connected_1.row(leftIndex)
+                << ", Right Point: " << border_connected_1.row(rightIndex) << std::endl;
 
-        // Starting with the leftIndex
-        distances[leftIndex] = 0.0;
-        pq.push({ leftIndex, 0.0 });
+            // Step 3: Go over the path from left to right and calculate distances
+            std::vector<int> pathIndices;
+            double distanceLeftToRight = 0.0;
+            Eigen::RowVectorXd previousPoint = border_connected_1.row(leftIndex);
+            pathIndices.push_back(leftIndex);
 
-        while (!pq.empty()) {
-            Node current = pq.top();
-            pq.pop();
+            // Go from left to right and collect the path
+            for (int i = leftIndex + 1; i <= rightIndex; ++i) {
+                Eigen::RowVectorXd currentPoint = border_connected_1.row(i);
+                pathIndices.push_back(i);
 
-            int u = current.index;
-
-            // Check the neighbors (adjacent vertices)
-            for (int v = u - 1; v <= u + 1; v += 2) { // Only consider left and right neighbors
-                if (v >= 0 && v < border_connected_1.rows()) {
-                    // Calculate distance from u to v
-                    double dist = (border_connected_1.row(u) - border_connected_1.row(v)).norm();
-                    double newDist = distances[u] + dist;
-
-                    if (newDist < distances[v]) {
-                        distances[v] = newDist;
-                        previous[v] = u;
-                        pq.push({ v, newDist });
-                    }
-                }
+                // Calculate Euclidean distance between consecutive points
+                distanceLeftToRight += (currentPoint - previousPoint).norm();
+                previousPoint = currentPoint;
             }
-        }
 
-        // Step 4: Reconstruct the path from leftIndex to rightIndex
-        std::vector<int> path;
-        for (int v = rightIndex; v != -1; v = previous[v]) {
-            path.push_back(v);
-        }
-        std::reverse(path.begin(), path.end());
-
-        // Step 5: Calculate the distance along the path
-        double distanceLeftToRight = distances[rightIndex];
-
-        // Calculate the distance from leftIndex to the new point
-        double distanceLeftToPoint = 0.0;
-        for (int i = 0; i < path.size(); ++i) {
-            if (path[i] == idx) {
-                break;
+            // Calculate distance from left to the new point
+            double distanceLeftToPoint = 0.0;
+            previousPoint = border_connected_1.row(leftIndex);
+            for (int i = leftIndex + 1; i <= idx; ++i) {
+                Eigen::RowVectorXd currentPoint = border_connected_1.row(i);
+                distanceLeftToPoint += (currentPoint - previousPoint).norm();
+                previousPoint = currentPoint;
             }
-            if (i + 1 < path.size()) {
-                distanceLeftToPoint += (border_connected_1.row(path[i]) - border_connected_1.row(path[i + 1])).norm();
+
+            // Print results
+            std::cout << "Path from Left to Right: ";
+            for (int idx : pathIndices) {
+                std::cout << idx << " ";
             }
+            std::cout << std::endl;
+            std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;
+            std::cout << "Distance from Left to New Point: " << distanceLeftToPoint << std::endl;
         }
-
-        // Print results
-        std::cout << "New Point Index: " << idx << "\n"
-            << "Left Index: " << leftIndex << "\n"
-            << "Right Index: " << rightIndex << "\n"
-            << "Distance Left to Point: " << distanceLeftToPoint << "\n"
-            << "Distance Left to Right: " << distanceLeftToRight << "\n";
-
-        std::cout << "Path from Left to Right: ";
-        for (int p : path) {
-            std::cout << p << " ";
-        }
-        std::cout << std::endl;
     }
 }
 

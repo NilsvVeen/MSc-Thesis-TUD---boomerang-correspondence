@@ -16,4 +16,6 @@ void UVToCorrespondence(
     const Eigen::MatrixXd& UV2,  // UV map of mesh 2     s x 2
     const std::string correspondence3dMatched
 );
+
+Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1, const Eigen::MatrixXd& B1);
  

@@ -74,7 +74,7 @@ int main2()
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/test1.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -98,7 +98,7 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/test1.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -434,6 +434,9 @@ int main2()
                 V3 = temp;
             }
         }
+
+        Eigen::MatrixXd connectedBorder = findConnectedBorder(Mesh1_V, Mesh1_F, V3);
+        std::cout << "--------------------vertices Connected border " << connectedBorder.rows() << std::endl;
 
 
         if (true) {

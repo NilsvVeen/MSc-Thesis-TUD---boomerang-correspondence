@@ -313,8 +313,75 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
 
 
+#include <Eigen/Dense>
+#include <vector>
+#include <iostream>
+#include <queue>
+#include <limits>
+#include <cmath>
+
+// Function to compute path and distances
+void ComputePathAndDistances(
+    const Eigen::MatrixXd& border_connected_1,
+    int pointIndex,
+    int leftIndex,
+    int rightIndex,
+    double& distanceLeftToPoint,
+    double& distanceLeftToRight,
+    std::vector<int>& pathLeftToRight
+) {
+    // Check if indices are valid
+    if (leftIndex == -1 || rightIndex == -1) {
+        std::cerr << "Error: Left or Right Index not found for the given point.\n";
+        distanceLeftToPoint = -1;
+        distanceLeftToRight = -1;
+        return;
+    }
+
+    // Compute the path from leftIndex to rightIndex
+    pathLeftToRight.clear();
+    for (int i = leftIndex; i <= rightIndex; ++i) {
+        pathLeftToRight.push_back(i);
+    }
+
+    // Calculate distances
+    distanceLeftToRight = 0.0;
+    distanceLeftToPoint = 0.0;
+
+    for (size_t i = 0; i < pathLeftToRight.size() - 1; ++i) {
+        int currentIndex = pathLeftToRight[i];
+        int nextIndex = pathLeftToRight[i + 1];
+
+        double segmentDistance = (border_connected_1.row(currentIndex) - border_connected_1.row(nextIndex)).norm();
+        distanceLeftToRight += segmentDistance;
+
+        if (currentIndex == pointIndex || nextIndex == pointIndex) {
+            distanceLeftToPoint = distanceLeftToRight;
+        }
+    }
+}
 
 
+
+
+
+
+
+#include <Eigen/Dense>
+#include <vector>
+#include <iostream>
+#include <queue>
+#include <functional>
+#include <limits>
+
+struct Node {
+    int index;
+    double distance;
+
+    bool operator>(const Node& other) const {
+        return distance > other.distance;
+    }
+};
 
 void CompleteBorderCorrespondence(
     Eigen::MatrixXd& V1, Eigen::MatrixXi& F1,
@@ -349,41 +416,100 @@ void CompleteBorderCorrespondence(
         // Find the closest point to the left in `border_1`
         int leftIndex = -1;
         for (int i = idx - 1; i >= 0; --i) {
-            // Compare the current row with all rows in `border_1`
             for (int j = 0; j < border_1.rows(); ++j) {
                 if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                     leftIndex = i;
                     break;
                 }
             }
-            if (leftIndex != -1) break; // Exit the outer loop if found
+            if (leftIndex != -1) break;
         }
 
         // Find the closest point to the right in `border_1`
         int rightIndex = -1;
         for (int i = idx + 1; i < border_connected_1.rows(); ++i) {
-            // Compare the current row with all rows in `border_1`
             for (int j = 0; j < border_1.rows(); ++j) {
                 if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                     rightIndex = i;
                     break;
                 }
             }
-            if (rightIndex != -1) break; // Exit the outer loop if found
+            if (rightIndex != -1) break;
         }
 
-        // Print results for debugging
-        std::cout << "New Point Index: " << idx
-            << ", Left Point Index: " << leftIndex
-            << ", Right Point Index: " << rightIndex << std::endl;
-
-        if (leftIndex != -1 && rightIndex != -1) {
-            std::cout << "Left Point: " << border_connected_1.row(leftIndex)
-                << ", Right Point: " << border_connected_1.row(rightIndex) << std::endl;
+        if (leftIndex == -1 || rightIndex == -1) {
+            std::cerr << "Invalid left or right index for new point at index " << idx << std::endl;
+            continue;
         }
+
+        // Step 3: Dijkstra’s algorithm to find the shortest path from leftIndex to rightIndex
+        std::vector<double> distances(border_connected_1.rows(), std::numeric_limits<double>::infinity());
+        std::vector<int> previous(border_connected_1.rows(), -1);
+        std::priority_queue<Node, std::vector<Node>, std::greater<Node>> pq;
+
+        // Starting with the leftIndex
+        distances[leftIndex] = 0.0;
+        pq.push({ leftIndex, 0.0 });
+
+        while (!pq.empty()) {
+            Node current = pq.top();
+            pq.pop();
+
+            int u = current.index;
+
+            // Check the neighbors (adjacent vertices)
+            for (int v = u - 1; v <= u + 1; v += 2) { // Only consider left and right neighbors
+                if (v >= 0 && v < border_connected_1.rows()) {
+                    // Calculate distance from u to v
+                    double dist = (border_connected_1.row(u) - border_connected_1.row(v)).norm();
+                    double newDist = distances[u] + dist;
+
+                    if (newDist < distances[v]) {
+                        distances[v] = newDist;
+                        previous[v] = u;
+                        pq.push({ v, newDist });
+                    }
+                }
+            }
+        }
+
+        // Step 4: Reconstruct the path from leftIndex to rightIndex
+        std::vector<int> path;
+        for (int v = rightIndex; v != -1; v = previous[v]) {
+            path.push_back(v);
+        }
+        std::reverse(path.begin(), path.end());
+
+        // Step 5: Calculate the distance along the path
+        double distanceLeftToRight = distances[rightIndex];
+
+        // Calculate the distance from leftIndex to the new point
+        double distanceLeftToPoint = 0.0;
+        for (int i = 0; i < path.size(); ++i) {
+            if (path[i] == idx) {
+                break;
+            }
+            if (i + 1 < path.size()) {
+                distanceLeftToPoint += (border_connected_1.row(path[i]) - border_connected_1.row(path[i + 1])).norm();
+            }
+        }
+
+        // Print results
+        std::cout << "New Point Index: " << idx << "\n"
+            << "Left Index: " << leftIndex << "\n"
+            << "Right Index: " << rightIndex << "\n"
+            << "Distance Left to Point: " << distanceLeftToPoint << "\n"
+            << "Distance Left to Right: " << distanceLeftToRight << "\n";
+
+        std::cout << "Path from Left to Right: ";
+        for (int p : path) {
+            std::cout << p << " ";
+        }
+        std::cout << std::endl;
     }
-
 }
+
+
 
 
 

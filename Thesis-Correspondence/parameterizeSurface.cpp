@@ -315,3 +315,36 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
 
 
+
+void CompleteBorderCorrespondence(
+     Eigen::MatrixXd& V1,  Eigen::MatrixXi& F1,
+     Eigen::MatrixXd& V2,  Eigen::MatrixXi& F2,
+     Eigen::MatrixXd& border_1,  Eigen::MatrixXd& border_connected_1,
+     Eigen::MatrixXd& border_2,  Eigen::MatrixXd& border_connected_2
+) {
+
+    std::vector<int> newPointsIndices; // Use std::vector for dynamic resizing
+    for (int i = 0; i < border_connected_1.rows(); ++i) {
+        bool found = false;
+        for (int j = 0; j < border_1.rows(); ++j) {
+            if (border_connected_1.row(i).isApprox(border_1.row(j))) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            newPointsIndices.push_back(i);
+        }
+    }
+    std::cout << "new indices" <<  newPointsIndices.size() << std::endl;
+
+    std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
+    std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
+
+
+}
+
+
+
+
+

@@ -23,4 +23,11 @@ void CalculateGenus(Eigen::MatrixXd V, Eigen::MatrixXi F);
 Eigen::MatrixXd readAndConcatenatePointClouds(const std::string& folderPath, const std::string& filePatternStr);
 
 
+void CompleteBorderCorrespondence(
+     Eigen::MatrixXd& V1,  Eigen::MatrixXi& F1,
+     Eigen::MatrixXd& V2,  Eigen::MatrixXi& F2,
+     Eigen::MatrixXd& border_1,  Eigen::MatrixXd& border_connected_1,
+     Eigen::MatrixXd& border_2,  Eigen::MatrixXd& border_connected_2
+);
+
 #endif // PARAMETERIZE_SURFACE_H

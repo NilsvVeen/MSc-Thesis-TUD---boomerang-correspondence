@@ -269,10 +269,10 @@ Eigen::MatrixXd findConnectedBorder(const Eigen::MatrixXd& V1, const Eigen::Matr
         // Find the shortest path from vIdxA to vIdxB in V1
         std::vector<int> path = dijkstra(V1, F1, vIdxA, vIdxB);
         //std::cout << "Path from vIdxA to vIdxB: ";
-        for (int idx : path) {
-            std::cout << idx << " ";
-        }
-        std::cout << "\n";
+        //for (int idx : path) {
+        //    std::cout << idx << " ";
+        //}
+        //std::cout << "\n";
 
         // Add all vertices in the path to the list, ensuring uniqueness
         for (int idx : path) {

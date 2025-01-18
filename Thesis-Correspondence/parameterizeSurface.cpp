@@ -376,6 +376,34 @@ void CompleteBorderCorrespondence(
     std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
     std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
+    // Print individual rows for border_1
+    std::cout << "border_1:" << std::endl;
+    for (int i = 0; i < border_1.rows(); ++i) {
+        std::cout << i << ": " << border_1.row(i) << std::endl;
+    }
+
+    // Print individual rows for border_connected_1
+    std::cout << "border_connected_1:" << std::endl;
+    for (int i = 0; i < border_connected_1.rows(); ++i) {
+        std::cout << i << ": " << border_connected_1.row(i) << std::endl;
+    }
+
+    // Print individual rows for border_2
+    std::cout << "border_2:" << std::endl;
+    for (int i = 0; i < border_2.rows(); ++i) {
+        std::cout << i << ": " << border_2.row(i) << std::endl;
+    }
+
+    // Print individual rows for border_connected_2
+    std::cout << "border_connected_2:" << std::endl;
+    for (int i = 0; i < border_connected_2.rows(); ++i) {
+        std::cout << i << ": " << border_connected_2.row(i) << std::endl;
+    }
+
+
+
+    
+
     // Step 1: Find new points in `border_connected_1` that are not in `border_1`
     std::vector<int> newPointsIndices;
     for (int i = 0; i < border_connected_1.rows(); ++i) {
@@ -392,6 +420,11 @@ void CompleteBorderCorrespondence(
     }
     Eigen::VectorXi newPointsIndicesEigen = Eigen::Map<Eigen::VectorXi>(newPointsIndices.data(), newPointsIndices.size());
     std::cout << "New indices: " << newPointsIndices.size() << std::endl;
+
+    polyscope::init();
+    polyscope::registerSurfaceMesh("------ old V2 ", V2, F2);
+    polyscope::registerPointCloud("------- old border V2", border_2);
+    
 
     // Step 2: For each new point, find its leftmost and rightmost neighbors in `border_1`
     for (int idx : newPointsIndices) {
@@ -475,8 +508,104 @@ void CompleteBorderCorrespondence(
             std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
             std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;
             std::cout << "Distance from Left to New Point: " << distanceLeftToPoint << std::endl;
+
+            // Step 4: Insert new vertex in V2 between Left Point and Right Point
+            // Find the corresponding indices of the left and right points in border_connected_2
+            int leftIndexInConnected = -1;
+            int rightIndexInConnected = -1;
+
+            for (int i = 0; i < border_connected_2.rows(); ++i) {
+                //std::cout << i << std::endl;
+                if (border_connected_2.row(i).isApprox(border_2.row(leftIndexInBorder), 1e-6)) {
+                    leftIndexInConnected = i;
+                }
+                if (border_connected_2.row(i).isApprox(border_2.row(rightIndexInBorder), 1e-6)) {
+                    rightIndexInConnected = i;
+                }
+                if (leftIndexInConnected != -1 && rightIndexInConnected != -1) break;
+            }
+
+            if (leftIndexInConnected == -1 || rightIndexInConnected == -1) {
+                //std::cerr << "Error: Could not find left or right index in border_connected_2!" << std::endl;
+                std::cout << "------------------------------------ strangely enough none found!!!!!" << std::endl;
+
+                // Print individual rows for border_2
+                std::cout << "border_2:" << std::endl;
+                for (int i = 0; i < border_2.rows(); ++i) {
+                    std::cout << i << ": " << border_2.row(i) << std::endl;
+                }
+
+                // Print individual rows for border_connected_2
+                std::cout << "border_connected_2:" << std::endl;
+                for (int i = 0; i < border_connected_2.rows(); ++i) {
+                    std::cout << i << ": " << border_connected_2.row(i) << std::endl;
+                }
+
+                while (true) {
+                    int aaa = 0;
+                }
+            }
+
+            // Walk along the edges between leftIndexInConnected and rightIndexInConnected
+            double accumulatedDistance = 0.0;
+            Eigen::RowVectorXd previousPoint2 = border_connected_2.row(leftIndexInConnected);
+            int insertionEdgeIndex = leftIndexInConnected;
+            for (int i = leftIndexInConnected + 1; i <= rightIndexInConnected; ++i) {
+                Eigen::RowVectorXd currentPoint = border_connected_2.row(i);
+                double edgeLength = (currentPoint - previousPoint2).norm();
+                accumulatedDistance += edgeLength;
+
+                if (accumulatedDistance >= percentage_distance * distanceLeftToRight) {
+                    insertionEdgeIndex = i - 1;
+                    break;
+                }
+
+                previousPoint2 = currentPoint;
+            }
+
+            // Calculate the exact position of the new vertex along the identified edge
+            // wrong maybe not::: should calculate over the edges not jsut one edge from begin to end
+            Eigen::RowVectorXd edgeStart = border_connected_2.row(insertionEdgeIndex);
+            Eigen::RowVectorXd edgeEnd = border_connected_2.row(insertionEdgeIndex + 1);
+            double edgeLength = (edgeEnd - edgeStart).norm();
+            double edgePercentage = (percentage_distance * distanceLeftToRight - (accumulatedDistance - edgeLength)) / edgeLength;
+
+            Eigen::RowVectorXd newVertex = edgeStart + (edgeEnd - edgeStart) * edgePercentage;
+
+            // Insert the new vertex into V2
+            V2.conservativeResize(V2.rows() + 1, Eigen::NoChange);
+            V2.row(V2.rows() - 1) = newVertex;
+
+            // Update border_2 by inserting the new vertex at the appropriate position
+            Eigen::MatrixXd updatedBorder2(border_2.rows() + 1, border_2.cols());
+            for (int i = 0; i <= leftIndexInBorder; ++i) {
+                updatedBorder2.row(i) = border_2.row(i);
+            }
+            updatedBorder2.row(leftIndexInBorder + 1) = newVertex;
+            for (int i = leftIndexInBorder + 1; i < border_2.rows(); ++i) {
+                updatedBorder2.row(i + 1) = border_2.row(i);
+            }
+            border_2 = updatedBorder2;
+
+
+
+            std::cout << "New vertex added at index: " << V2.rows() - 1 << std::endl;
+
+
+  
+
+
         }
+
+
+
     }
+
+    polyscope::registerSurfaceMesh("------ new V2 ", V2, F2);
+    polyscope::registerPointCloud("------- new border V2", border_2);
+
+    polyscope::show();
+
 }
 
 

@@ -376,29 +376,6 @@ void CompleteBorderCorrespondence(
     std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
     std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
-    //// Print individual rows for border_1
-    //std::cout << "border_1:" << std::endl;
-    //for (int i = 0; i < border_1.rows(); ++i) {
-    //    std::cout << i << ": " << border_1.row(i) << std::endl;
-    //}
-
-    //// Print individual rows for border_connected_1
-    //std::cout << "border_connected_1:" << std::endl;
-    //for (int i = 0; i < border_connected_1.rows(); ++i) {
-    //    std::cout << i << ": " << border_connected_1.row(i) << std::endl;
-    //}
-
-    //// Print individual rows for border_2
-    //std::cout << "border_2:" << std::endl;
-    //for (int i = 0; i < border_2.rows(); ++i) {
-    //    std::cout << i << ": " << border_2.row(i) << std::endl;
-    //}
-
-    //// Print individual rows for border_connected_2
-    //std::cout << "border_connected_2:" << std::endl;
-    //for (int i = 0; i < border_connected_2.rows(); ++i) {
-    //    std::cout << i << ": " << border_connected_2.row(i) << std::endl;
-    //}
 
 
     Eigen::MatrixXd border_2_original = border_2;
@@ -432,8 +409,8 @@ void CompleteBorderCorrespondence(
 
         // Find the closest point to the left in `border_1`
         int leftIndex = -1;
-        int leftIndexInBorder = -1;  // Index in border_1
-        for (int i = idx - 1; i >= 0; --i) {
+        int leftIndexInBorder = -1; // Index in border_1
+        for (int i = (idx - 1 + border_connected_1.rows()) % border_connected_1.rows(); i != idx; i = (i - 1 + border_connected_1.rows()) % border_connected_1.rows()) {
             for (int j = 0; j < border_1.rows(); ++j) {
                 if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                     leftIndex = i;
@@ -446,8 +423,8 @@ void CompleteBorderCorrespondence(
 
         // Find the closest point to the right in `border_1`
         int rightIndex = -1;
-        int rightIndexInBorder = -1;  // Index in border_1
-        for (int i = idx + 1; i < border_connected_1.rows(); ++i) {
+        int rightIndexInBorder = -1; // Index in border_1
+        for (int i = (idx + 1) % border_connected_1.rows(); i != idx; i = (i + 1) % border_connected_1.rows()) {
             for (int j = 0; j < border_1.rows(); ++j) {
                 if (border_connected_1.row(i).isApprox(border_1.row(j), 1e-6)) {
                     rightIndex = i;
@@ -457,6 +434,7 @@ void CompleteBorderCorrespondence(
             }
             if (rightIndex != -1) break; // Exit if right point is found
         }
+
 
         // Debugging print
         std::cout << "New Point Index: " << idx
@@ -477,8 +455,7 @@ void CompleteBorderCorrespondence(
             Eigen::RowVectorXd previousPoint = border_connected_1.row(leftIndex);
             pathIndices.push_back(leftIndex);
 
-            // Go from left to right and collect the path
-            for (int i = leftIndex + 1; i <= rightIndex; ++i) {
+            for (int i = leftIndex; i != (rightIndex + 1) % border_connected_1.rows(); i = (i + 1) % border_connected_1.rows()) {
                 Eigen::RowVectorXd currentPoint = border_connected_1.row(i);
                 pathIndices.push_back(i);
 
@@ -487,14 +464,17 @@ void CompleteBorderCorrespondence(
                 previousPoint = currentPoint;
             }
 
+
             // Calculate distance from left to the new point
             double distanceLeftToPoint = 0.0;
             previousPoint = border_connected_1.row(leftIndex);
+
             for (int i = leftIndex + 1; i <= idx; ++i) {
                 Eigen::RowVectorXd currentPoint = border_connected_1.row(i);
                 distanceLeftToPoint += (currentPoint - previousPoint).norm();
                 previousPoint = currentPoint;
             }
+
 
             // Print results
             std::cout << "Path from Left to Right: ";
@@ -549,18 +529,19 @@ void CompleteBorderCorrespondence(
             double accumulatedDistance = 0.0;
             Eigen::RowVectorXd previousPoint2 = border_connected_2.row(leftIndexInConnected);
             int insertionEdgeIndex = leftIndexInConnected;
-            for (int i = leftIndexInConnected + 1; i <= rightIndexInConnected; ++i) {
+            for (int i = leftIndexInConnected; i != (rightIndexInConnected + 1) % border_connected_2.rows(); i = (i + 1) % border_connected_2.rows()) {
                 Eigen::RowVectorXd currentPoint = border_connected_2.row(i);
                 double edgeLength = (currentPoint - previousPoint2).norm();
                 accumulatedDistance += edgeLength;
 
                 if (accumulatedDistance >= percentage_distance * distanceLeftToRight) {
-                    insertionEdgeIndex = i - 1;
+                    insertionEdgeIndex = i;
                     break;
                 }
 
                 previousPoint2 = currentPoint;
             }
+
 
             // Calculate the exact position of the new vertex along the identified edge
             // wrong maybe not::: should calculate over the edges not jsut one edge from begin to end

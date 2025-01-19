@@ -376,32 +376,32 @@ void CompleteBorderCorrespondence(
     std::cout << "1,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
     std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
-    // Print individual rows for border_1
-    std::cout << "border_1:" << std::endl;
-    for (int i = 0; i < border_1.rows(); ++i) {
-        std::cout << i << ": " << border_1.row(i) << std::endl;
-    }
+    //// Print individual rows for border_1
+    //std::cout << "border_1:" << std::endl;
+    //for (int i = 0; i < border_1.rows(); ++i) {
+    //    std::cout << i << ": " << border_1.row(i) << std::endl;
+    //}
 
-    // Print individual rows for border_connected_1
-    std::cout << "border_connected_1:" << std::endl;
-    for (int i = 0; i < border_connected_1.rows(); ++i) {
-        std::cout << i << ": " << border_connected_1.row(i) << std::endl;
-    }
+    //// Print individual rows for border_connected_1
+    //std::cout << "border_connected_1:" << std::endl;
+    //for (int i = 0; i < border_connected_1.rows(); ++i) {
+    //    std::cout << i << ": " << border_connected_1.row(i) << std::endl;
+    //}
 
-    // Print individual rows for border_2
-    std::cout << "border_2:" << std::endl;
-    for (int i = 0; i < border_2.rows(); ++i) {
-        std::cout << i << ": " << border_2.row(i) << std::endl;
-    }
+    //// Print individual rows for border_2
+    //std::cout << "border_2:" << std::endl;
+    //for (int i = 0; i < border_2.rows(); ++i) {
+    //    std::cout << i << ": " << border_2.row(i) << std::endl;
+    //}
 
-    // Print individual rows for border_connected_2
-    std::cout << "border_connected_2:" << std::endl;
-    for (int i = 0; i < border_connected_2.rows(); ++i) {
-        std::cout << i << ": " << border_connected_2.row(i) << std::endl;
-    }
+    //// Print individual rows for border_connected_2
+    //std::cout << "border_connected_2:" << std::endl;
+    //for (int i = 0; i < border_connected_2.rows(); ++i) {
+    //    std::cout << i << ": " << border_connected_2.row(i) << std::endl;
+    //}
 
 
-
+    Eigen::MatrixXd border_2_original = border_2;
     
 
     // Step 1: Find new points in `border_connected_1` that are not in `border_1`
@@ -514,36 +514,35 @@ void CompleteBorderCorrespondence(
             int leftIndexInConnected = -1;
             int rightIndexInConnected = -1;
 
+
+
             for (int i = 0; i < border_connected_2.rows(); ++i) {
                 //std::cout << i << std::endl;
-                if (border_connected_2.row(i).isApprox(border_2.row(leftIndexInBorder), 1e-6)) {
+                if (border_connected_2.row(i).isApprox(border_2_original.row(leftIndexInBorder), 1e-6)) {
                     leftIndexInConnected = i;
                 }
-                if (border_connected_2.row(i).isApprox(border_2.row(rightIndexInBorder), 1e-6)) {
+                if (border_connected_2.row(i).isApprox(border_2_original.row(rightIndexInBorder), 1e-6)) {
                     rightIndexInConnected = i;
                 }
-                if (leftIndexInConnected != -1 && rightIndexInConnected != -1) break;
+
+
+    
+
+               
+                if (leftIndexInConnected != -1 && rightIndexInConnected != -1 ) break;
+
             }
 
-            if (leftIndexInConnected == -1 || rightIndexInConnected == -1) {
+
+            // now you got the original index in the border ones. 
+            // use these to then find the index in the updated border_2
+
+
+            if (leftIndexInConnected == -1 || rightIndexInConnected == -1 ) {
                 //std::cerr << "Error: Could not find left or right index in border_connected_2!" << std::endl;
                 std::cout << "------------------------------------ strangely enough none found!!!!!" << std::endl;
 
-                // Print individual rows for border_2
-                std::cout << "border_2:" << std::endl;
-                for (int i = 0; i < border_2.rows(); ++i) {
-                    std::cout << i << ": " << border_2.row(i) << std::endl;
-                }
-
-                // Print individual rows for border_connected_2
-                std::cout << "border_connected_2:" << std::endl;
-                for (int i = 0; i < border_connected_2.rows(); ++i) {
-                    std::cout << i << ": " << border_connected_2.row(i) << std::endl;
-                }
-
-                while (true) {
-                    int aaa = 0;
-                }
+                continue;
             }
 
             // Walk along the edges between leftIndexInConnected and rightIndexInConnected
@@ -578,18 +577,18 @@ void CompleteBorderCorrespondence(
 
             // Update border_2 by inserting the new vertex at the appropriate position
             Eigen::MatrixXd updatedBorder2(border_2.rows() + 1, border_2.cols());
-            for (int i = 0; i <= leftIndexInBorder; ++i) {
+            for (int i = 0; i < idx; ++i) {
                 updatedBorder2.row(i) = border_2.row(i);
             }
-            updatedBorder2.row(leftIndexInBorder + 1) = newVertex;
-            for (int i = leftIndexInBorder + 1; i < border_2.rows(); ++i) {
+            updatedBorder2.row(idx) = newVertex;
+            for (int i = idx; i < border_2.rows(); ++i) {
                 updatedBorder2.row(i + 1) = border_2.row(i);
             }
             border_2 = updatedBorder2;
 
 
 
-            std::cout << "New vertex added at index: " << V2.rows() - 1 << std::endl;
+            std::cout << "New vertex added at index: " << idx  << std::endl;
 
 
   
@@ -600,6 +599,10 @@ void CompleteBorderCorrespondence(
 
 
     }
+
+    std::cout << "1 - updated,    " << border_1.rows() << " ||| " << border_connected_1.rows() << std::endl;
+    std::cout << "2 - updated,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
+
 
     polyscope::registerSurfaceMesh("------ new V2 ", V2, F2);
     polyscope::registerPointCloud("------- new border V2", border_2);

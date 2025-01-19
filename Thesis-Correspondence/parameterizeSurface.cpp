@@ -503,7 +503,7 @@ void CompleteBorderCorrespondence(
             }
             std::cout << std::endl;
 
-            double percentage_distance = std::round(distanceLeftToPoint * 10e3) / 10e3;
+            double percentage_distance = std::round(distanceLeftToPoint / distanceLeftToRight * 10e3) / 10e3;
 
             std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
             std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;

@@ -513,7 +513,7 @@ void CompleteBorderCorrespondence(
 
             }
 
-
+            std::cout << "connected2, left, rightindex " << leftIndexInConnected << " ||| " << rightIndexInConnected << std::endl;
             // now you got the original index in the border ones. 
             // use these to then find the index in the updated border_2
 
@@ -531,29 +531,37 @@ void CompleteBorderCorrespondence(
             // note : I think still issues and not properly done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             // note : I think still issues and not properly done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-            // Walk along the edges between leftIndexInConnected and rightIndexInConnected
+// Compute the total length of edges between leftIndexInConnected and rightIndexInConnected
+            double totalEdgeLength = 0.0;
+            for (int i = leftIndexInConnected; i != (rightIndexInConnected + 1) % border_connected_2.rows(); i = (i + 1) % border_connected_2.rows()) {
+                Eigen::RowVectorXd currentPoint = border_connected_2.row(i);
+                Eigen::RowVectorXd nextPoint = border_connected_2.row((i + 1) % (border_connected_2.rows()+1));
+                totalEdgeLength += (nextPoint - currentPoint).norm();
+            }
+
+            std::cout << "Total Edge Length: " << totalEdgeLength << std::endl;
+
+            // Calculate the target distance based on percentage_distance
+            double targetDistance = percentage_distance * totalEdgeLength;
+            std::cout << "Target Distance (Percentage): " << targetDistance << std::endl;
+
+            // Walk along the edges to reach the target distance
             double accumulatedDistance = 0.0;
             Eigen::RowVectorXd previousPoint2 = border_connected_2.row(leftIndexInConnected);
             int insertionEdgeIndex = leftIndexInConnected;
-
-            //std::cout << "Starting walk along edges in border_connected_2:" << std::endl;
-            //std::cout << "  Left Index in Connected: " << leftIndexInConnected << std::endl;
-            //std::cout << "  Right Index in Connected: " << rightIndexInConnected << std::endl;
-            //std::cout << "  Percentage Distance: " << percentage_distance << std::endl;
-            //std::cout << "  Total Distance (Left to Right): " << distanceLeftToRight << std::endl;
 
             for (int i = leftIndexInConnected; i != (rightIndexInConnected + 1) % border_connected_2.rows(); i = (i + 1) % border_connected_2.rows()) {
                 Eigen::RowVectorXd currentPoint = border_connected_2.row(i);
                 double edgeLength = (currentPoint - previousPoint2).norm();
                 accumulatedDistance += edgeLength;
 
-                //std::cout << "  Walking edge: " << i << " -> " << (i + 1) % border_connected_2.rows() << std::endl;
-                //std::cout << "    Current Point: " << currentPoint << std::endl;
-                //std::cout << "    Previous Point: " << previousPoint2 << std::endl;
-                //std::cout << "    Edge Length: " << edgeLength << std::endl;
-                //std::cout << "    Accumulated Distance: " << accumulatedDistance << std::endl;
+                std::cout << "Walking edge: " << i << " -> " << (i + 1) % border_connected_2.rows() << std::endl;
+                std::cout << "  Current Point: " << currentPoint << std::endl;
+                std::cout << "  Previous Point: " << previousPoint2 << std::endl;
+                std::cout << "  Edge Length: " << edgeLength << std::endl;
+                std::cout << "  Accumulated Distance: " << accumulatedDistance << std::endl;
 
-                if (accumulatedDistance >= percentage_distance * distanceLeftToRight) {
+                if (accumulatedDistance >= targetDistance) {
                     insertionEdgeIndex = i;
                     std::cout << "  Found insertion edge at index: " << insertionEdgeIndex << std::endl;
                     break;
@@ -566,9 +574,16 @@ void CompleteBorderCorrespondence(
             Eigen::RowVectorXd edgeStart = border_connected_2.row(insertionEdgeIndex);
             Eigen::RowVectorXd edgeEnd = border_connected_2.row((insertionEdgeIndex + 1) % border_connected_2.rows());
             double edgeLength = (edgeEnd - edgeStart).norm();
-            double edgePercentage = (percentage_distance * distanceLeftToRight - (accumulatedDistance - edgeLength)) / edgeLength;
+            double edgePercentage = (targetDistance - (accumulatedDistance - edgeLength)) / edgeLength;
 
             Eigen::RowVectorXd newVertex = edgeStart + (edgeEnd - edgeStart) * edgePercentage;
+
+            std::cout << "Final Calculations:" << std::endl;
+            std::cout << "  Edge Start: " << edgeStart << std::endl;
+            std::cout << "  Edge End: " << edgeEnd << std::endl;
+            std::cout << "  Edge Length: " << edgeLength << std::endl;
+            std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
+            std::cout << "  New Vertex: " << newVertex << std::endl;
 
             //std::cout << "Final Calculations:" << std::endl;
             //std::cout << "  Edge Start: " << edgeStart << std::endl;

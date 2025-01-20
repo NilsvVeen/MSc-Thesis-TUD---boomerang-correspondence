@@ -526,12 +526,8 @@ void CompleteBorderCorrespondence(
             }
 
 
-            // note : I think still issues and not properly done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // note : I think still issues and not properly done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // note : I think still issues and not properly done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            // note : I think still issues and not properly done!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-// Compute the total length of edges between leftIndexInConnected and rightIndexInConnected
+            // Compute the total length of edges between leftIndexInConnected and rightIndexInConnected
             double totalEdgeLength = 0.0;
             int currentIndex = leftIndexInConnected;
 
@@ -621,6 +617,16 @@ void CompleteBorderCorrespondence(
             std::cout << "New vertex added at index: " << idx  << std::endl;
 
 
+
+            // now given edgeStart, edgeEnd and newVertex on that line between those points.
+            // split the faces ath the newVertex location. Every edge is used by 2 triangles. Split them into 4
+            // so triangle 1 : A, B, C, tirangle 2, A, B, D.  Where A=edgestart, B=edgeEnd (or B=edgeStart, A=edgeEnd). X = newVertex Split this into
+            // T1: A,X,C   
+            // T2: X,B,C
+            // T3: A, X, D
+            // T4: X, B, D
+
+            // make sure the references of the faces maintain ok..
   
 
 

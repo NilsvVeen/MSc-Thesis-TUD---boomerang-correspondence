@@ -370,9 +370,8 @@ void splitEdgeAndMaintainFaces(
     Eigen::RowVectorXd newVertex,
     Eigen::RowVectorXd rightVertex
 ) {
-    std::cout << "-----------------\n\n" << std::endl;
 
-    // Find indices of leftVertex, newVertex, rightVertex in V2
+    // Find indices of leftVertex, newVertex, rightVertex, and leftVertexNeighbour in V2
     int leftIndex = -1, newIndex = -1, rightIndex = -1, leftNeighbourIndex = -1;
 
     for (int i = 0; i < V2.rows(); ++i) {
@@ -396,39 +395,51 @@ void splitEdgeAndMaintainFaces(
     std::cout << "New Vertex Index: " << newIndex << std::endl;
     std::cout << "Right Vertex Index: " << rightIndex << std::endl;
 
-    // Find the triangles that contain both leftIndex and rightIndex
-    std::vector<int> trianglesContainingEdge; // Store indices of the triangles
-    std::vector<int> trianglesContainingEdge2; // Store indices of the triangles
+    // Find the triangles that contain both leftNeighbourIndex and rightIndex
+    std::vector<int> trianglesContainingEdge;
     for (int i = 0; i < F2.rows(); ++i) {
-        // Check if leftIndex and rightIndex are part of the current face
-        bool containsLeft = (F2(i, 0) == leftIndex || F2(i, 1) == leftIndex || F2(i, 2) == leftIndex);
+        // Check if the current triangle contains leftNeighbourIndex and rightIndex
         bool containsLeftNeighbour = (F2(i, 0) == leftNeighbourIndex || F2(i, 1) == leftNeighbourIndex || F2(i, 2) == leftNeighbourIndex);
         bool containsRight = (F2(i, 0) == rightIndex || F2(i, 1) == rightIndex || F2(i, 2) == rightIndex);
-        if (containsLeft && containsRight) {
-            trianglesContainingEdge.push_back(i);
-        }
         if (containsLeftNeighbour && containsRight) {
-            trianglesContainingEdge2.push_back(i);
+            trianglesContainingEdge.push_back(i);
         }
     }
 
     // Print the triangles containing the edge
-    std::cout << "Triangles containing the edge (" << leftIndex << ", " << rightIndex << "):" << std::endl;
+    std::cout << "Triangles containing the edge (" << leftNeighbourIndex << ", " << rightIndex << "):" << std::endl;
     for (int t : trianglesContainingEdge) {
         std::cout << "Triangle " << t << ": [" << F2(t, 0) << ", " << F2(t, 1) << ", " << F2(t, 2) << "]" << std::endl;
     }
 
-    // Verify if 4 triangles are found
-    if (trianglesContainingEdge.size() != 2) {
-        std::cerr << "Error: Expected 2 triangles containing the edge, but found " << trianglesContainingEdge.size() << std::endl;
-        return;
-    }
-    if (trianglesContainingEdge2.size() != 2) {
-        std::cerr << "Error: Expected 2 triangles containing the edge, but found " << trianglesContainingEdge2.size() << std::endl;
-    }
+    // Split each triangle found
+    for (int t : trianglesContainingEdge) {
+        // Extract the vertices of the triangle
+        int A = F2(t, 0);
+        int B = F2(t, 1);
+        int C = F2(t, 2);
 
-    // Further logic to split the triangles can be added here...
+        // Determine which vertices correspond to leftNeighbourIndex and rightIndex
+        int otherVertex = -1;
+        if (A != leftNeighbourIndex && A != rightIndex) otherVertex = A;
+        if (B != leftNeighbourIndex && B != rightIndex) otherVertex = B;
+        if (C != leftNeighbourIndex && C != rightIndex) otherVertex = C;
+
+        // Replace the current triangle with (leftNeighbourIndex, newIndex, otherVertex)
+        F2(t, 0) = leftNeighbourIndex;
+        F2(t, 1) = newIndex;
+        F2(t, 2) = otherVertex;
+
+        // Add a new triangle (newIndex, rightIndex, otherVertex) at the end of the faces list
+        F2.conservativeResize(F2.rows() + 1, Eigen::NoChange);
+        F2.row(F2.rows() - 1) << newIndex, rightIndex, otherVertex;
+
+        std::cout << "Split Triangle " << t << " into:" << std::endl;
+        std::cout << "  [" << leftNeighbourIndex << ", " << newIndex << ", " << otherVertex << "]" << std::endl;
+        std::cout << "  [" << newIndex << ", " << rightIndex << ", " << otherVertex << "]" << std::endl;
+    }
 }
+
 
 
 
@@ -553,9 +564,9 @@ void CompleteBorderCorrespondence(
 
             double percentage_distance = std::round(distanceLeftToPoint / distanceLeftToRight * 10e3) / 10e3;
 
-            std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
-            std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;
-            std::cout << "Distance from Left to New Point: " << distanceLeftToPoint << std::endl;
+            //std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
+            //std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;
+            //std::cout << "Distance from Left to New Point: " << distanceLeftToPoint << std::endl;
 
             // Step 4: Insert new vertex in V2 between Left Point and Right Point
             // Find the corresponding indices of the left and right points in border_connected_2
@@ -581,7 +592,8 @@ void CompleteBorderCorrespondence(
 
             }
 
-            std::cout << "connected2, left, rightindex " << leftIndexInConnected << " ||| " << rightIndexInConnected << std::endl;
+            //std::cout << "connected2, left, rightindex " << leftIndexInConnected << " ||| " << rightIndexInConnected << std::endl;
+            // 
             // now you got the original index in the border ones. 
             // use these to then find the index in the updated border_2
 
@@ -612,11 +624,11 @@ void CompleteBorderCorrespondence(
                 currentIndex = nextIndex; // Move to the next index
             }
 
-            std::cout << "Total Edge Length: " << totalEdgeLength << std::endl;
+            //std::cout << "Total Edge Length: " << totalEdgeLength << std::endl;
 
             // Calculate the target distance based on percentage_distance
             double targetDistance = percentage_distance * totalEdgeLength;
-            std::cout << "Target Distance (Percentage): " << targetDistance << std::endl;
+            //std::cout << "Target Distance (Percentage): " << targetDistance << std::endl;
 
             // Walk along the edges to reach the target distance
             double accumulatedDistance = 0.0;
@@ -634,14 +646,14 @@ void CompleteBorderCorrespondence(
 
                 accumulatedDistance += edgeLength;
 
-                std::cout << "Walking edge: " << currentIndex << " -> " << nextIndex << std::endl;
-                std::cout << "  Current Point: " << currentPoint.transpose() << std::endl;
-                std::cout << "  Previous Point: " << border_connected_2.row(currentIndex).transpose() << std::endl;
-                std::cout << "  Edge Length: " << edgeLength << std::endl;
-                std::cout << "  Accumulated Distance: " << accumulatedDistance << std::endl;
+                //std::cout << "Walking edge: " << currentIndex << " -> " << nextIndex << std::endl;
+                //std::cout << "  Current Point: " << currentPoint.transpose() << std::endl;
+                //std::cout << "  Previous Point: " << border_connected_2.row(currentIndex).transpose() << std::endl;
+                //std::cout << "  Edge Length: " << edgeLength << std::endl;
+                //std::cout << "  Accumulated Distance: " << accumulatedDistance << std::endl;
 
                 if (accumulatedDistance >= targetDistance) {
-                    std::cout << "  Found insertion edge at index: " << currentIndex << std::endl;
+                    //std::cout << "  Found insertion edge at index: " << currentIndex << std::endl;
                     break;
                 }
 
@@ -656,12 +668,12 @@ void CompleteBorderCorrespondence(
 
             Eigen::RowVectorXd newVertex = edgeStart + (edgeEnd - edgeStart) * edgePercentage;
 
-            std::cout << "Final Calculations:" << std::endl;
-            std::cout << "  Edge Start: " << edgeStart.transpose() << std::endl;
-            std::cout << "  Edge End: " << edgeEnd.transpose() << std::endl;
-            std::cout << "  Edge Length: " << edgeLength << std::endl;
-            std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
-            std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
+            //std::cout << "Final Calculations:" << std::endl;
+            //std::cout << "  Edge Start: " << edgeStart.transpose() << std::endl;
+            //std::cout << "  Edge End: " << edgeEnd.transpose() << std::endl;
+            //std::cout << "  Edge Length: " << edgeLength << std::endl;
+            //std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
+            //std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
 
 
 
@@ -708,6 +720,9 @@ void CompleteBorderCorrespondence(
             );
 
         }
+
+
+        std::cout << "-----------------\n\n" << std::endl;
 
 
 

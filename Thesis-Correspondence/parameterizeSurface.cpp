@@ -362,6 +362,74 @@ void ComputePathAndDistances(
 }
 
 
+void splitEdgeAndMaintainFaces(
+    Eigen::MatrixXd& V2,                // Vertex positions (Nx3)
+    Eigen::MatrixXi& F2,                // Faces (Mx3)
+    Eigen::RowVectorXd leftVertex,
+    Eigen::RowVectorXd leftVertexNeighbour,
+    Eigen::RowVectorXd newVertex,
+    Eigen::RowVectorXd rightVertex
+) {
+    std::cout << "-----------------\n\n" << std::endl;
+
+    // Find indices of leftVertex, newVertex, rightVertex in V2
+    int leftIndex = -1, newIndex = -1, rightIndex = -1, leftNeighbourIndex = -1;
+
+    for (int i = 0; i < V2.rows(); ++i) {
+        if (V2.row(i).isApprox(leftVertex)) {
+            leftIndex = i;
+        }
+        if (V2.row(i).isApprox(newVertex)) {
+            newIndex = i;
+        }
+        if (V2.row(i).isApprox(rightVertex)) {
+            rightIndex = i;
+        }
+        if (V2.row(i).isApprox(leftVertexNeighbour)) {
+            leftNeighbourIndex = i;
+        }
+    }
+
+    // Print the indices
+    std::cout << "Left Vertex Index: " << leftIndex << std::endl;
+    std::cout << "Left Vertex Neighbour Index: " << leftNeighbourIndex << std::endl;
+    std::cout << "New Vertex Index: " << newIndex << std::endl;
+    std::cout << "Right Vertex Index: " << rightIndex << std::endl;
+
+    // Find the triangles that contain both leftIndex and rightIndex
+    std::vector<int> trianglesContainingEdge; // Store indices of the triangles
+    std::vector<int> trianglesContainingEdge2; // Store indices of the triangles
+    for (int i = 0; i < F2.rows(); ++i) {
+        // Check if leftIndex and rightIndex are part of the current face
+        bool containsLeft = (F2(i, 0) == leftIndex || F2(i, 1) == leftIndex || F2(i, 2) == leftIndex);
+        bool containsLeftNeighbour = (F2(i, 0) == leftNeighbourIndex || F2(i, 1) == leftNeighbourIndex || F2(i, 2) == leftNeighbourIndex);
+        bool containsRight = (F2(i, 0) == rightIndex || F2(i, 1) == rightIndex || F2(i, 2) == rightIndex);
+        if (containsLeft && containsRight) {
+            trianglesContainingEdge.push_back(i);
+        }
+        if (containsLeftNeighbour && containsRight) {
+            trianglesContainingEdge2.push_back(i);
+        }
+    }
+
+    // Print the triangles containing the edge
+    std::cout << "Triangles containing the edge (" << leftIndex << ", " << rightIndex << "):" << std::endl;
+    for (int t : trianglesContainingEdge) {
+        std::cout << "Triangle " << t << ": [" << F2(t, 0) << ", " << F2(t, 1) << ", " << F2(t, 2) << "]" << std::endl;
+    }
+
+    // Verify if 4 triangles are found
+    if (trianglesContainingEdge.size() != 2) {
+        std::cerr << "Error: Expected 2 triangles containing the edge, but found " << trianglesContainingEdge.size() << std::endl;
+        return;
+    }
+    if (trianglesContainingEdge2.size() != 2) {
+        std::cerr << "Error: Expected 2 triangles containing the edge, but found " << trianglesContainingEdge2.size() << std::endl;
+    }
+
+    // Further logic to split the triangles can be added here...
+}
+
 
 
 
@@ -626,9 +694,18 @@ void CompleteBorderCorrespondence(
             // T3: A, X, D
             // T4: X, B, D
 
+            //input for function: V2, F2, (A,B,X)
+
             // make sure the references of the faces maintain ok..
   
-
+            splitEdgeAndMaintainFaces(
+                V2,                // Vertex positions (Nx3)
+                F2,                // Faces (Mx3)
+                edgeStart,
+                border_2.row(idx-1),
+                newVertex,
+                edgeEnd
+            );
 
         }
 

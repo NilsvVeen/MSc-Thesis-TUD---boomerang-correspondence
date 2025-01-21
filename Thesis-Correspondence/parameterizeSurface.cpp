@@ -426,41 +426,55 @@ void splitEdgeAndMaintainFaces(
         int B = F2_original(t, 1);
         int C = F2_original(t, 2);
 
-        // Determine which vertex is neither leftIndex nor rightIndex
-        int otherVertex = -1;
-        if (A != leftIndex && A != rightIndex) otherVertex = A;
-        if (B != leftIndex && B != rightIndex) otherVertex = B;
-        if (C != leftIndex && C != rightIndex) otherVertex = C;
+        // Determine indices in the triangle
+        int indexLeft = -1, indexRight = -1, indexOther = -1;
 
-        // Debug: Print the triangle and its orientation
-        bool isCCW = isTriangleCCW(leftIndex, rightIndex, otherVertex);
-        std::cout << "Triangle " << t << " - Original: (" << A << ", " << B << ", " << C << "), ";
-        std::cout << "Orientation: " << (isCCW ? "CCW" : "CW") << std::endl;
+        if (A == leftIndex) indexLeft = 0;
+        if (B == leftIndex) indexLeft = 1;
+        if (C == leftIndex) indexLeft = 2;
+
+        if (A == rightIndex) indexRight = 0;
+        if (B == rightIndex) indexRight = 1;
+        if (C == rightIndex) indexRight = 2;
+
+        if (A != leftIndex && A != rightIndex) indexOther = 0;
+        if (B != leftIndex && B != rightIndex) indexOther = 1;
+        if (C != leftIndex && C != rightIndex) indexOther = 2;
+
+        // Debug: Print indices
+        std::cout << "Triangle " << t << " - Indices: Left = " << indexLeft
+            << ", Right = " << indexRight << ", Other = " << indexOther << std::endl;
+
+        // Ensure indices are valid
+        if (indexLeft == -1 || indexRight == -1 || indexOther == -1) {
+            std::cerr << "Error: Indices could not be resolved!" << std::endl;
+            continue;
+        }
+
+        // Create a new triangle ordering to replace the current one
+        Eigen::Vector3i updatedTriangle;
+        updatedTriangle[indexLeft] = newIndex;
+        updatedTriangle[indexRight] = rightIndex;
+        updatedTriangle[indexOther] = F2_original(t, indexOther);
 
         // Replace the current triangle
-        if (isCCW) {
-            F2(t, 0) = newIndex;
-            F2(t, 1) = rightIndex;
-            F2(t, 2) = otherVertex;
-            std::cout << "Updated Triangle " << t << ": (" << newIndex << ", " << rightIndex << ", " << otherVertex << ")" << std::endl;
-        }
-        else {
-            F2(t, 0) = newIndex;
-            F2(t, 1) = otherVertex;
-            F2(t, 2) = rightIndex;
-            std::cout << "Updated Triangle " << t << ": (" << newIndex << ", " << otherVertex << ", " << rightIndex << ")" << std::endl;
-        }
+        F2.row(t) = updatedTriangle;
+        std::cout << "Updated Triangle " << t << ": (" << updatedTriangle[0] << ", "
+            << updatedTriangle[1] << ", " << updatedTriangle[2] << ")" << std::endl;
 
-        // Add a new triangle
+        // Add a new triangle with the same order
+        Eigen::Vector3i newTriangle;
+        newTriangle[indexLeft] = leftIndex;
+        newTriangle[indexRight] = newIndex;
+        newTriangle[indexOther] = F2_original(t, indexOther);
+
         F2.conservativeResize(F2.rows() + 1, Eigen::NoChange);
-        if (isCCW) {
-            F2.row(F2.rows() - 1) << leftIndex, newIndex, otherVertex;
-            std::cout << "Added Triangle: (" << leftIndex << ", " << newIndex << ", " << otherVertex << ")" << std::endl;
-        }
-        else {
-            F2.row(F2.rows() - 1) << leftIndex, otherVertex, newIndex;
-            std::cout << "Added Triangle: (" << leftIndex << ", " << otherVertex << ", " << newIndex << ")" << std::endl;
-        }
+        F2.row(F2.rows() - 1) = newTriangle;
+
+        std::cout << "Added Triangle: (" << newTriangle[0] << ", " << newTriangle[1]
+            << ", " << newTriangle[2] << ")" << std::endl;
+
+        break;
     }
 }
 

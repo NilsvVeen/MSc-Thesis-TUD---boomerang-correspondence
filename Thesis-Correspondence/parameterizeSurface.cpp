@@ -365,7 +365,7 @@ void ComputePathAndDistances(
 void splitEdgeAndMaintainFaces(
     Eigen::MatrixXd& V2,                // Vertex positions (Nx3)
     Eigen::MatrixXi& F2,                // Faces (Mx3)
-    Eigen::MatrixXi& F2_original,                // Faces (Mx3)
+    Eigen::MatrixXi& F2_original,       // Original faces (Mx3)
     Eigen::RowVectorXd leftVertex,
     Eigen::RowVectorXd newVertex,
     Eigen::RowVectorXd rightVertex
@@ -385,15 +385,15 @@ void splitEdgeAndMaintainFaces(
         }
     }
 
-    // Print the indices
-    std::cout << "Left Vertex Index: " << leftIndex << std::endl;
-    std::cout << "New Vertex Index: " << newIndex << std::endl;
-    std::cout << "Right Vertex Index: " << rightIndex << std::endl;
+    // Ensure all vertices were found
+    if (leftIndex == -1 || newIndex == -1 || rightIndex == -1) {
+        std::cerr << "Error: One or more vertices not found in V2!" << std::endl;
+        return;
+    }
 
-    // Find the triangles that contain both leftIndex and rightIndex
+    // Determine the triangles containing the edge (leftIndex, rightIndex)
     std::vector<int> trianglesContainingEdge;
     for (int i = 0; i < F2_original.rows(); ++i) {
-        // Check if the current triangle contains leftIndex and rightIndex
         bool containsLeft = (F2_original(i, 0) == leftIndex || F2_original(i, 1) == leftIndex || F2_original(i, 2) == leftIndex);
         bool containsRight = (F2_original(i, 0) == rightIndex || F2_original(i, 1) == rightIndex || F2_original(i, 2) == rightIndex);
         if (containsLeft && containsRight) {
@@ -401,11 +401,13 @@ void splitEdgeAndMaintainFaces(
         }
     }
 
-    // Print the triangles containing the edge
-    std::cout << "Triangles containing the edge (" << leftIndex << ", " << rightIndex << "):" << std::endl;
-    for (int t : trianglesContainingEdge) {
-        std::cout << "Triangle " << t << ": [" << F2_original(t, 0) << ", " << F2_original(t, 1) << ", " << F2_original(t, 2) << "]" << std::endl;
-    }
+    // Function to determine if a triangle is CCW
+    auto isTriangleCCW = [&](int A, int B, int C) -> bool {
+        Eigen::RowVector3d v0 = V2.row(B) - V2.row(A);
+        Eigen::RowVector3d v1 = V2.row(C) - V2.row(A);
+        Eigen::RowVector3d normal = v0.cross(v1); // Compute normal
+        return normal.z() > 0; // Assumes winding is in the XY plane
+    };
 
     for (int t : trianglesContainingEdge) {
         // Extract the vertices of the triangle
@@ -419,45 +421,32 @@ void splitEdgeAndMaintainFaces(
         if (B != leftIndex && B != rightIndex) otherVertex = B;
         if (C != leftIndex && C != rightIndex) otherVertex = C;
 
-        // Get the indices of leftIndex, newIndex, and otherVertex in the triangle
-        int leftPos = -1, newPos = -1, otherPos = -1, rightPos = -1;
-        if (A == leftIndex) leftPos = 0;
-        if (B == leftIndex) leftPos = 1;
-        if (C == leftIndex) leftPos = 2;
+        // Determine if the original triangle is CCW
+        bool isCCW = isTriangleCCW(leftIndex, rightIndex, otherVertex);
 
-        if (A == newIndex) newPos = 0;
-        if (B == newIndex) newPos = 1;
-        if (C == newIndex) newPos = 2;
+        // Replace the current triangle
+        if (isCCW) {
+            F2(t, 0) = newIndex;
+            F2(t, 1) = rightIndex;
+            F2(t, 2) = otherVertex;
+        }
+        else {
+            F2(t, 0) = newIndex;
+            F2(t, 1) = otherVertex;
+            F2(t, 2) = rightIndex;
+        }
 
-        if (A == otherVertex) otherPos = 0;
-        if (B == otherVertex) otherPos = 1;
-        if (C == otherVertex) otherPos = 2;
-
-        if (A == rightIndex) rightPos = 0;
-        if (B == rightIndex) rightPos = 1;
-        if (C == rightIndex) rightPos = 2;
-
-        //// Print the positions in the triangle
-        std::cout << "Triangle " << t << ": [" << A << ", " << B << ", " << C << "]" << std::endl;
-        std::cout << "  leftIndex is at position: " << leftPos << std::endl;
-        std::cout << "  newIndex is at position: " << newPos << std::endl;
-        std::cout << "  otherVertex is at position: " << otherPos << std::endl;
-        std::cout << "  rightVertex is at position: " << rightPos << std::endl;
-
-        // Replace the current triangle with (newIndex, rightIndex, otherVertex)
-        F2(t, 0) = newIndex;
-        F2(t, 1) = F2(t, rightPos);
-        F2(t, 2) = F2(t, otherPos);
-
-        // Add a new triangle (leftIndex-new, newIndex, otherVertex) at the end of the faces list
+        // Add a new triangle
         F2.conservativeResize(F2.rows() + 1, Eigen::NoChange);
-        F2.row(F2.rows() - 1) << F2(t,leftPos), newIndex, F2(t, otherPos);
-
-        std::cout << "Split Triangle " << t << " into:" << std::endl;
-        std::cout << "  Replace: [" << newIndex << ", " << rightIndex << ", " << otherVertex << "]" << std::endl;
-        std::cout << "  Add: [" << F2(t, leftPos) << ", " << newIndex << ", " << otherVertex << "]" << std::endl;
+        if (isCCW) {
+            F2.row(F2.rows() - 1) << leftIndex, newIndex, otherVertex;
+        }
+        else {
+            F2.row(F2.rows() - 1) << leftIndex, otherVertex, newIndex;
+        }
     }
 }
+
 
 
 

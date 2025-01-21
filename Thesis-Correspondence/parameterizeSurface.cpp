@@ -365,6 +365,7 @@ void ComputePathAndDistances(
 void splitEdgeAndMaintainFaces(
     Eigen::MatrixXd& V2,                // Vertex positions (Nx3)
     Eigen::MatrixXi& F2,                // Faces (Mx3)
+    Eigen::MatrixXi& F2_original,                // Faces (Mx3)
     Eigen::RowVectorXd leftVertex,
     Eigen::RowVectorXd newVertex,
     Eigen::RowVectorXd rightVertex
@@ -391,10 +392,10 @@ void splitEdgeAndMaintainFaces(
 
     // Find the triangles that contain both leftIndex and rightIndex
     std::vector<int> trianglesContainingEdge;
-    for (int i = 0; i < F2.rows(); ++i) {
+    for (int i = 0; i < F2_original.rows(); ++i) {
         // Check if the current triangle contains leftIndex and rightIndex
-        bool containsLeft = (F2(i, 0) == leftIndex || F2(i, 1) == leftIndex || F2(i, 2) == leftIndex);
-        bool containsRight = (F2(i, 0) == rightIndex || F2(i, 1) == rightIndex || F2(i, 2) == rightIndex);
+        bool containsLeft = (F2_original(i, 0) == leftIndex || F2_original(i, 1) == leftIndex || F2_original(i, 2) == leftIndex);
+        bool containsRight = (F2_original(i, 0) == rightIndex || F2_original(i, 1) == rightIndex || F2_original(i, 2) == rightIndex);
         if (containsLeft && containsRight) {
             trianglesContainingEdge.push_back(i);
         }
@@ -403,15 +404,14 @@ void splitEdgeAndMaintainFaces(
     // Print the triangles containing the edge
     std::cout << "Triangles containing the edge (" << leftIndex << ", " << rightIndex << "):" << std::endl;
     for (int t : trianglesContainingEdge) {
-        std::cout << "Triangle " << t << ": [" << F2(t, 0) << ", " << F2(t, 1) << ", " << F2(t, 2) << "]" << std::endl;
+        std::cout << "Triangle " << t << ": [" << F2_original(t, 0) << ", " << F2_original(t, 1) << ", " << F2_original(t, 2) << "]" << std::endl;
     }
 
-    // Split each triangle found
     for (int t : trianglesContainingEdge) {
         // Extract the vertices of the triangle
-        int A = F2(t, 0);
-        int B = F2(t, 1);
-        int C = F2(t, 2);
+        int A = F2_original(t, 0);
+        int B = F2_original(t, 1);
+        int C = F2_original(t, 2);
 
         // Determine which vertex is neither leftIndex nor rightIndex
         int otherVertex = -1;
@@ -419,18 +419,43 @@ void splitEdgeAndMaintainFaces(
         if (B != leftIndex && B != rightIndex) otherVertex = B;
         if (C != leftIndex && C != rightIndex) otherVertex = C;
 
-        // Replace the current triangle with (leftIndex, newIndex, otherVertex)
-        F2(t, 0) = leftIndex;
-        F2(t, 1) = newIndex;
-        F2(t, 2) = otherVertex;
+        // Get the indices of leftIndex, newIndex, and otherVertex in the triangle
+        int leftPos = -1, newPos = -1, otherPos = -1, rightPos = -1;
+        if (A == leftIndex) leftPos = 0;
+        if (B == leftIndex) leftPos = 1;
+        if (C == leftIndex) leftPos = 2;
 
-        // Add a new triangle (newIndex, rightIndex, otherVertex) at the end of the faces list
+        if (A == newIndex) newPos = 0;
+        if (B == newIndex) newPos = 1;
+        if (C == newIndex) newPos = 2;
+
+        if (A == otherVertex) otherPos = 0;
+        if (B == otherVertex) otherPos = 1;
+        if (C == otherVertex) otherPos = 2;
+
+        if (A == rightIndex) rightPos = 0;
+        if (B == rightIndex) rightPos = 1;
+        if (C == rightIndex) rightPos = 2;
+
+        //// Print the positions in the triangle
+        std::cout << "Triangle " << t << ": [" << A << ", " << B << ", " << C << "]" << std::endl;
+        std::cout << "  leftIndex is at position: " << leftPos << std::endl;
+        std::cout << "  newIndex is at position: " << newPos << std::endl;
+        std::cout << "  otherVertex is at position: " << otherPos << std::endl;
+        std::cout << "  rightVertex is at position: " << rightPos << std::endl;
+
+        // Replace the current triangle with (newIndex, rightIndex, otherVertex)
+        F2(t, 0) = newIndex;
+        F2(t, 1) = F2(t, rightPos);
+        F2(t, 2) = F2(t, otherPos);
+
+        // Add a new triangle (leftIndex-new, newIndex, otherVertex) at the end of the faces list
         F2.conservativeResize(F2.rows() + 1, Eigen::NoChange);
-        F2.row(F2.rows() - 1) << newIndex, rightIndex, otherVertex;
+        F2.row(F2.rows() - 1) << F2(t,leftPos), newIndex, F2(t, otherPos);
 
         std::cout << "Split Triangle " << t << " into:" << std::endl;
-        std::cout << "  [" << leftIndex << ", " << newIndex << ", " << otherVertex << "]" << std::endl;
-        std::cout << "  [" << newIndex << ", " << rightIndex << ", " << otherVertex << "]" << std::endl;
+        std::cout << "  Replace: [" << newIndex << ", " << rightIndex << ", " << otherVertex << "]" << std::endl;
+        std::cout << "  Add: [" << F2(t, leftPos) << ", " << newIndex << ", " << otherVertex << "]" << std::endl;
     }
 }
 
@@ -451,7 +476,7 @@ void CompleteBorderCorrespondence(
     std::cout << "2,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
 
-
+    Eigen::MatrixXi F2_original = F2;
     Eigen::MatrixXd border_2_original = border_2;
     
 
@@ -708,6 +733,7 @@ void CompleteBorderCorrespondence(
             splitEdgeAndMaintainFaces(
                 V2,                // Vertex positions (Nx3)
                 F2,                // Faces (Mx3)
+                F2_original, 
                 edgeStart,
                 newVertex,
                 edgeEnd

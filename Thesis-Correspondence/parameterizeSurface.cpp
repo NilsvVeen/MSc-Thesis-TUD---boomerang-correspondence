@@ -366,13 +366,11 @@ void splitEdgeAndMaintainFaces(
     Eigen::MatrixXd& V2,                // Vertex positions (Nx3)
     Eigen::MatrixXi& F2,                // Faces (Mx3)
     Eigen::RowVectorXd leftVertex,
-    Eigen::RowVectorXd leftVertexNeighbour,
     Eigen::RowVectorXd newVertex,
     Eigen::RowVectorXd rightVertex
 ) {
-
-    // Find indices of leftVertex, newVertex, rightVertex, and leftVertexNeighbour in V2
-    int leftIndex = -1, newIndex = -1, rightIndex = -1, leftNeighbourIndex = -1;
+    // Find indices of leftVertex, newVertex, and rightVertex in V2
+    int leftIndex = -1, newIndex = -1, rightIndex = -1;
 
     for (int i = 0; i < V2.rows(); ++i) {
         if (V2.row(i).isApprox(leftVertex)) {
@@ -384,30 +382,26 @@ void splitEdgeAndMaintainFaces(
         if (V2.row(i).isApprox(rightVertex)) {
             rightIndex = i;
         }
-        if (V2.row(i).isApprox(leftVertexNeighbour)) {
-            leftNeighbourIndex = i;
-        }
     }
 
     // Print the indices
     std::cout << "Left Vertex Index: " << leftIndex << std::endl;
-    std::cout << "Left Vertex Neighbour Index: " << leftNeighbourIndex << std::endl;
     std::cout << "New Vertex Index: " << newIndex << std::endl;
     std::cout << "Right Vertex Index: " << rightIndex << std::endl;
 
-    // Find the triangles that contain both leftNeighbourIndex and rightIndex
+    // Find the triangles that contain both leftIndex and rightIndex
     std::vector<int> trianglesContainingEdge;
     for (int i = 0; i < F2.rows(); ++i) {
-        // Check if the current triangle contains leftNeighbourIndex and rightIndex
-        bool containsLeftNeighbour = (F2(i, 0) == leftNeighbourIndex || F2(i, 1) == leftNeighbourIndex || F2(i, 2) == leftNeighbourIndex);
+        // Check if the current triangle contains leftIndex and rightIndex
+        bool containsLeft = (F2(i, 0) == leftIndex || F2(i, 1) == leftIndex || F2(i, 2) == leftIndex);
         bool containsRight = (F2(i, 0) == rightIndex || F2(i, 1) == rightIndex || F2(i, 2) == rightIndex);
-        if (containsLeftNeighbour && containsRight) {
+        if (containsLeft && containsRight) {
             trianglesContainingEdge.push_back(i);
         }
     }
 
     // Print the triangles containing the edge
-    std::cout << "Triangles containing the edge (" << leftNeighbourIndex << ", " << rightIndex << "):" << std::endl;
+    std::cout << "Triangles containing the edge (" << leftIndex << ", " << rightIndex << "):" << std::endl;
     for (int t : trianglesContainingEdge) {
         std::cout << "Triangle " << t << ": [" << F2(t, 0) << ", " << F2(t, 1) << ", " << F2(t, 2) << "]" << std::endl;
     }
@@ -419,14 +413,14 @@ void splitEdgeAndMaintainFaces(
         int B = F2(t, 1);
         int C = F2(t, 2);
 
-        // Determine which vertices correspond to leftNeighbourIndex and rightIndex
+        // Determine which vertex is neither leftIndex nor rightIndex
         int otherVertex = -1;
-        if (A != leftNeighbourIndex && A != rightIndex) otherVertex = A;
-        if (B != leftNeighbourIndex && B != rightIndex) otherVertex = B;
-        if (C != leftNeighbourIndex && C != rightIndex) otherVertex = C;
+        if (A != leftIndex && A != rightIndex) otherVertex = A;
+        if (B != leftIndex && B != rightIndex) otherVertex = B;
+        if (C != leftIndex && C != rightIndex) otherVertex = C;
 
-        // Replace the current triangle with (leftNeighbourIndex, newIndex, otherVertex)
-        F2(t, 0) = leftNeighbourIndex;
+        // Replace the current triangle with (leftIndex, newIndex, otherVertex)
+        F2(t, 0) = leftIndex;
         F2(t, 1) = newIndex;
         F2(t, 2) = otherVertex;
 
@@ -435,10 +429,11 @@ void splitEdgeAndMaintainFaces(
         F2.row(F2.rows() - 1) << newIndex, rightIndex, otherVertex;
 
         std::cout << "Split Triangle " << t << " into:" << std::endl;
-        std::cout << "  [" << leftNeighbourIndex << ", " << newIndex << ", " << otherVertex << "]" << std::endl;
+        std::cout << "  [" << leftIndex << ", " << newIndex << ", " << otherVertex << "]" << std::endl;
         std::cout << "  [" << newIndex << ", " << rightIndex << ", " << otherVertex << "]" << std::endl;
     }
 }
+
 
 
 
@@ -714,7 +709,6 @@ void CompleteBorderCorrespondence(
                 V2,                // Vertex positions (Nx3)
                 F2,                // Faces (Mx3)
                 edgeStart,
-                border_2.row(idx-1),
                 newVertex,
                 edgeEnd
             );

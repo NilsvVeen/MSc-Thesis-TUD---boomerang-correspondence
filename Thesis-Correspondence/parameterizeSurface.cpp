@@ -503,9 +503,9 @@ void CompleteBorderCorrespondence(
     Eigen::VectorXi newPointsIndicesEigen = Eigen::Map<Eigen::VectorXi>(newPointsIndices.data(), newPointsIndices.size());
     std::cout << "New indices: " << newPointsIndices.size() << std::endl;
 
-    polyscope::init();
-    polyscope::registerSurfaceMesh("------ old V2 ", V2, F2);
-    polyscope::registerPointCloud("------- old border V2", border_2);
+    //polyscope::init();
+    //polyscope::registerSurfaceMesh("------ old V2 ", V2, F2);
+    //polyscope::registerPointCloud("------- old border V2", border_2);
     
 
     // Step 2: For each new point, find its leftmost and rightmost neighbors in `border_1`
@@ -758,10 +758,10 @@ void CompleteBorderCorrespondence(
     std::cout << "2 - updated,    " << border_2.rows() << " ||| " << border_connected_2.rows() << std::endl;
 
 
-    polyscope::registerSurfaceMesh("------ new V2 ", V2, F2);
-    polyscope::registerPointCloud("------- new border V2", border_2);
+    //polyscope::registerSurfaceMesh("------ new V2 ", V2, F2);
+    //polyscope::registerPointCloud("------- new border V2", border_2);
 
-    polyscope::show();
+    //polyscope::show();
 
 }
 

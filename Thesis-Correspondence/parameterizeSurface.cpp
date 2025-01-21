@@ -362,6 +362,7 @@ void ComputePathAndDistances(
 }
 
 
+
 void splitEdgeAndMaintainFaces(
     Eigen::MatrixXd& V2,                // Vertex positions (Nx3)
     Eigen::MatrixXi& F2,                // Faces (Mx3)
@@ -391,6 +392,9 @@ void splitEdgeAndMaintainFaces(
         return;
     }
 
+    // Debug: Print found indices
+    std::cout << "Indices - Left: " << leftIndex << ", New: " << newIndex << ", Right: " << rightIndex << std::endl;
+
     // Determine the triangles containing the edge (leftIndex, rightIndex)
     std::vector<int> trianglesContainingEdge;
     for (int i = 0; i < F2_original.rows(); ++i) {
@@ -400,6 +404,13 @@ void splitEdgeAndMaintainFaces(
             trianglesContainingEdge.push_back(i);
         }
     }
+
+    // Debug: Print triangles containing the edge
+    std::cout << "Triangles containing the edge (" << leftIndex << ", " << rightIndex << "): ";
+    for (int t : trianglesContainingEdge) {
+        std::cout << t << " ";
+    }
+    std::cout << std::endl;
 
     // Function to determine if a triangle is CCW
     auto isTriangleCCW = [&](int A, int B, int C) -> bool {
@@ -421,28 +432,34 @@ void splitEdgeAndMaintainFaces(
         if (B != leftIndex && B != rightIndex) otherVertex = B;
         if (C != leftIndex && C != rightIndex) otherVertex = C;
 
-        // Determine if the original triangle is CCW
+        // Debug: Print the triangle and its orientation
         bool isCCW = isTriangleCCW(leftIndex, rightIndex, otherVertex);
+        std::cout << "Triangle " << t << " - Original: (" << A << ", " << B << ", " << C << "), ";
+        std::cout << "Orientation: " << (isCCW ? "CCW" : "CW") << std::endl;
 
         // Replace the current triangle
         if (isCCW) {
             F2(t, 0) = newIndex;
             F2(t, 1) = rightIndex;
             F2(t, 2) = otherVertex;
+            std::cout << "Updated Triangle " << t << ": (" << newIndex << ", " << rightIndex << ", " << otherVertex << ")" << std::endl;
         }
         else {
             F2(t, 0) = newIndex;
             F2(t, 1) = otherVertex;
             F2(t, 2) = rightIndex;
+            std::cout << "Updated Triangle " << t << ": (" << newIndex << ", " << otherVertex << ", " << rightIndex << ")" << std::endl;
         }
 
         // Add a new triangle
         F2.conservativeResize(F2.rows() + 1, Eigen::NoChange);
         if (isCCW) {
             F2.row(F2.rows() - 1) << leftIndex, newIndex, otherVertex;
+            std::cout << "Added Triangle: (" << leftIndex << ", " << newIndex << ", " << otherVertex << ")" << std::endl;
         }
         else {
             F2.row(F2.rows() - 1) << leftIndex, otherVertex, newIndex;
+            std::cout << "Added Triangle: (" << leftIndex << ", " << otherVertex << ", " << newIndex << ")" << std::endl;
         }
     }
 }

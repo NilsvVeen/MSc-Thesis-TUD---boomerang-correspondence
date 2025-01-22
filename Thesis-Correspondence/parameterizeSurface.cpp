@@ -95,6 +95,62 @@ void CalculateGenus(Eigen::MatrixXd V, Eigen::MatrixXi F) {
 }
 
 
+//// Function to compute the boundary smoothness energy with stronger smoothing
+//Eigen::VectorXd computeBoundaryEnergy(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Eigen::VectorXi& B, const Eigen::MatrixXd& UV) {
+//    Eigen::VectorXd energy(B.size());
+//
+//    // Compute the smoothness energy based on neighboring boundary UVs
+//    for (int i = 0; i < B.size(); ++i) {
+//        int vIdx = B[i];
+//        Eigen::Vector2d uv = UV.row(vIdx);  // This is a 1x2 row vector
+//
+//        // Neighbors: Wrap around using modulus to avoid index out of bounds
+//        Eigen::Vector2d neighborUV = UV.row(B[(i + 1) % B.size()]).transpose();  // Next neighbor
+//        Eigen::Vector2d prevUV = UV.row(B[(i - 1 + B.size()) % B.size()]).transpose();  // Previous neighbor
+//
+//        // Compute the smoothness energy as the difference from the previous and next boundary UVs
+//        Eigen::Vector2d deltaNext = uv - neighborUV;
+//        Eigen::Vector2d deltaPrev = uv - prevUV;
+//
+//        // Use the combined difference as an energy measure
+//        energy(i) = (deltaNext.norm() + deltaPrev.norm()) / 2.0;  // Average energy based on both neighbors
+//    }
+//
+//    return energy;
+//}
+//
+//// Modified LSCM with stronger smoothness energy on the boundary
+//void lscmWithSmoothBoundary(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, const Eigen::VectorXi& B, const Eigen::MatrixXd& BC, Eigen::MatrixXd& UV) {
+//    // Perform LSCM first
+//    igl::lscm(V, F, B, BC, UV);
+//
+//    // After LSCM, add smoothness energy adjustment
+//    Eigen::VectorXd boundaryEnergy = computeBoundaryEnergy(V, F, B, UV);
+//
+//    // Stronger smoothing iteration to reduce large peaks
+//    int numIterations = 200;  // Number of iterations to smooth the boundary
+//    double smoothingFactor = 1;  // Strength of smoothing
+//
+//    for (int iteration = 0; iteration < numIterations; ++iteration) {
+//        for (int i = 0; i < B.size(); ++i) {
+//            int vIdx = B[i];
+//
+//            // Neighbors: Wrap around using modulus to avoid index out of bounds
+//            Eigen::Vector2d neighborUV = UV.row(B[(i + 1) % B.size()]).transpose();  // Next neighbor
+//            Eigen::Vector2d prevUV = UV.row(B[(i - 1 + B.size()) % B.size()]).transpose();  // Previous neighbor
+//
+//            // Laplacian smoothing: Take the average of the neighbors
+//            Eigen::Vector2d smoothedUV = (prevUV + neighborUV) / 2.0;
+//
+//            // Apply smoothing with a weighted factor
+//            UV.row(vIdx) = (1 - smoothingFactor) * UV.row(vIdx) + smoothingFactor * smoothedUV.transpose();
+//        }
+//    }
+//
+//    // Optionally, re-run LSCM after adjustment to further refine the result
+//    igl::lscm(V, F, B, BC, UV);
+//}
+
 
 
 bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::MatrixXd& UV, const Eigen::MatrixXd& boundary_vertices, bool boundaryEnabled, const Eigen::MatrixXd& boundary_vertices_other)
@@ -208,7 +264,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
         // Perform LSCM with additional parameters
         igl::lscm(V, F, B, BC, UV);
         //igl::harmonic(V, F, B, BC, 2, UV); // The last parameter is the harmonic order
-
+        //lscmWithSmoothBoundary(V, F, B, BC, UV);
 
 
 

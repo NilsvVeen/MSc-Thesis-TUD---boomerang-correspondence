@@ -456,7 +456,7 @@ int main2()
         std::cout << "--------------------vertices Connected border " << connectedBorder.rows() << std::endl;
         std::cout << "--------------------vertices Connected border 2 " << connectedBorder2.rows() << std::endl;
 
-        CompleteBorderCorrespondence(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V3, connectedBorder, V3_obj2, connectedBorder2);
+        //CompleteBorderCorrespondence(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V3, connectedBorder, V3_obj2, connectedBorder2);
 
 
         if (true) {

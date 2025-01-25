@@ -735,7 +735,7 @@ void CompleteBorderCorrespondence(
             //edge case lefindexInconnected other way around!?!
             // so swap them then. 
             // Swap the values
-            if (leftIndexInConnected > rightIndexInConnected) {
+            if (leftIndexInConnected > rightIndexInConnected && rightIndexInConnected != 0) {
                 std::swap(leftIndexInConnected, rightIndexInConnected);
             }
 

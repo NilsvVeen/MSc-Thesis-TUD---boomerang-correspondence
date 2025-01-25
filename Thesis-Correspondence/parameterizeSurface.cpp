@@ -596,6 +596,10 @@ void CompleteBorderCorrespondence(
     for (int idx : newPointsIndices) {
         Eigen::RowVectorXd newPoint = border_connected_1.row(idx);
 
+
+        std::cout << "----------Part `: Get Locations and path in Mesh1" << std::endl;
+
+
         // Find the closest point to the left in `border_1`
         int leftIndex = -1;
         int leftIndexInBorder = -1; // Index in border_1
@@ -677,11 +681,19 @@ void CompleteBorderCorrespondence(
             }
             std::cout << std::endl;
 
+
+            
+
             double percentage_distance = std::round(distanceLeftToPoint / distanceLeftToRight * 10e3) / 10e3;
 
-            //std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
+            std::cout << "Distance percentage Left to right : " << percentage_distance << std::endl;
             //std::cout << "Distance from Left to Right: " << distanceLeftToRight << std::endl;
             //std::cout << "Distance from Left to New Point: " << distanceLeftToPoint << std::endl;
+
+            std::cout << "----------Part 2: go over path in second mesh" << std::endl;
+
+
+
 
             // Step 4: Insert new vertex in V2 between Left Point and Right Point
             // Find the corresponding indices of the left and right points in border_connected_2
@@ -707,8 +719,8 @@ void CompleteBorderCorrespondence(
 
             }
 
-            //std::cout << "connected2, left, rightindex " << leftIndexInConnected << " ||| " << rightIndexInConnected << std::endl;
-            // 
+            std::cout << "in border_2_connected, left, rightindex " << leftIndexInConnected << " ||| " << rightIndexInConnected << std::endl;
+             
             // now you got the original index in the border ones. 
             // use these to then find the index in the updated border_2
 
@@ -720,6 +732,12 @@ void CompleteBorderCorrespondence(
                 continue;
             }
 
+            //edge case lefindexInconnected other way around!?!
+            // so swap them then. 
+            // Swap the values
+            if (leftIndexInConnected > rightIndexInConnected) {
+                std::swap(leftIndexInConnected, rightIndexInConnected);
+            }
 
 
             // Compute the total length of edges between leftIndexInConnected and rightIndexInConnected
@@ -732,8 +750,11 @@ void CompleteBorderCorrespondence(
                 // Break condition: stop after the edge that ends at rightIndexInConnected
                 if (currentIndex == rightIndexInConnected) break;
 
+
                 Eigen::RowVectorXd currentPoint = border_connected_2.row(currentIndex);
                 Eigen::RowVectorXd nextPoint = border_connected_2.row(nextIndex);
+                std::cout << "index first: " << currentIndex << " point: " << currentPoint << std::endl;
+                std::cout << "index second: " << nextIndex << " point: " << nextPoint << std::endl;
 
                 totalEdgeLength += (nextPoint - currentPoint).norm();
                 currentIndex = nextIndex; // Move to the next index
@@ -783,12 +804,12 @@ void CompleteBorderCorrespondence(
 
             Eigen::RowVectorXd newVertex = edgeStart + (edgeEnd - edgeStart) * edgePercentage;
 
-            //std::cout << "Final Calculations:" << std::endl;
-            //std::cout << "  Edge Start: " << edgeStart.transpose() << std::endl;
-            //std::cout << "  Edge End: " << edgeEnd.transpose() << std::endl;
-            //std::cout << "  Edge Length: " << edgeLength << std::endl;
-            //std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
-            //std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
+            std::cout << "Final Calculations:" << std::endl;
+            std::cout << "  Edge Start: " << edgeStart.transpose() << std::endl;
+            std::cout << "  Edge End: " << edgeEnd.transpose() << std::endl;
+            std::cout << "  Edge Length: " << edgeLength << std::endl;
+            std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
+            std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
 
 
             Eigen::MatrixXd V2_backup = V2;

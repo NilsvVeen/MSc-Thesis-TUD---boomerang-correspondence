@@ -425,7 +425,8 @@ void splitEdgeAndMaintainFaces(
     Eigen::MatrixXi& F2_original,       // Original faces (Mx3)
     Eigen::RowVectorXd leftVertex,
     Eigen::RowVectorXd newVertex,
-    Eigen::RowVectorXd rightVertex
+    Eigen::RowVectorXd rightVertex,
+    int& info
 ) {
     // Find indices of leftVertex, newVertex, and rightVertex in V2
     int leftIndex = -1, newIndex = -1, rightIndex = -1;
@@ -514,7 +515,7 @@ void splitEdgeAndMaintainFaces(
         updatedTriangle[indexOther] = F2_original(t, indexOther);
 
         // Replace the current triangle
-        F2.row(t) = updatedTriangle;
+        //F2.row(t) = updatedTriangle;
         std::cout << "Updated Triangle " << t << ": (" << updatedTriangle[0] << ", "
             << updatedTriangle[1] << ", " << updatedTriangle[2] << ")" << std::endl;
 
@@ -524,13 +525,20 @@ void splitEdgeAndMaintainFaces(
         newTriangle[indexRight] = newIndex;
         newTriangle[indexOther] = F2_original(t, indexOther);
 
-        F2.conservativeResize(F2.rows() + 1, Eigen::NoChange);
+        F2.conservativeResize(F2.rows() + 2, Eigen::NoChange);
         F2.row(F2.rows() - 1) = newTriangle;
+        F2.row(F2.rows() - 2) = updatedTriangle;
 
         std::cout << "Added Triangle: (" << newTriangle[0] << ", " << newTriangle[1]
             << ", " << newTriangle[2] << ")" << std::endl;
 
-        break;
+        //break;
+    }
+    if (trianglesContainingEdge.size() > 0) {
+        info = 1;
+    }
+    else {
+        info = 2;
     }
 }
 
@@ -572,6 +580,12 @@ void CompleteBorderCorrespondence(
     }
     Eigen::VectorXi newPointsIndicesEigen = Eigen::Map<Eigen::VectorXi>(newPointsIndices.data(), newPointsIndices.size());
     std::cout << "New indices: " << newPointsIndices.size() << std::endl;
+
+    std::cout << "newPointsIndices: ";
+    for (const auto& idx : newPointsIndices) {
+        std::cout << idx << " ";
+    }
+    std::cout << std::endl;
 
     //polyscope::init();
     //polyscope::registerSurfaceMesh("------ old V2 ", V2, F2);
@@ -619,6 +633,11 @@ void CompleteBorderCorrespondence(
         if (leftIndex != -1 && rightIndex != -1) {
             std::cout << "Left Point: " << border_connected_1.row(leftIndex)
                 << ", Right Point: " << border_connected_1.row(rightIndex) << std::endl;
+
+            
+
+            std::cout << "Left Point Border2: " << border_2_original.row(leftIndexInBorder)
+                << ", Right Point Border2: " << border_2_original.row(rightIndexInBorder) << std::endl;
 
             // Output the corresponding indices in border_1
             std::cout << "Left Point Index in border_1: " << leftIndexInBorder
@@ -772,25 +791,13 @@ void CompleteBorderCorrespondence(
             //std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
 
 
+            Eigen::MatrixXd V2_backup = V2;
 
             // Insert the new vertex into V2
             V2.conservativeResize(V2.rows() + 1, Eigen::NoChange);
             V2.row(V2.rows() - 1) = newVertex;
 
-            // Update border_2 by inserting the new vertex at the appropriate position
-            Eigen::MatrixXd updatedBorder2(border_2.rows() + 1, border_2.cols());
-            for (int i = 0; i < idx; ++i) {
-                updatedBorder2.row(i) = border_2.row(i);
-            }
-            updatedBorder2.row(idx) = newVertex;
-            for (int i = idx; i < border_2.rows(); ++i) {
-                updatedBorder2.row(i + 1) = border_2.row(i);
-            }
-            border_2 = updatedBorder2;
 
-
-
-            std::cout << "New vertex added at index: " << idx  << std::endl;
 
 
 
@@ -805,15 +812,47 @@ void CompleteBorderCorrespondence(
             //input for function: V2, F2, (A,B,X)
 
             // make sure the references of the faces maintain ok..
-  
+            int infoX = 0;
             splitEdgeAndMaintainFaces(
                 V2,                // Vertex positions (Nx3)
                 F2,                // Faces (Mx3)
                 F2_original, 
                 edgeStart,
                 newVertex,
-                edgeEnd
+                edgeEnd,
+                infoX
             );
+            if (infoX == 1 || infoX == 2) {
+
+                // Update border_2 by inserting the new vertex at the appropriate position
+                Eigen::MatrixXd updatedBorder2(border_2.rows() + 1, border_2.cols());
+                for (int i = 0; i < idx; ++i) {
+                    updatedBorder2.row(i) = border_2.row(i);
+                }
+                updatedBorder2.row(idx) = newVertex;
+                for (int i = idx; i < border_2.rows(); ++i) {
+                    updatedBorder2.row(i + 1) = border_2.row(i);
+                }
+                border_2 = updatedBorder2;
+
+
+
+                std::cout << "New vertex added at index: " << idx << "Vertex:" << newVertex<<  std::endl;
+
+
+                if (idx == 366 || idx == 757 || idx == 1747) {
+                    std::string name;
+
+                    std::getline(std::cin, name);  // To take a full line input, including spaces
+                }
+            }
+            if (infoX == 2 ){
+                //std::cout << " indx could be faulty   =======================  " << idx <<  std::endl;
+                //    std::string x;
+                //    std::cin >> x;
+                
+                //V2 = V2_backup;
+            }
 
         }
 

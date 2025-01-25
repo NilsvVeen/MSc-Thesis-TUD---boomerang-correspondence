@@ -734,7 +734,7 @@ void CompleteBorderCorrespondence(
 
             //edge case lefindexInconnected other way around!?!
             // so swap them then. 
-            // Swap the values
+            // Swap the values -- might not be bugfree, but highly likely no issues
             if (leftIndexInConnected > rightIndexInConnected && rightIndexInConnected != 0) {
                 std::swap(leftIndexInConnected, rightIndexInConnected);
             }
@@ -753,8 +753,8 @@ void CompleteBorderCorrespondence(
 
                 Eigen::RowVectorXd currentPoint = border_connected_2.row(currentIndex);
                 Eigen::RowVectorXd nextPoint = border_connected_2.row(nextIndex);
-                std::cout << "index first: " << currentIndex << " point: " << currentPoint << std::endl;
-                std::cout << "index second: " << nextIndex << " point: " << nextPoint << std::endl;
+                //std::cout << "index first: " << currentIndex << " point: " << currentPoint << std::endl;
+                //std::cout << "index second: " << nextIndex << " point: " << nextPoint << std::endl;
 
                 totalEdgeLength += (nextPoint - currentPoint).norm();
                 currentIndex = nextIndex; // Move to the next index
@@ -804,12 +804,12 @@ void CompleteBorderCorrespondence(
 
             Eigen::RowVectorXd newVertex = edgeStart + (edgeEnd - edgeStart) * edgePercentage;
 
-            std::cout << "Final Calculations:" << std::endl;
-            std::cout << "  Edge Start: " << edgeStart.transpose() << std::endl;
-            std::cout << "  Edge End: " << edgeEnd.transpose() << std::endl;
-            std::cout << "  Edge Length: " << edgeLength << std::endl;
-            std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
-            std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
+            //std::cout << "Final Calculations:" << std::endl;
+            //std::cout << "  Edge Start: " << edgeStart.transpose() << std::endl;
+            //std::cout << "  Edge End: " << edgeEnd.transpose() << std::endl;
+            //std::cout << "  Edge Length: " << edgeLength << std::endl;
+            //std::cout << "  Edge Percentage: " << edgePercentage << std::endl;
+            //std::cout << "  New Vertex: " << newVertex.transpose() << std::endl;
 
 
             Eigen::MatrixXd V2_backup = V2;
@@ -861,11 +861,11 @@ void CompleteBorderCorrespondence(
                 std::cout << "New vertex added at index: " << idx << "Vertex:" << newVertex<<  std::endl;
 
 
-                if (idx == 366 || idx == 757 || idx == 1747) {
-                    std::string name;
+                //if (idx == 366 || idx == 757 || idx == 1747) {
+                //    std::string name;
 
-                    std::getline(std::cin, name);  // To take a full line input, including spaces
-                }
+                //    std::getline(std::cin, name);  // To take a full line input, including spaces
+                //}
             }
             if (infoX == 2 ){
                 //std::cout << " indx could be faulty   =======================  " << idx <<  std::endl;

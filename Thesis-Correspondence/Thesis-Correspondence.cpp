@@ -435,73 +435,124 @@ int main2()
             }
         }
 
-        //unused now
-        Eigen::MatrixXd connectedBorder;
-        Eigen::MatrixXd connectedBorder2;
+        
+         
+        bool improvedUVMap = false;
 
-        bool alreadyRead = true;
-        if (alreadyRead) {
-            std::cout << "already read bonnected boundary before" << std::endl;
-            connectedBorder = readVerticesFromPLY(surfaceParam + "/B1_connected.obj");
-            connectedBorder2 = readVerticesFromPLY(surfaceParam + "/B2_connected.obj");
+        // this gets all the boundary vertices of the UV map seperately (so no jagged crap)
+        if (improvedUVMap) {
+
+            Eigen::MatrixXd connectedBorder;
+            Eigen::MatrixXd connectedBorder2;
+
+            bool alreadyRead = true;
+            if (alreadyRead) {
+                std::cout << "already read bonnected boundary before" << std::endl;
+                connectedBorder = readVerticesFromPLY(surfaceParam + "/B1_connected.obj");
+                connectedBorder2 = readVerticesFromPLY(surfaceParam + "/B2_connected.obj");
+            }
+            else {
+                std::cout << "calculate connected boundary" << std::endl;
+
+                connectedBorder = findConnectedBorder(Mesh1_V, Mesh1_F, V3);
+                connectedBorder2 = findConnectedBorder(Mesh2_V, Mesh2_F, V3_obj2);
+                writeVerticesToPLY(surfaceParam + "/B1_connected.obj", connectedBorder);
+                writeVerticesToPLY(surfaceParam + "/B2_connected.obj", connectedBorder2);
+            }
+            std::cout << "--------------------vertices Connected border " << connectedBorder.rows() << std::endl;
+            std::cout << "--------------------vertices Connected border 2 " << connectedBorder2.rows() << std::endl;
+
+
+
+            if (true) {
+                // use connecting border as boundary
+                std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
+                Eigen::MatrixXd UV_map;
+                polyscope::init();
+                polyscope::options::programName = "No Split Mesh LCSM, projection";
+                polyscope::registerPointCloud("borderV3", connectedBorder);
+                //if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true, V3)) {
+                if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, connectedBorder, true, connectedBorder)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
+
+                saveMeshToFile(surfaceParam + "/M1.obj", Mesh1_V, Mesh1_F);
+                write2DVerticesToPLY(surfaceParam + "/UV1.obj", UV_map);
+                writeVerticesToPLY(surfaceParam + "/B1.obj", connectedBorder);
+            }
+
+            // for second mesh 
+            CompleteBorderCorrespondence(Mesh2_V, Mesh2_F, Mesh1_V, Mesh1_F, V3_obj2, connectedBorder2, V3, connectedBorder);
+
+            if (true) {
+                std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
+                Eigen::MatrixXd UV_map;
+                polyscope::init();
+
+                polyscope::options::programName = "No Split Mesh LCSM, projection";
+                polyscope::registerPointCloud("border V3 Obj2v2", connectedBorder2);
+
+
+                CalculateGenus(Mesh2_V, Mesh2_F);
+
+                if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, connectedBorder2, true, V3)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
+
+                saveMeshToFile(surfaceParam + "/M2.obj", Mesh2_V, Mesh2_F);
+                write2DVerticesToPLY(surfaceParam + "/UV2.obj", UV_map);
+                writeVerticesToPLY(surfaceParam + "/B2.obj", connectedBorder2);
+
+
+            }
+
+
         }
         else {
-            std::cout << "calculate connected boundary" << std::endl;
+            // default boundary vertices not necssairly connected
 
-            connectedBorder = findConnectedBorder(Mesh1_V, Mesh1_F, V3);
-            connectedBorder2 = findConnectedBorder(Mesh2_V, Mesh2_F, V3_obj2);
-            writeVerticesToPLY(surfaceParam + "/B1_connected.obj", connectedBorder);
-            writeVerticesToPLY(surfaceParam + "/B2_connected.obj", connectedBorder2);
-        }
-        std::cout << "--------------------vertices Connected border " << connectedBorder.rows() << std::endl;
-        std::cout << "--------------------vertices Connected border 2 " << connectedBorder2.rows() << std::endl;
+            if (true) {
+                // use connecting border as boundary
+                std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
+                Eigen::MatrixXd UV_map;
+                polyscope::init();
+                polyscope::options::programName = "No Split Mesh LCSM, projection";
+                polyscope::registerPointCloud("borderV3", V3);
+                //if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true, V3)) {
+                if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true, V3)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
 
-        CompleteBorderCorrespondence(Mesh1_V, Mesh1_F, Mesh2_V, Mesh2_F, V3, connectedBorder, V3_obj2, connectedBorder2);
+                saveMeshToFile(surfaceParam + "/M1.obj", Mesh1_V, Mesh1_F);
+                write2DVerticesToPLY(surfaceParam + "/UV1.obj", UV_map);
+                writeVerticesToPLY(surfaceParam + "/B1.obj", V3);
+            }
+            if (true) {
+                std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
+                Eigen::MatrixXd UV_map;
+                polyscope::init();
+
+                polyscope::options::programName = "No Split Mesh LCSM, projection";
+                polyscope::registerPointCloud("border V3 Obj2v2", V3_obj2);
 
 
-        if (true) {
-            std::cout << "surface parameterization (MESH 1) using LCSM without splititng the mesh into 2" << std::endl;
-            Eigen::MatrixXd UV_map;
-            polyscope::init();
-            polyscope::options::programName = "No Split Mesh LCSM, projection";
-            polyscope::registerPointCloud("borderV3 Obj1", V3);
-            if (!paramsurface5(Mesh1_V, Mesh1_F, UV_map, V3, true, V3)) {
-                std::cerr << "Surface parameterization failed.\n";
-                return EXIT_FAILURE;
+                CalculateGenus(Mesh2_V, Mesh2_F);
+
+                if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true, V3)) {
+                    std::cerr << "Surface parameterization failed.\n";
+                    return EXIT_FAILURE;
+                }
+
+                saveMeshToFile(surfaceParam + "/M2.obj", Mesh2_V, Mesh2_F);
+                write2DVerticesToPLY(surfaceParam + "/UV2.obj", UV_map);
+                writeVerticesToPLY(surfaceParam + "/B2.obj", V3_obj2);
             }
 
-            saveMeshToFile(surfaceParam + "/M1.obj", Mesh1_V, Mesh1_F);
-            write2DVerticesToPLY(surfaceParam + "/UV1.obj", UV_map);
-            writeVerticesToPLY(surfaceParam + "/B1.obj", V3);
         }
 
-        if (true) {
-            std::cout << "surface parameterization (MESH 2) using LCSM without splititng the mesh into 2" << std::endl;
-            Eigen::MatrixXd UV_map;
-            polyscope::init();
-
-            polyscope::options::programName = "No Split Mesh LCSM, projection";
-            polyscope::registerPointCloud("border V3 Obj2", V3_obj2);
-
-
-            CalculateGenus(Mesh2_V, Mesh2_F);
-
-
-
-
-            if (!paramsurface5(Mesh2_V, Mesh2_F, UV_map, V3_obj2, true, connectedBorder)) {
-                std::cerr << "Surface parameterization failed.\n";
-                return EXIT_FAILURE;
-            }
-
-            saveMeshToFile(surfaceParam + "/M2.obj", Mesh2_V, Mesh2_F);
-            write2DVerticesToPLY(surfaceParam + "/UV2.obj", UV_map);
-            writeVerticesToPLY(surfaceParam + "/B2.obj", V3_obj2);
-
-
-        }
-
-  
 
         if (false) {
 

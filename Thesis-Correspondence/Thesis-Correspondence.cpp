@@ -87,7 +87,7 @@ int main2()
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
 
-        double alpha = 13.0; // Alpha for the alpha shape
+        float alpha = 13.0; // Alpha for the alpha shape
 
 
         // get outlining vertices of object
@@ -118,7 +118,7 @@ int main2()
         readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
 
         //double alpha = 8.0; // Alpha for the alpha shape
-        double alpha = 15.0; // Alpha for the alpha shape
+        float alpha = 15.0; // Alpha for the alpha shape
 
 
         // get outlining vertices of object

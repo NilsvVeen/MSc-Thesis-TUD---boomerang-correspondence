@@ -36,11 +36,11 @@ void findMaxAreaSlice(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen:
 double calculateAverageZ(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
 
 // Function to find border vertices using Alpha Shape
-void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices, double& alpha);
+void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices, float& alpha);
 
 // Main function to fit plane, align mesh, and show results
 //std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir);
-std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, double& alpha, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false);
+std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, float& alpha, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false);
 
 
 #endif // MESH_PROCESSING_H

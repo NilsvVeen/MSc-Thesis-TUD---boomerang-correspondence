@@ -131,7 +131,7 @@ double calculateAverageZ(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
 
 
 
-void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices, double& alpha) {
+void findBorderVerticesWithAlphaShape(const Eigen::MatrixXd& V_2D, std::vector<Eigen::Vector2d>& borderVertices, float& alpha) {
     std::vector<Point> points;
     for (int i = 0; i < V_2D.rows(); ++i) {
         points.emplace_back(V_2D(i, 0), V_2D(i, 1));
@@ -213,17 +213,58 @@ void handleMeshRotation(Eigen::MatrixXd& alignedV, const Eigen::MatrixXi& aligne
 
 
 
+void updateAlphaShape(const Eigen::MatrixXd& V_2D, float& alpha, std::vector<Eigen::Vector2d>& borderVertices, Eigen::MatrixXd& V_border, std::string borderVerticesFile) {
+    borderVertices.clear();
+    findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha);
+
+    if (!borderVertices.empty()) {
+        V_border.resize(borderVertices.size(), 3);
+        for (size_t i = 0; i < borderVertices.size(); ++i) {
+            V_border(i, 0) = borderVertices[i].x();
+            V_border(i, 1) = borderVertices[i].y();
+            V_border(i, 2) = 0.0; // Keep Z at 0 for 2D display
+        }
+
+        // Remove old point cloud and register the updated one
+        polyscope::removePointCloud("Alpha Shape Border");
+        polyscope::registerPointCloud("Alpha Shape Border", V_border);
+
+        // Save updated border vertices to file
+        //std::string borderVerticesFile = "alpha_shape_border_alpha_" + std::to_string(alpha) + ".obj";
+        savePointCloudToFile(borderVerticesFile, V_border);
+        //takeScreenshot("alpha_shape_border_alpha_" + std::to_string(alpha) + ".png");
+    }
+}
+
+void addAlphaSlider(const Eigen::MatrixXd& V_2D, float& alpha, std::vector<Eigen::Vector2d>& borderVertices, Eigen::MatrixXd& V_border, std::string borderVerticesFile) {
+    polyscope::state::userCallback = [&]() {
+        ImGui::SliderFloat("Alpha", &alpha, 1.0f, 50.0f, "%.1f");
+        if (ImGui::Button("Update Alpha Shape")) {
+            updateAlphaShape(V_2D, alpha, borderVertices, V_border,  borderVerticesFile);
+        }
+    };
+}
+
+void runPolyscopeWithAlphaShape(const Eigen::MatrixXd& V_2D, float alpha, std::string borderVerticesFile) {
+    std::cout << "Variable alpha included" << std::endl;
+    std::vector<Eigen::Vector2d> borderVertices;
+    Eigen::MatrixXd V_border;
+    updateAlphaShape(V_2D, alpha, borderVertices, V_border, borderVerticesFile); // Initial computation
+    addAlphaSlider(V_2D, alpha, borderVertices, V_border, borderVerticesFile); // Add UI for dynamic updates
+    polyscope::show();
+}
+
 
 
 
 // Main function to fit plane, align mesh, and show results
-std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, double& alpha, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false) {
+std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, const std::string& outputDir, float& alpha, Eigen::MatrixXd V_other = Eigen::MatrixXd::Zero(3, 3), Eigen::MatrixXd B_other = Eigen::MatrixXd::Zero(3, 3), bool shift = false) {
 
 
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces 
     Eigen::MatrixXd N; // Normals
-    std::vector<Eigen::Vector2d> borderVertices;
+    //std::vector<Eigen::Vector2d> borderVertices;
 
     // Process STL file
     processSTLFile(filename, V, F, N);
@@ -312,33 +353,17 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
         // Try 2D Alpha Shape from CGAL
         //double alpha = 15.0; // Alpha for the alpha shape
 
-        findBorderVerticesWithAlphaShape(V_2D, borderVertices, alpha);
+        
+        runPolyscopeWithAlphaShape(V_2D, alpha, borderVerticesFile);
 
-        if (!borderVertices.empty()) {
-            // Convert border vertices to Eigen format and set last column to avgZ
-            Eigen::MatrixXd V_border(borderVertices.size(), 3);
-            for (size_t i = 0; i < borderVertices.size(); ++i) {
-                V_border(i, 0) = borderVertices[i].x();
-                V_border(i, 1) = borderVertices[i].y();
-                V_border(i, 2) = avgZ;
-            }
 
-            // Register the border vertices as a point cloud with Polyscope
-            std::string cloudName = "Alpha Shape Border Vertices (alpha = " + std::to_string(alpha) + ")";
-            polyscope::registerPointCloud(cloudName, V_border);
-            takeScreenshot("alpha_shape_border_alpha_" + std::to_string(alpha) + ".png");
-
-            // Save the border vertices to a file
-            savePointCloudToFile(borderVerticesFile, V_border);
-        }
-
-        // Take screenshots
-        takeScreenshot("2d_projection.png");
-        takeScreenshot("max_area_slice.png");
+        //// Take screenshots
+        //takeScreenshot("2d_projection.png");
+        //takeScreenshot("max_area_slice.png");
     }
 
     // Show the registered meshes
-    showMeshes();
+    //polyscope::show();
 
     return borderVertices;
 }

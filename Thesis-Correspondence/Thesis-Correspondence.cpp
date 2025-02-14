@@ -24,6 +24,7 @@
 #include "evaluateCorrespondence.h"
 #include "intermediateShape.h"
 #include "pca.h"
+#include "drawShape.h"
 
 
 const std::string GLOBAL_MODELS_DIRECTORY = MODELS_DIRECTORY;
@@ -46,6 +47,13 @@ static  bool evaluateCorrespondence = false;
 
 static  bool newShapeMake = false;
 static  bool PCA = false;
+
+int drawOwnSHape() {
+
+    showAndDraw();
+
+    return 0;
+}
 
 
 
@@ -98,7 +106,7 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_11_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -109,7 +117,8 @@ int main2()
         readMeshFromFile(directoryName + "/rotated_mesh.obj", Mesh1_V, Mesh1_F);
         readPointCloudFromFile(directoryName + "/alpha_shape_border.obj", V1_border);
 
-        double alpha = 8.0; // Alpha for the alpha shape
+        //double alpha = 8.0; // Alpha for the alpha shape
+        double alpha = 15.0; // Alpha for the alpha shape
 
 
         // get outlining vertices of object
@@ -437,7 +446,7 @@ int main2()
 
         
          
-        bool improvedUVMap = false;
+        bool improvedUVMap = true;
 
         // this gets all the boundary vertices of the UV map seperately (so no jagged crap)
         if (improvedUVMap) {
@@ -445,7 +454,7 @@ int main2()
             Eigen::MatrixXd connectedBorder;
             Eigen::MatrixXd connectedBorder2;
 
-            bool alreadyRead = true;
+            bool alreadyRead = false;
             if (alreadyRead) {
                 std::cout << "already read bonnected boundary before" << std::endl;
                 connectedBorder = readVerticesFromPLY(surfaceParam + "/B1_connected.obj");
@@ -923,6 +932,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 // Entry point of the program
 int main() {
+
+    //drawOwnSHape();
+
     HINSTANCE hInstance = GetModuleHandle(NULL);
 
     // Register the window class

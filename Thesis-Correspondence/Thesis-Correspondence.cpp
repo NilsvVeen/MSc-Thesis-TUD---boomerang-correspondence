@@ -165,9 +165,30 @@ int main2()
             }
             else {
                 // Sort vertices by proximity and reverse order
-                sortedVertices = reverseOrder(sortVerticesByProximity(V));
-                //sortedVertices2 = sortVerticesByProximity(V2);
+ /*               sortedVertices = reverseOrder(sortVerticesByProximity(V));
+                sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));*/
+                sortedVertices = sortVerticesByProximity(V);
                 sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
+
+                std::cout << sortedVertices.size() << std::endl;
+                // Now call orderGuide to show the sorted vertices
+                orderGuide(sortedVertices);
+                orderGuide(sortedVertices2);
+                resetPolyscope();
+
+                // Write sorted vertices to file
+                savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
+                savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+
+
+
+
+                // Proceed to other parts of the code (e.g., showing side-by-side selection)
+                showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
+
+                
+
+
 
                 // Write sorted vertices to file
                 savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);

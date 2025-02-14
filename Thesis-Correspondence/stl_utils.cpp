@@ -803,6 +803,43 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculateAndAdjustOffsetsFromBorders
 }
 
 
+void resetPolyscope() {
+    polyscope::removeAllGroups();         // Remove all groups
+    polyscope::removeAllStructures();     // Remove all structures
+    polyscope::CameraParameters;      // Reset the camera view to its default state
+
+    // Clear any callbacks if necessary
+    polyscope::state::userCallback = [&]() {
+        // You can leave this empty or add other custom callback logic if needed
+    };
+}
+
+
+void orderGuide(Eigen::MatrixXd& borderVertices) {
+    resetPolyscope();
+    polyscope::init();
+    std::cout << "Select order checks" << std::endl;
+
+    // Register the point cloud for display
+    polyscope::registerPointCloud("border", borderVertices);
+
+    // Declare a variable to hold the new border vertices
+
+
+    polyscope::state::userCallback = [&]() {
+        if (ImGui::Button("ReverseOrder")) {
+            borderVertices = reverseOrder(borderVertices);  // Modify the copy
+            polyscope::unshow();
+        }
+        if (ImGui::Button("Order OK")) {
+            polyscope::unshow();
+        }
+    };
+
+    polyscope::show();
+}
+
+
 
 
 void handleUserSelection(auto pointCloud1, auto pointCloud2,

@@ -264,7 +264,7 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
     Eigen::MatrixXd V; // Vertices
     Eigen::MatrixXi F; // Faces 
     Eigen::MatrixXd N; // Normals
-    //std::vector<Eigen::Vector2d> borderVertices;
+    std::vector<Eigen::Vector2d> borderVertices;
 
     // Process STL file
     processSTLFile(filename, V, F, N);

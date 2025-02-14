@@ -74,4 +74,8 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> calculateAndAdjustOffsetsFromBorders
 
 int countHoles(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F);
 
+void orderGuide(Eigen::MatrixXd& V1);
+
+void resetPolyscope();
+
 #endif // STL_UTILS_H

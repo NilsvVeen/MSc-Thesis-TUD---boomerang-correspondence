@@ -79,3 +79,90 @@ void performPCAAndEditWithVisualization(
     // Show the visualization
     polyscope::show();
 }
+
+
+
+#include <Eigen/Dense>
+#include <vector>
+#include <limits>
+
+// Function to find closest points in target for each point in source
+std::vector<int> findClosestPoints(const Eigen::MatrixXd& source, const Eigen::MatrixXd& target) {
+    std::vector<int> closestIndices(source.rows());
+
+    for (int i = 0; i < source.rows(); ++i) {
+        double minDist = std::numeric_limits<double>::max();
+        int bestIndex = -1;
+
+        for (int j = 0; j < target.rows(); ++j) {
+            double dist = (source.row(i) - target.row(j)).squaredNorm();
+            if (dist < minDist) {
+                minDist = dist;
+                bestIndex = j;
+            }
+        }
+
+        closestIndices[i] = bestIndex;
+    }
+    return closestIndices;
+}
+
+// Function to compute optimal rigid transformation
+void computeRigidTransform(const Eigen::MatrixXd& source, const Eigen::MatrixXd& target, Eigen::Matrix3d& R, Eigen::Vector3d& t) {
+    Eigen::Vector3d centroidSource = source.colwise().mean();
+    Eigen::Vector3d centroidTarget = target.colwise().mean();
+
+    Eigen::MatrixXd centeredSource = source.rowwise() - centroidSource.transpose();
+    Eigen::MatrixXd centeredTarget = target.rowwise() - centroidTarget.transpose();
+
+    Eigen::Matrix3d H = centeredSource.transpose() * centeredTarget;
+    Eigen::JacobiSVD<Eigen::Matrix3d> svd(H, Eigen::ComputeFullU | Eigen::ComputeFullV);
+
+    R = svd.matrixV() * svd.matrixU().transpose();
+    if (R.determinant() < 0) {
+        Eigen::Matrix3d V = svd.matrixV();
+        V.col(2) *= -1;
+        R = V * svd.matrixU().transpose();
+    }
+
+    t = centroidTarget - R * centroidSource;
+}
+
+// ICP function
+std::vector<Eigen::MatrixXd> ICPAlignShapes(
+    std::vector<Eigen::MatrixXd>& shapes,  // Pass shapes as non-const
+    int max_iters) {
+
+    if (shapes.empty()) return {};
+
+    Eigen::MatrixXd reference = shapes[0]; // Use first shape as reference
+    std::vector<Eigen::MatrixXd> aligned_shapes(shapes.size());
+    aligned_shapes[0] = reference; // First shape remains unchanged
+
+    for (size_t i = 1; i < shapes.size(); ++i) {
+        Eigen::MatrixXd source = shapes[i];
+
+        for (int iter = 0; iter < max_iters; ++iter) {
+            std::vector<int> closestIndices = findClosestPoints(source, reference);
+
+            Eigen::MatrixXd correspondingPoints(source.rows(), 3);
+            for (size_t j = 0; j < closestIndices.size(); ++j) {
+                correspondingPoints.row(j) = reference.row(closestIndices[j]);
+            }
+
+            Eigen::Matrix3d R;
+            Eigen::Vector3d t;
+            computeRigidTransform(source, correspondingPoints, R, t);
+
+            source = (source * R.transpose()).rowwise() + t.transpose();
+        }
+
+        aligned_shapes[i] = source;
+    }
+    return aligned_shapes;
+}
+
+
+
+
+

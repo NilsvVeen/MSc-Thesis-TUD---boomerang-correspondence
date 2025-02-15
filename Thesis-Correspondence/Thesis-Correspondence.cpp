@@ -744,6 +744,8 @@ int main2()
 
     const std::string objectsMatchedPath = "Matched/";
     if (newShapeMake) {
+
+
         Eigen::MatrixXd V1, V2, V3, V4, V5;
         Eigen::MatrixXi F1, F2, F3, F4, F5;
 
@@ -777,6 +779,8 @@ int main2()
 
     }
 
+    const std::string ICPAllignmentFolder = "ICPAlligned/";
+
     if (PCA) {
 
         std::cout << "PCA" << std::endl;
@@ -790,7 +794,7 @@ int main2()
         readMeshFromFile(objectsMatchedPath + "Shape_5.obj", V5, F5);
 
 
-        // Combine into a vector of pairs
+        //// Combine into a vector of pairs
         std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
             {V1, F1},
             {V2, F2},
@@ -799,7 +803,25 @@ int main2()
             {V5, F5}
         };
 
-        performPCAAndEditWithVisualization(inputShapes);
+        //// Combine into a vector of pairs
+        std::vector<Eigen::MatrixXd> inputV= {V1,V2,V3,V4,V5};
+        std::vector<Eigen::MatrixXi> inputF= {F1,F2,F3,F4,F5};
+        main_phase2(inputShapes, objectsMatchedPath);
+
+        std::vector<Eigen::MatrixXd> inputNew = ICPAlignShapes(inputV, 10);
+        //// Combine into a vector of pairs
+        std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapesNew = {
+            {inputNew[0], F1},
+            {inputNew[1], F2},
+            {inputNew[2], F3},
+            {inputNew[3], F4},
+            {inputNew[4], F5}
+        };
+        main_phase2(inputShapesNew, ICPAllignmentFolder);
+
+
+
+        //performPCAAndEditWithVisualization(inputShapes);
 
     }
 

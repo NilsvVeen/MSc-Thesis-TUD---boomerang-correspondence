@@ -46,6 +46,7 @@ static  bool uvMapCorrespondence = false;
 static  bool evaluateCorrespondence = false;
 
 static  bool newShapeMake = false;
+static  bool alignShapes = false;
 static  bool PCA = false;
 
 int drawOwnSHape() {
@@ -779,9 +780,9 @@ int main2()
 
     }
 
-    const std::string ICPAllignmentFolder = "ICPAlligned/";
+    const std::string ICPAllignmentFolder = "ICPAligned/";
 
-    if (PCA) {
+    if (alignShapes) {
 
         std::cout << "PCA" << std::endl;
         Eigen::MatrixXd V1, V2, V3, V4, V5;
@@ -825,12 +826,42 @@ int main2()
 
     }
 
+    if (PCA) {
+
+        std::cout << "PCA" << std::endl;
+        Eigen::MatrixXd V1, V2, V3, V4, V5;
+        Eigen::MatrixXi F1, F2, F3, F4, F5;
+
+        readMeshFromFile(ICPAllignmentFolder + "Shape_1.obj", V1, F1);
+        readMeshFromFile(ICPAllignmentFolder + "Shape_2.obj", V2, F2);
+        readMeshFromFile(ICPAllignmentFolder + "Shape_3.obj", V3, F3);
+        readMeshFromFile(ICPAllignmentFolder + "Shape_4.obj", V4, F4);
+        readMeshFromFile(ICPAllignmentFolder + "Shape_5.obj", V5, F5);
+
+
+        //// Combine into a vector of pairs
+        std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
+            {V1, F1},
+            {V2, F2},
+            {V3, F3},
+            {V4, F4},
+            {V5, F5}
+        };
+
+
+
+        performPCAAndEditWithVisualization(inputShapes);
+
+    }
+
 
 
     return 0;
 }
 
 
+bool advancedProcessing = false; // temp useless
+bool optimizeAlignment = false;
 
 // Function that gets called when toggling any button
 void performAction() {
@@ -843,6 +874,10 @@ void performAction() {
     std::cout << "uvMapCorrespondence: " << uvMapCorrespondence << "\n";
     std::cout << "evaluateCorrespondence: " << evaluateCorrespondence << "\n";
     std::cout << "newShapeMake: " << newShapeMake << "\n";
+    std::cout << "alignShapes: " << alignShapes << "\n";
+    std::cout << "PCA: " << PCA << "\n";
+    std::cout << "advancedProcessing: " << advancedProcessing << "\n";
+    std::cout << "optimizeAlignment: " << optimizeAlignment << "\n";
 
     polyscope::removeAllGroups();
     polyscope::removeAllStructures();
@@ -858,9 +893,11 @@ void performAction() {
 #define ID_BUTTON_SURFACE 105
 #define ID_BUTTON_UVMAP 106
 #define ID_BUTTON_EVALUATE 107
-#define ID_BUTTON_NEWSHAPE 108  // New button for newShapeMake
-#define ID_BUTTON_PCA 109
-
+#define ID_BUTTON_NEWSHAPE 108
+#define ID_BUTTON_ICP 109
+#define ID_BUTTON_PCA 110
+#define ID_BUTTON_ADVANCED 111
+#define ID_BUTTON_OPTIMIZE 112
 
 // Window procedure to handle window messages
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -883,6 +920,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_PARAM:
             ParameterizeObjects = !ParameterizeObjects;
@@ -893,6 +932,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_SHIFT:
             shiftAll = !shiftAll;
@@ -903,6 +944,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_CORRESPONDENCE:
             correspondences2dto3d = !correspondences2dto3d;
@@ -913,6 +956,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_SURFACE:
             parameterizeSurfaceBool = !parameterizeSurfaceBool;
@@ -923,6 +968,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_UVMAP:
             uvMapCorrespondence = !uvMapCorrespondence;
@@ -933,6 +980,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             parameterizeSurfaceBool = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_EVALUATE:
             evaluateCorrespondence = !evaluateCorrespondence;
@@ -943,6 +992,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             parameterizeSurfaceBool = false;
             uvMapCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
+            PCA = false;
             break;
         case ID_BUTTON_NEWSHAPE:
             newShapeMake = !newShapeMake;
@@ -953,6 +1004,20 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             parameterizeSurfaceBool = false;
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
+            alignShapes = false;
+            PCA = false;
+            break;
+        case ID_BUTTON_ICP:
+            alignShapes = !alignShapes;
+            newShapeMake = false;
+            ProcessObjects = false;
+            ParameterizeObjects = false;
+            shiftAll = false;
+            correspondences2dto3d = false;
+            parameterizeSurfaceBool = false;
+            uvMapCorrespondence = false;
+            evaluateCorrespondence = false;
+            PCA = false;
             break;
         case ID_BUTTON_PCA:
             PCA = !PCA;
@@ -964,6 +1029,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
             uvMapCorrespondence = false;
             evaluateCorrespondence = false;
             newShapeMake = false;
+            alignShapes = false;
             break;
 
         }
@@ -978,9 +1044,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 // Entry point of the program
 int main() {
-
-    //drawOwnSHape();
-
     HINSTANCE hInstance = GetModuleHandle(NULL);
 
     // Register the window class
@@ -996,10 +1059,9 @@ int main() {
         wc.lpszClassName,
         "Simple GUI with Win32 API",
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, 400, 450,  // Increased height for extra button
+        CW_USEDEFAULT, CW_USEDEFAULT, 400, 700,
         NULL, NULL, hInstance, NULL
     );
-
     // Create buttons for each boolean variable
     CreateWindowEx(0, "BUTTON", "Process Objects", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
         20, 20, 150, 30, hwnd, (HMENU)ID_BUTTON_PROCESS, hInstance, NULL);
@@ -1017,12 +1079,16 @@ int main() {
         20, 260, 200, 30, hwnd, (HMENU)ID_BUTTON_EVALUATE, hInstance, NULL);
     CreateWindowEx(0, "BUTTON", "New Shape Make", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
         20, 300, 200, 30, hwnd, (HMENU)ID_BUTTON_NEWSHAPE, hInstance, NULL);  // New button
+    CreateWindowEx(0, "BUTTON", "ICP align", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 340, 200, 30, hwnd, (HMENU)ID_BUTTON_ICP, hInstance, NULL);  // New button
     CreateWindowEx(0, "BUTTON", "Perform PCA", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
-        20, 340, 200, 30, hwnd, (HMENU)ID_BUTTON_PCA, hInstance, NULL);
+        20, 380, 200, 30, hwnd, (HMENU)ID_BUTTON_PCA, hInstance, NULL);
 
-
-    // Set the first button to be selected by default (optional)
-    CheckRadioButton(hwnd, ID_BUTTON_PROCESS, ID_BUTTON_NEWSHAPE, ID_BUTTON_PROCESS);
+    // Create buttons for each boolean variable
+    CreateWindowEx(0, "BUTTON", "Advanced Processing", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 420, 200, 30, hwnd, (HMENU)ID_BUTTON_ADVANCED, hInstance, NULL);
+    CreateWindowEx(0, "BUTTON", "Optimize Alignment", WS_CHILD | WS_VISIBLE | BS_RADIOBUTTON,
+        20, 460, 200, 30, hwnd, (HMENU)ID_BUTTON_OPTIMIZE, hInstance, NULL);
 
     // Show the window
     ShowWindow(hwnd, SW_SHOW);

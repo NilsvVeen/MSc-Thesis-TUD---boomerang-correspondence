@@ -286,7 +286,7 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
     handleMeshRotation(rotatedV_temp, rotatedF);
 
 
-
+    //shift = true;
     if (shift) {
         std::cout << "shift it" << std::endl;
         Eigen::MatrixXd B_uselss = Eigen::MatrixXd::Zero(3, 3);

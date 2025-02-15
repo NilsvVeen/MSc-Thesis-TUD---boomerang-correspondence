@@ -106,7 +106,7 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_11_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_13_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -162,12 +162,14 @@ int main2()
                 // Read sorted vertices from file
                 readPointCloudFromFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
                 readPointCloudFromFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+                showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
+
             }
             else {
                 // Sort vertices by proximity and reverse order
  /*               sortedVertices = reverseOrder(sortVerticesByProximity(V));
                 sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));*/
-                sortedVertices = sortVerticesByProximity(V);
+                sortedVertices = reverseOrder(sortVerticesByProximity(V));
                 sortedVertices2 = reverseOrder(sortVerticesByProximity(V2));
 
                 std::cout << sortedVertices.size() << std::endl;
@@ -186,17 +188,12 @@ int main2()
                 // Proceed to other parts of the code (e.g., showing side-by-side selection)
                 showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
 
-                
-
-
-
-                // Write sorted vertices to file
-                savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
-                savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
+                //// Write sorted vertices to file
+                //savePointCloudToFile(directoryName + "/border_vertices_in_order.obj", sortedVertices);
+                //savePointCloudToFile(directoryName2 + "/border_vertices_in_order.obj", sortedVertices2);
             }
 
 
-            showSideBySideSelectionWithVertexSelection(sortedVertices, sortedVertices2, DEFAULT_CORRESPONDENCES_FOLDER, shiftVector);
         }
 
         // Convert shiftVector to Eigen::MatrixXd
@@ -750,11 +747,17 @@ int main2()
         Eigen::MatrixXd V1, V2, V3, V4, V5;
         Eigen::MatrixXi F1, F2, F3, F4, F5;
 
-        readMeshFromFile( "backup_09_10/" + correspondence3dMatched + "/M1.obj", V1, F1);
-        readMeshFromFile("backup_09_10/" + correspondence3dMatched + "/M2.obj", V2, F2);
-        readMeshFromFile("backup_09_11/" + correspondence3dMatched + "/M2.obj", V3, F3);
-        readMeshFromFile("backup_09_13_v2/" + correspondence3dMatched + "/M2.obj", V4, F4);
-        readMeshFromFile("backup_09_12/" + correspondence3dMatched + "/M2.obj", V5, F5);
+        //readMeshFromFile( "backup_09_10/" + correspondence3dMatched + "/M1.obj", V1, F1);
+        //readMeshFromFile("backup_09_10/" + correspondence3dMatched + "/M2.obj", V2, F2);
+        //readMeshFromFile("backup_09_11/" + correspondence3dMatched + "/M2.obj", V3, F3);
+        //readMeshFromFile("backup_09_13_v2/" + correspondence3dMatched + "/M2.obj", V4, F4);
+        //readMeshFromFile("backup_09_12/" + correspondence3dMatched + "/M2.obj", V5, F5);
+
+        readMeshFromFile("res-9-10/" + correspondence3dMatched + "/M1.obj", V1, F1);
+        readMeshFromFile("res-9-10/" + correspondence3dMatched + "/M2.obj", V2, F2);
+        readMeshFromFile("res-9-11/" + correspondence3dMatched + "/M2.obj", V3, F3);
+        readMeshFromFile("res-9-12/" + correspondence3dMatched + "/M2.obj", V4, F4);
+        readMeshFromFile("res-9-13/" + correspondence3dMatched + "/M2.obj", V5, F5);
 
         // Combine into a vector of pairs
         std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {

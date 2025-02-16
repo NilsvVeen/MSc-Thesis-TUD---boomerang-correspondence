@@ -135,7 +135,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         ImGui::SliderInt("Principal Mode", &g_principalIndex, 0, totalModes - 1);
 
         // Slider to adjust the weight (amount of variation).
-        ImGui::SliderFloat("Weight", &g_weight, -2000.0f, 2000.0f);
+        ImGui::SliderFloat("Weight", &g_weight, -10000.0f, 10000.0f);
 
         // Button to reset weight.
         if (ImGui::Button("Reset Weight")) {

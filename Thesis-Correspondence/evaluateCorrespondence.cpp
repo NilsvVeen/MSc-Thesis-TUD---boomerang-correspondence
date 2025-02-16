@@ -205,6 +205,7 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
 #include <Eigen/Core>
 #include <iostream>
 #include <cmath>
+#include <igl/bounding_box_diagonal.h>
 
 // Compute the Hausdorff and Chamfer distances between two meshes:
 // Mesh A: (VA, FA) and Mesh B: (VB, FB)
@@ -256,6 +257,69 @@ void computeMeshDistances(
 
     std::cout << "Hausdorff Distance: " << hausdorffDist << std::endl;
     std::cout << "Chamfer Distance: " << chamferDist << std::endl;
+
+
+
+    // Convert squared distances to actual distances.
+    Eigen::VectorXd errors = sqDistB.array().sqrt();
+
+    // ---------------------------------------------------------------------------
+    // Compute extra statistics:
+    //   - Mean, median, minimum, maximum, and standard deviation of the errors.
+    double meanError = errors.mean();
+
+    // For median, copy errors into a std::vector and sort.
+    std::vector<double> errorVec(errors.data(), errors.data() + errors.size());
+    std::sort(errorVec.begin(), errorVec.end());
+    double medianError = errorVec[errorVec.size() / 2];
+    double minError = errorVec.front();
+    double maxError = errorVec.back();
+
+    double sumSq = 0.0;
+    for (int i = 0; i < errors.size(); i++)
+        sumSq += std::pow(errors(i) - meanError, 2);
+    double stdDevError = std::sqrt(sumSq / errors.size());
+
+    // Compute bounding box diagonal of the original mesh (VA) to normalize errors.
+    double bboxDiag = igl::bounding_box_diagonal(VA);
+
+    std::cout << "Error Statistics (in original mesh units):\n";
+    std::cout << "  Mean Error: " << meanError << "\n";
+    std::cout << "  Median Error: " << medianError << "\n";
+    std::cout << "  Min Error: " << minError << "\n";
+    std::cout << "  Max Error: " << maxError << "\n";
+    std::cout << "  Standard Deviation: " << stdDevError << "\n\n";
+
+    std::cout << "Normalized by bounding box diagonal (" << bboxDiag << "):\n";
+    std::cout << "  Normalized Hausdorff Distance: " << hausdorffDist / bboxDiag << "\n";
+    std::cout << "  Normalized Chamfer Distance: " << chamferDist / bboxDiag << "\n";
+    std::cout << "  Normalized Mean Error: " << meanError / bboxDiag << "\n";
+    std::cout << "  Normalized Median Error: " << medianError / bboxDiag << "\n";
+    std::cout << "  Normalized Min Error: " << minError / bboxDiag << "\n";
+    std::cout << "  Normalized Max Error: " << maxError / bboxDiag << "\n";
+    std::cout << "  Normalized Std Dev: " << stdDevError / bboxDiag << "\n";
+
+    // ---------------------------------------------------------------------------
+    // Visualize the error distribution on the deformed mesh (VB) using Polyscope.
+    // We color the mesh vertices based on their error value.
+    polyscope::init();
+
+
+    // Register the deformed mesh in Polyscope.
+    auto* psMesh = polyscope::registerSurfaceMesh("Deformed Mesh", VB, FB);
+
+    // Optionally, you can also add a scalar quantity (the error values) so you see a legend.
+    psMesh->addVertexScalarQuantity("Error Values", errors);
+
+    polyscope::show();
+
+
+
+
+
+
+
+
 }
 
 

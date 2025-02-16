@@ -8,92 +8,148 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 
-// Function to perform PCA and prepare for visualization/editing.
+#include <iostream>
+#include <vector>
+#include <array>
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+#include <Eigen/SVD>
+#include <polyscope/polyscope.h>
+#include <polyscope/surface_mesh.h>
+
+// Global variables for the PCA result and interactive parameters:
+Eigen::VectorXd g_meanShape;
+Eigen::MatrixXd g_eigenvectors;
+int g_numVertices = 0;
+int g_vectorSize = 0;
+
+// Interactive parameters for mode selection and weight:
+int g_principalIndex = 0;
+float g_weight = 0.0f;
+
+// The face connectivity of the mesh (assumed same for all shapes).
+std::vector<std::vector<size_t>> g_faceList;
+
+// Pointer to the Polyscope surface mesh so we can update its vertices.
+polyscope::SurfaceMesh* g_deformedMesh = nullptr;
+
+// Function to convert an Eigen vector (flattened shape) to a vertices vector for Polyscope.
+std::vector<std::array<double, 3>> eigenVectorToVertices(const Eigen::VectorXd& shapeVec) {
+    std::vector<std::array<double, 3>> vertices;
+    vertices.reserve(g_numVertices);
+    for (int v = 0; v < g_numVertices; ++v) {
+        vertices.push_back({ shapeVec(3 * v), shapeVec(3 * v + 1), shapeVec(3 * v + 2) });
+    }
+    return vertices;
+}
+
+// Function to update the deformed mesh given the current g_weight and g_principalIndex.
+void updateDeformedMesh() {
+    // Create the deformed shape by moving along the chosen principal mode.
+    Eigen::VectorXd deformation = g_eigenvectors.col(g_principalIndex) * g_weight;
+    Eigen::VectorXd deformedShape = g_meanShape + deformation;
+
+    // Convert deformedShape to vertices and update the mesh.
+    std::vector<std::array<double, 3>> deformedPos = eigenVectorToVertices(deformedShape);
+    if (g_deformedMesh) {
+        g_deformedMesh->updateVertexPositions(deformedPos);
+    }
+}
+
+// The main function that computes PCA and sets up visualization.
 void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
     if (inputShapes.empty()) {
         std::cerr << "No shapes provided." << std::endl;
         return;
     }
 
-    // Assuming all shapes have the same number of vertices.
     const int numShapes = static_cast<int>(inputShapes.size());
-    const int numVertices = static_cast<int>(inputShapes[0].first.rows());
-    const int vectorSize = 3 * numVertices; // each shape becomes a vector of length 3*numVertices
+    g_numVertices = static_cast<int>(inputShapes[0].first.rows());
+    g_vectorSize = 3 * g_numVertices; // each shape becomes a vector of length 3*numVertices
 
     // Build data matrix where each column is the vectorized shape.
-    Eigen::MatrixXd data(vectorSize, numShapes);
-
+    Eigen::MatrixXd data(g_vectorSize, numShapes);
     for (int i = 0; i < numShapes; ++i) {
         const Eigen::MatrixXd& vertices = inputShapes[i].first; // vertices: numVertices x 3
-        Eigen::VectorXd shapeVec(vectorSize);
-        for (int v = 0; v < numVertices; ++v) {
+        Eigen::VectorXd shapeVec(g_vectorSize);
+        for (int v = 0; v < g_numVertices; ++v) {
             // Place vertex v (x, y, z) into the vector.
             shapeVec.segment<3>(3 * v) = vertices.row(v).transpose();
         }
         data.col(i) = shapeVec;
     }
 
-
-
     // Compute the mean shape.
-    Eigen::VectorXd meanShape = data.rowwise().mean();
+    g_meanShape = data.rowwise().mean();
 
-    // Center the data by subtracting the mean shape from each shape.
-    Eigen::MatrixXd centered = data.colwise() - meanShape;
+    // Center the data.
+    Eigen::MatrixXd centered = data.colwise() - g_meanShape;
 
-    // Compute the covariance matrix.
-    // Note: using (n-1) for an unbiased estimate.
-
-
-
-    // Compute SVD on the centered data. We compute thin SVD for efficiency.
-    // Note: The SVD of X (centered data) is X = U * S * V^T.
-    // The columns of U are the principal directions (eigenvectors of the covariance matrix),
-    // and the squared singular values (S.array().square()) are proportional to the variance
-    // along each principal direction.
-// Compute SVD on the centered data (each column is a centered shape)
+    // Instead of computing the full covariance matrix (which is huge), we compute an SVD on the centered data.
+    // Using BDCSVD for efficiency (especially for tall matrices) and computing the thin SVD.
     Eigen::BDCSVD<Eigen::MatrixXd> svd(centered, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-    // Retrieve the singular values and principal components (eigenvectors of the covariance matrix)
-    Eigen::VectorXd singularValues = svd.singularValues();
-    Eigen::MatrixXd eigenvectors = svd.matrixU();
+    // The columns of U (stored in matrixU()) are the principal directions.
+    g_eigenvectors = svd.matrixU();  // Each column is a principal direction.
+    // You can also compute the eigenvalues if desired:
+    // Eigen::VectorXd singularValues = svd.singularValues();
+    // Eigen::VectorXd eigenvalues = singularValues.array().square() / (numShapes - 1);
 
-    // Compute the eigenvalues of the covariance matrix
-    // They are given by (singularValue)^2 / (numShapes - 1)
-    Eigen::VectorXd eigenvalues = singularValues.array().square() / (numShapes - 1);
+    std::cout << "SVD complete. Number of principal modes: " << g_eigenvectors.cols() << std::endl;
 
-    // Output the eigenvalues and eigenvectors
-    //std::cout << "Eigenvalues:\n" << eigenvalues << "\n\n";
-    //std::cout << "Eigenvectors (columns):\n" << eigenvectors << std::endl;
+    // Set default principal index to the last (largest variance) mode.
+    g_principalIndex = static_cast<int>(g_eigenvectors.cols()) - 1;
+    g_weight = 0.0f;
 
+    // Convert the mean shape to a vertices vector.
+    std::vector<std::array<double, 3>> meanPos = eigenVectorToVertices(g_meanShape);
 
-
-    std::cout << "SVD complete" << std::endl;
-
-
-
-    // Use the number of columns in the eigenvectors matrix for the principal index.
-    int principalIndex = eigenvectors.cols() - 1;  // Correct indexing
-
-    // Example: create a deformed shape by moving one standard deviation along the principal component.
-    double weight = 1.0;  // adjust the weight as needed
-    Eigen::VectorXd deformation = eigenvectors.col(principalIndex) * weight;
-    Eigen::VectorXd deformedShape = meanShape + deformation;
-
-    // Convert the deformed shape vector back to a vertices matrix.
-    Eigen::MatrixXd deformedVertices(numVertices, 3);
-    for (int v = 0; v < numVertices; ++v) {
-        deformedVertices.row(v) = deformedShape.segment<3>(3 * v).transpose();
+    // Convert face indices from Eigen::MatrixXi to vector of vectors.
+    const Eigen::MatrixXi& facesMat = inputShapes[0].second;
+    g_faceList.clear();
+    for (int i = 0; i < facesMat.rows(); ++i) {
+        std::vector<size_t> face;
+        for (int j = 0; j < facesMat.cols(); ++j) {
+            face.push_back(static_cast<size_t>(facesMat(i, j)));
+        }
+        g_faceList.push_back(face);
     }
 
-    // Visualization (pseudocode):
-    // visualizeShapes(meanShape, deformedVertices, inputShapes[0].second);
-    // Here, you would use your preferred visualization library to display the mean shape,
-    // the deformed shape, and perhaps allow user interaction to adjust the weight along principal modes.
+    // Initialize Polyscope.
+    polyscope::init();
 
-    std::cout << "PCA and deformation computed. Ready for visualization/editing." << std::endl;
+    // Register the mean shape for reference.
+    polyscope::registerSurfaceMesh("Mean Shape", meanPos, g_faceList);
 
+    // Compute initial deformed shape (with zero weight) and register.
+    std::vector<std::array<double, 3>> deformedPos = eigenVectorToVertices(g_meanShape);
+    polyscope::registerSurfaceMesh("Deformed Shape", deformedPos, g_faceList);
+    g_deformedMesh = polyscope::getSurfaceMesh("Deformed Shape");
+
+    // Add a user callback (ImGui) to control PCA modes.
+    polyscope::state::userCallback = []() {
+        // Get the total number of modes.
+        int totalModes = g_eigenvectors.cols();
+
+        // Slider to choose the principal mode index.
+        ImGui::SliderInt("Principal Mode", &g_principalIndex, 0, totalModes - 1);
+
+        // Slider to adjust the weight (amount of variation).
+        ImGui::SliderFloat("Weight", &g_weight, -2000.0f, 2000.0f);
+
+        // Button to reset weight.
+        if (ImGui::Button("Reset Weight")) {
+            g_weight = 0.0f;
+        }
+
+        // Update the deformed mesh based on current settings.
+        updateDeformedMesh();
+    };
+
+    // Show the Polyscope GUI.
+    polyscope::show();
 }
+
 
 
 

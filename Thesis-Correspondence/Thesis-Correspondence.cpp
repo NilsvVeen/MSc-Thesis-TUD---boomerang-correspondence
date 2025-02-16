@@ -734,12 +734,20 @@ int main2()
         Eigen::MatrixXi F1; // Mesh 1 faces          m x 3
         Eigen::MatrixXd V2; // mesh 2 vertices       s x 3
         Eigen::MatrixXi F2; // mesh 2 faces          q x 3
+
+
         readMeshFromFile(correspondence3dMatched + "/M1.obj", V1, F1);
         readMeshFromFile(correspondence3dMatched + "/M2.obj", V2, F2);
 
 
         analyzeAndVisualizeCorrespondence(V1, F1, V2, F2, evaluateCorrespondenceFolder);
 
+
+        Eigen::MatrixXd V2_init; 
+        Eigen::MatrixXi F2_init; 
+        double haushorffdistance, chamferdistance;
+        readMeshFromFile(shiftMeshAndCurve + "/M2.obj", V2_init, F2_init);
+        computeMeshDistances(V2_init, F2_init, V2, F2, haushorffdistance, chamferdistance);
     }
 
 

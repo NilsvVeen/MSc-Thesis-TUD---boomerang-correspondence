@@ -199,3 +199,69 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
 }
 
 
+
+#include <igl/hausdorff.h>
+#include <igl/point_mesh_squared_distance.h>
+#include <Eigen/Core>
+#include <iostream>
+#include <cmath>
+
+// Compute the Hausdorff and Chamfer distances between two meshes:
+// Mesh A: (VA, FA) and Mesh B: (VB, FB)
+void computeMeshDistances(
+    const Eigen::MatrixXd& VA, const Eigen::MatrixXi& FA,
+    const Eigen::MatrixXd& VB, const Eigen::MatrixXi& FB,
+    double& hausdorffDist, double& chamferDist)
+{
+    // ---------------------------------------------------------------------------
+    // 1. Compute the Hausdorff distance using libigl's hausdorff function.
+    //    Note: This implementation computes:
+    //    d_H(A,B) = max { max_{a in A} min_{b in B} ||a-b||,  max_{b in B} min_{a in A} ||a-b|| }
+    // ---------------------------------------------------------------------------
+    igl::hausdorff(VA, FA, VB, FB, hausdorffDist);
+
+    // ---------------------------------------------------------------------------
+    // 2. Compute the Chamfer distance.
+    //    For Chamfer, we compute the average point-to-mesh distance in both directions.
+    //    We'll use igl::point_mesh_squared_distance to compute the squared distances.
+    // ---------------------------------------------------------------------------
+    Eigen::VectorXd sqDistA; // Squared distances from each vertex in VA to mesh (VB,FB)
+    Eigen::VectorXi I_A;     // (Optional) Index of closest facet for each vertex in VA
+    Eigen::MatrixXd C_A;     // (Optional) Closest point on mesh (VB,FB) for each vertex in VA
+
+    igl::point_mesh_squared_distance(VA, VB, FB, sqDistA, I_A, C_A);
+
+    Eigen::VectorXd sqDistB; // Squared distances from each vertex in VB to mesh (VA,FA)
+    Eigen::VectorXi I_B;
+    Eigen::MatrixXd C_B;
+
+    igl::point_mesh_squared_distance(VB, VA, FA, sqDistB, I_B, C_B);
+
+    // Convert squared distances to distances by taking square roots and sum them
+    double sumA = 0.0;
+    for (int i = 0; i < sqDistA.size(); ++i)
+        sumA += std::sqrt(sqDistA(i));
+    double sumB = 0.0;
+    for (int i = 0; i < sqDistB.size(); ++i)
+        sumB += std::sqrt(sqDistB(i));
+
+    // Average the distances over the number of vertices in each mesh
+    double avgA = sumA / static_cast<double>(VA.rows());
+    double avgB = sumB / static_cast<double>(VB.rows());
+
+    // Chamfer distance: average of the two directional distances.
+    chamferDist = 0.5 * (avgA + avgB);
+
+
+
+    std::cout << "Hausdorff Distance: " << hausdorffDist << std::endl;
+    std::cout << "Chamfer Distance: " << chamferDist << std::endl;
+}
+
+
+
+
+
+
+
+

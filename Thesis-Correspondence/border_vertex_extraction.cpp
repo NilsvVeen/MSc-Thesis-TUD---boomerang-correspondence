@@ -231,24 +231,29 @@ void updateAlphaShape(const Eigen::MatrixXd& V_2D, float& alpha, std::vector<Eig
 
         // Save updated border vertices to file
         //std::string borderVerticesFile = "alpha_shape_border_alpha_" + std::to_string(alpha) + ".obj";
+
         savePointCloudToFile(borderVerticesFile, V_border);
         //takeScreenshot("alpha_shape_border_alpha_" + std::to_string(alpha) + ".png");
     }
 }
 
 void addAlphaSlider(const Eigen::MatrixXd& V_2D, float& alpha, std::vector<Eigen::Vector2d>& borderVertices, Eigen::MatrixXd& V_border, std::string borderVerticesFile) {
-    polyscope::state::userCallback = [&]() {
+    
+    std::cout << "FILENAME xxxxxxxx " << borderVerticesFile << std::endl;
+    polyscope::state::userCallback = [&, borderVerticesFile = borderVerticesFile]() {
         ImGui::SliderFloat("Alpha", &alpha, 1.0f, 50.0f, "%.1f");
         if (ImGui::Button("Update Alpha Shape")) {
-            updateAlphaShape(V_2D, alpha, borderVertices, V_border,  borderVerticesFile);
+            updateAlphaShape(V_2D, alpha, borderVertices, V_border, borderVerticesFile);
         }
     };
+
 }
 
 void runPolyscopeWithAlphaShape(const Eigen::MatrixXd& V_2D, float alpha, std::string borderVerticesFile) {
     std::cout << "Variable alpha included" << std::endl;
     std::vector<Eigen::Vector2d> borderVertices;
     Eigen::MatrixXd V_border;
+
     updateAlphaShape(V_2D, alpha, borderVertices, V_border, borderVerticesFile); // Initial computation
     addAlphaSlider(V_2D, alpha, borderVertices, V_border, borderVerticesFile); // Add UI for dynamic updates
     polyscope::show();

@@ -33,6 +33,13 @@ std::vector<std::vector<size_t>> g_faceList;
 std::vector<Eigen::VectorXd> g_inputShapes; // Store input shapes as vectorized versions
 polyscope::SurfaceMesh* g_deformedMesh = nullptr;
 
+// Global variables for random shape generation
+Eigen::VectorXd g_randomShape;
+polyscope::SurfaceMesh* g_randomMesh = nullptr;
+
+
+
+
 // Convert an Eigen vector (flattened shape) to a Polyscope vertices vector
 std::vector<std::array<double, 3>> eigenVectorToVertices(const Eigen::VectorXd& shapeVec) {
     std::vector<std::array<double, 3>> vertices(g_numVertices);
@@ -40,6 +47,31 @@ std::vector<std::array<double, 3>> eigenVectorToVertices(const Eigen::VectorXd& 
         vertices[v] = { shapeVec(3 * v), shapeVec(3 * v + 1), shapeVec(3 * v + 2) };
     }
     return vertices;
+}
+
+// Generate a random shape by sampling from a Gaussian distribution
+void generateRandomShape() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<double> distribution(-500, 500); // Standard normal
+
+    Eigen::VectorXd randomWeights(g_eigenvectors.cols());
+    for (int i = 0; i < g_eigenvectors.cols()-1; ++i) {
+        randomWeights(i) = distribution(gen);
+    }
+
+    Eigen::VectorXd deformation = g_eigenvectors * randomWeights;
+    g_randomShape = g_meanShape + deformation;
+
+    // Convert to Polyscope format and update the mesh
+    std::vector<std::array<double, 3>> randomVertices = eigenVectorToVertices(g_randomShape);
+    if (!g_randomMesh) {
+        polyscope::registerSurfaceMesh("Random Sample", randomVertices, g_faceList);
+        g_randomMesh = polyscope::getSurfaceMesh("Random Sample");
+    }
+    else {
+        g_randomMesh->updateVertexPositions(randomVertices);
+    }
 }
 
 // Update the deformed mesh given the selected reference shape, principal index, and weight
@@ -141,6 +173,11 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         // Reset weight button
         if (ImGui::Button("Reset Weight")) {
             g_weight = 0.0f;
+        }
+
+        // Generate random sample button
+        if (ImGui::Button("Generate Random Sample")) {
+            generateRandomShape();
         }
 
         // Update deformed shape

@@ -76,7 +76,7 @@ void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
 
 
 
-void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
+std::vector<double> computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
     double nPercent,
     Eigen::VectorXd& highlightMask,
     std::string distortionType) {
@@ -94,7 +94,7 @@ void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
     if (validDistortions.empty()) {
         std::cout << "No valid " << distortionType << " values to compute statistics." << std::endl;
         highlightMask.setZero(numTriangles);
-        return;
+        return {};
     }
 
     // Compute statistics
@@ -129,6 +129,10 @@ void computeStatisticsAndHighlight(const Eigen::VectorXd& distortions,
 
     std::cout << "Highlighted top " << nPercent << "% triangles with the largest "
         << distortionType << " distortion." << std::endl;
+
+
+    return std::vector<double>{minDistortion, maxDistortion, meanDistortion, stdDevDistortion};
+
 }
 
 
@@ -174,11 +178,34 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
 
     // Compute and highlight distortions separately
     Eigen::VectorXd areaHighlightMask, shearHighlightMask;
-    computeStatisticsAndHighlight(areaDistortions, nPercent, areaHighlightMask, "Area");
-    computeStatisticsAndHighlight(shearDistortions, nPercent, shearHighlightMask, "Shear");
+    std::vector<double> areaStats = computeStatisticsAndHighlight(areaDistortions, nPercent, areaHighlightMask, "Area");
+    std::vector<double> shearStats = computeStatisticsAndHighlight(shearDistortions, nPercent, shearHighlightMask, "Shear");
 
 
+    // Step 4: Write shear distortions to a file
+    std::string area_shear_summaryFile = evaluateCorrespondenceFolder + "/area_shear_summary.txt";
+    std::ofstream sumFile(area_shear_summaryFile);
+    if (sumFile.is_open()) {
 
+        sumFile << "Area Distortion" << "\n";
+        sumFile << "Distortion - Min: " << areaStats[0] << "\n";
+        sumFile << "Max: " << areaStats[1] << "\n";
+        sumFile << "Mean: " << areaStats[2] << "\n";
+        sumFile << "StdDev " << areaStats[3] << "\n";
+
+        sumFile << "Shear Distortion" << "\n";
+        sumFile << "Distortion - Min: " << shearStats[0] << "\n";
+        sumFile << "Max: " << shearStats[1] << "\n";
+        sumFile << "Mean: " << shearStats[2] << "\n";
+        sumFile << "StdDev " << shearStats[3] << "\n";
+        sumFile.close();
+
+
+        std::cout << "Distortions written to: " << area_shear_summaryFile << "\n";
+    }
+    else {
+        std::cerr << "Error: Could not write to file " << area_shear_summaryFile << "\n";
+    }
 
 
 
@@ -212,7 +239,7 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
 void computeMeshDistances(
     const Eigen::MatrixXd& VA, const Eigen::MatrixXi& FA,
     const Eigen::MatrixXd& VB, const Eigen::MatrixXi& FB,
-    double& hausdorffDist, double& chamferDist)
+    double& hausdorffDist, double& chamferDist, const std::string evaluateCorrespondenceFolder)
 {
     // ---------------------------------------------------------------------------
     // 1. Compute the Hausdorff distance using libigl's hausdorff function.
@@ -298,6 +325,28 @@ void computeMeshDistances(
     std::cout << "  Normalized Min Error: " << minError / bboxDiag << "\n";
     std::cout << "  Normalized Max Error: " << maxError / bboxDiag << "\n";
     std::cout << "  Normalized Std Dev: " << stdDevError / bboxDiag << "\n";
+
+
+    // Step 4: Write shear distortions to a file
+    std::string hauschamSummaryFile = evaluateCorrespondenceFolder + "/HausChamDistancesSummary.txt";
+    std::ofstream sumFile(hauschamSummaryFile);
+    if (sumFile.is_open()) {
+
+        sumFile << "Hausdorff Distance: " << hausdorffDist << "\n";
+        sumFile << "Chamfer Distance: " << chamferDist << "\n";
+        sumFile << "Normalized Hausdorff Distance: " << hausdorffDist / bboxDiag << "\n";
+        sumFile << "Normalized Chamfer Distance: " << chamferDist / bboxDiag << "\n";
+
+        sumFile.close();
+
+
+        std::cout << "Distances written to: " << hauschamSummaryFile << "\n";
+    }
+    else {
+        std::cerr << "Error: Could not write to file " << hauschamSummaryFile << "\n";
+    }
+
+
 
     // ---------------------------------------------------------------------------
     // Visualize the error distribution on the deformed mesh (VB) using Polyscope.

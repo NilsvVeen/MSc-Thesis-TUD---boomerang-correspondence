@@ -747,7 +747,7 @@ int main2()
         Eigen::MatrixXi F2_init; 
         double haushorffdistance, chamferdistance;
         readMeshFromFile(shiftMeshAndCurve + "/M2.obj", V2_init, F2_init);
-        computeMeshDistances(V2_init, F2_init, V2, F2, haushorffdistance, chamferdistance);
+        computeMeshDistances(V2_init, F2_init, V2, F2, haushorffdistance, chamferdistance, evaluateCorrespondenceFolder);
     }
 
 

@@ -8,4 +8,4 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
 void computeMeshDistances(
     const Eigen::MatrixXd& VA, const Eigen::MatrixXi& FA,
     const Eigen::MatrixXd& VB, const Eigen::MatrixXi& FB,
-    double& hausdorffDist, double& chamferDist);
+    double& hausdorffDist, double& chamferDist, const std::string evaluateCorrespondenceFolder);

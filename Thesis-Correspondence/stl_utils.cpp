@@ -1156,18 +1156,41 @@ void parameterizeWithControls(const Eigen::MatrixXd& V1, const Eigen::MatrixXd& 
         glm::vec3 colorglm(static_cast<float>(color(0)), static_cast<float>(color(1)), static_cast<float>(color(2)));
 
         // Register point clouds
+        //auto obj1 = polyscope::registerPointCloud("V1 Equalized___" + std::to_string(i), V1_equalized);
+        //obj1->setPointColor(colorglm);
+        //obj1->setPointRadius(0.0005);
+        //obj1->setEnabled(false);
+        ////polyscope::registerPointCloud("New V2", NewV2);
+        ////polyscope::registerPointCloud("V2 Equalized", V2_equalized);
+        ////polyscope::registerPointCloud("V1 Sub", V1_sub);
+        ////polyscope::registerPointCloud("V2 Sub", V2_sub);
+        //auto obj2 = polyscope::registerPointCloud("V2 new___" + std::to_string(i), NewV2);
+        //obj2->setPointColor(colorglm);
+        //obj2->setPointRadius(0.0005);
+        //obj2->setEnabled(false);
+
+        // For the first point cloud (V1_equalized)
         auto obj1 = polyscope::registerPointCloud("V1 Equalized___" + std::to_string(i), V1_equalized);
         obj1->setPointColor(colorglm);
         obj1->setPointRadius(0.0005);
         obj1->setEnabled(false);
-        //polyscope::registerPointCloud("New V2", NewV2);
-        //polyscope::registerPointCloud("V2 Equalized", V2_equalized);
-        //polyscope::registerPointCloud("V1 Sub", V1_sub);
-        //polyscope::registerPointCloud("V2 Sub", V2_sub);
+
+        // For the second point cloud (NewV2)
         auto obj2 = polyscope::registerPointCloud("V2 new___" + std::to_string(i), NewV2);
         obj2->setPointColor(colorglm);
         obj2->setPointRadius(0.0005);
         obj2->setEnabled(false);
+
+
+        // Create a vector of indices for V1_equalized
+        std::vector<double> indices1(V1_equalized.rows());
+        for (size_t j = 0; j < V1_equalized.rows(); ++j) {
+            indices1[j] = static_cast<double>(j);
+        }
+        // Add the scalar quantity for rainbow mapping (using the "jet" colormap)
+        obj1->addScalarQuantity("colors", indices1);
+        obj2->addScalarQuantity("colors", indices1);
+
 
         // Output NewV2 for inspection
         //std::cout << "NewV2 vertices:\n" << NewV2 << std::endl;

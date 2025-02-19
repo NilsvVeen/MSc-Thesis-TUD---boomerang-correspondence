@@ -321,6 +321,8 @@ std::vector<Eigen::Vector2d> fitPlaneAndAlignMesh(const std::string& filename, c
     saveMeshToFile(rotatedMeshFile, rotatedV, rotatedF);
 
     // Initialize Polyscope and register the rotated mesh
+    initializePolyscopeAndRegisterMesh("Initial Mesh", V, F);
+
     initializePolyscopeAndRegisterMesh("Rotated Mesh", rotatedV, rotatedF);
     takeScreenshot("rotated_mesh.png");
 

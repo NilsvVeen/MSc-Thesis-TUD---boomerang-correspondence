@@ -237,13 +237,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
             B(i) = closest_vertex;  // Assign the closest vertex index
 
-            // Set UV coordinates in BC
-            //bool CircleUV = false;  // Toggle between different UV generation methods
-            //if (CircleUV) {
-            //    double angle = 2.0 * 3.14159265358979323846  * i / boundary_vertices.rows();
-            //    BC(i, 0) = std::cos(angle);  // u-coordinate
-            //    BC(i, 1) = std::sin(angle);  // v-coordinate
-            //}
+
 
             bool ProjectionUV = true;  // If ProjectionUV is enabled
             if (ProjectionUV) {
@@ -252,6 +246,21 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
                 boundaryUV(i, 0) = BC(i, 0);
                 boundaryUV(i, 1) = BC(i, 1);
             }
+             
+            
+             // Map boundary to a circle
+            bool CircleUV = false;
+            if (CircleUV) {
+                double angle = 2.0 * 3.14159265358979323846 * i / boundary_vertices.rows();
+                BC(i, 0) = std::cos(angle);  // u-coordinate
+                BC(i, 1) = std::sin(angle);  // v-coordinate
+
+                // Store UV for debugging or further use
+                boundaryUV(i, 0) = BC(i, 0);
+                boundaryUV(i, 1) = BC(i, 1);
+            }
+
+
         }
 
         // Debug: Visualize the boundary vertices (B) and their UV constraints (BC)
@@ -260,18 +269,41 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
                 << ", UV: (" << BC(i, 0) << ", " << BC(i, 1) << ")" << std::endl;
         }
 
+        bool useWholeBoundary = true;
+        if (useWholeBoundary) {
 
-        // Perform LSCM with additional parameters
-        igl::lscm(V, F, B, BC, UV);
-        //igl::harmonic(V, F, B, BC, 2, UV); // The last parameter is the harmonic order
-        //lscmWithSmoothBoundary(V, F, B, BC, UV);
+            // Perform LSCM with additional parameters
+            igl::lscm(V, F, B, BC, UV);
+            //igl::harmonic(V, F, B, BC, 1, UV); // The last parameter is the harmonic order
+
+
+        }
+        else {
+            // use only 2 points
+            int midIndex = boundary_vertices.rows() / 2;
+
+            Eigen::VectorXi B_new(2);
+            B_new << B(0), B(midIndex);
+
+            Eigen::MatrixXd BC_new(2, 2);
+            BC_new.row(0) = BC.row(0);
+            BC_new.row(1) = BC.row(midIndex);
+
+            igl::lscm(V, F, B_new, BC_new, UV);
+
+        }
 
 
 
 
     }
     else {
-        igl::lscm(V, F, UV);
+        //igl::lscm(V, F, UV);
+
+
+
+
+
     }
 
 

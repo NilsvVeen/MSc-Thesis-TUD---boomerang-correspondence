@@ -108,6 +108,149 @@ void updateMeshTransformations() {
     }
 }
 
+Eigen::VectorXd selectSubsetIndices(int totalVertices, int numSelected) {
+    Eigen::VectorXd indices = Eigen::VectorXd::Constant(totalVertices, -1); // Default to -1 (not selected)
+
+    for (int i = 0; i < numSelected; ++i) {
+        int idx = i * (totalVertices / numSelected); // Evenly spaced selection
+        indices(idx) = double(i) / (numSelected - 1); // Normalize to [0,1]
+    }
+
+    return indices;
+}
+
+
+#include <Eigen/Core>
+#include <queue>
+#include <vector>
+#include <limits>
+
+// Function to compute geodesic distances from a starting vertex
+Eigen::VectorXd computeSortedVertexIndices(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, int startIdx = 0) {
+    int numVertices = V.rows();
+
+    // Priority queue for Dijkstra's algorithm (min-heap based on distance)
+    using Pair = std::pair<double, int>;  // (distance, vertex index)
+    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> pq;
+
+    // Distance array initialized to infinity
+    std::vector<double> distances(numVertices, std::numeric_limits<double>::infinity());
+    distances[startIdx] = 0.0;
+
+    // Result vector (stores indices sorted by increasing distance)
+    std::vector<int> sortedIndices;
+
+    // Push the starting vertex into the queue
+    pq.emplace(0.0, startIdx);
+
+    // Dijkstra’s algorithm for shortest path in an unstructured mesh
+    while (!pq.empty()) {
+        double currDist = pq.top().first;
+        int currIdx = pq.top().second;
+        pq.pop();
+
+        // If already visited, skip
+        if (std::find(sortedIndices.begin(), sortedIndices.end(), currIdx) != sortedIndices.end()) continue;
+
+        // Add to sorted indices
+        sortedIndices.push_back(currIdx);
+
+        // Iterate over neighboring vertices (connected via faces)
+        for (int i = 0; i < F.rows(); ++i) {
+            for (int j = 0; j < 3; ++j) {
+                if (F(i, j) == currIdx) {
+                    // Neighboring vertex
+                    int neighborIdx = F(i, (j + 1) % 3);
+
+                    // Compute Euclidean distance
+                    double newDist = currDist + (V.row(currIdx) - V.row(neighborIdx)).norm();
+
+                    // Relaxation step
+                    if (newDist < distances[neighborIdx]) {
+                        distances[neighborIdx] = newDist;
+                        pq.emplace(newDist, neighborIdx);
+                    }
+                }
+            }
+        }
+    }
+
+    // Convert to Eigen::VectorXd
+    Eigen::VectorXd sortedEigenIndices(sortedIndices.size());
+    for (int i = 0; i < sortedIndices.size(); ++i) {
+        sortedEigenIndices(i) = sortedIndices[i];
+    }
+
+    return sortedEigenIndices;
+}
+
+
+// Compute shortest path distances over the mesh using Dijkstra's algorithm
+Eigen::VectorXd computeGeodesicDistances(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, int startIdx = 0) {
+    int numVertices = V.rows();
+
+    // Priority queue for Dijkstra (min-heap based on distance)
+    using Pair = std::pair<double, int>;  // (distance, vertex index)
+    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> pq;
+
+    // Distance array initialized to infinity
+    std::vector<double> distances(numVertices, std::numeric_limits<double>::infinity());
+    distances[startIdx] = 0.0;  // Distance to itself is 0
+
+    // Push the starting vertex into the queue
+    pq.emplace(0.0, startIdx);
+
+    // Adjacency list for edge-based traversal
+    std::vector<std::vector<std::pair<int, double>>> adjacency(numVertices);
+    for (int i = 0; i < F.rows(); ++i) {
+        for (int j = 0; j < 3; ++j) {
+            int v1 = F(i, j);
+            int v2 = F(i, (j + 1) % 3);
+            int v3 = F(i, (j + 2) % 3);
+
+            double d12 = (V.row(v1) - V.row(v2)).norm();
+            double d13 = (V.row(v1) - V.row(v3)).norm();
+            double d23 = (V.row(v2) - V.row(v3)).norm();
+
+            adjacency[v1].emplace_back(v2, d12);
+            adjacency[v1].emplace_back(v3, d13);
+            adjacency[v2].emplace_back(v1, d12);
+            adjacency[v2].emplace_back(v3, d23);
+            adjacency[v3].emplace_back(v1, d13);
+            adjacency[v3].emplace_back(v2, d23);
+        }
+    }
+
+    // Dijkstra's algorithm for geodesic distances
+    while (!pq.empty()) {
+        double currDist = pq.top().first;
+        int currIdx = pq.top().second;
+        pq.pop();
+
+        // Iterate over neighboring vertices
+        for (const auto& neighbor : adjacency[currIdx]) {
+            int neighborIdx = neighbor.first;
+            double edgeLength = neighbor.second;
+            double newDist = currDist + edgeLength;
+
+            // Relaxation step
+            if (newDist < distances[neighborIdx]) {
+                distances[neighborIdx] = newDist;
+                pq.emplace(newDist, neighborIdx);
+            }
+        }
+    }
+
+    // Convert distances to Eigen::VectorXd
+    Eigen::VectorXd distanceVector(numVertices);
+    for (int i = 0; i < numVertices; ++i) {
+        distanceVector(i) = distances[i];
+    }
+
+    return distanceVector;
+}
+
+
 // Main function
 void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes, const std::string outputFolder
 ) {
@@ -131,8 +274,18 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
 
     polyscope::init();
 
+    //int numSelected = 5000; // Only highlight 100 points
+    //Eigen::VectorXd indices = selectSubsetIndices(vertices[0].rows(), numSelected);
+    //Eigen::VectorXd indices = computeSortedVertexIndices(vertices[0], F_new);
+    Eigen::VectorXd indices = computeGeodesicDistances(vertices[0], F_new);
+
+    std::cout << "indices type 3" << std::endl;
+
     for (size_t i = 0; i < vertices.size(); ++i) {
-        polyscope::registerSurfaceMesh("Shape " + std::to_string(i + 1), vertices[i], faces[i]);
+        //auto* obj = polyscope::registerPointCloud("Shape " + std::to_string(i + 1) + "-Points", vertices[i]);
+        auto* obj2 = polyscope::registerSurfaceMesh("Shape " + std::to_string(i + 1), vertices[i], faces[i]);
+        //obj->addScalarQuantity("color", indices);
+        obj2->addVertexScalarQuantity("color", indices);
     }
 
     // Interpolate the transformed meshes

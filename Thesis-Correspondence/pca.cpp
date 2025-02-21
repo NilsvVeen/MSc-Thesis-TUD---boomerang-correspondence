@@ -124,7 +124,7 @@ void updateDeformedMesh() {
 
 
 
-void generateAndVisualizePoints(const Eigen::MatrixXd& M) {
+Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M) {
     // Get min and max X, Y coordinates
     double minX = M.col(0).minCoeff();
     double maxX = M.col(0).maxCoeff();
@@ -190,25 +190,28 @@ void generateAndVisualizePoints(const Eigen::MatrixXd& M) {
         polyscopePoints(i, 2) = points[i][2];
     }
 
-    std::vector<int> selectedVerticesXXX = { 1 };
+    //std::vector<int> selectedVerticesXXX = { 1 };
 
-    std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+    //std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
 
-    std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
-    ;
-    double radius = 0.005;
-    // Visualize the points in Polyscope
-    //auto obj1 = polyscope::registerPointCloud("Generated Points", polyscopePoints);
-    auto* obj1 = registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
-    obj1->updatePointPositions(polyscopePoints); // Update Polyscope 
-    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
+    //std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
+    //;
+    //double radius = 0.005;
+    //// Visualize the points in Polyscope
+    ////auto obj1 = polyscope::registerPointCloud("Generated Points", polyscopePoints);
+    //auto* obj1 = registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
+    //obj1->updatePointPositions(polyscopePoints); // Update Polyscope 
+    //polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
 
-        std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+    //    std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
 
-        HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
+    //    HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
  
-    };
-    polyscope::show();
+    //};
+    //polyscope::show();
+
+
+    return polyscopePoints;
 
 
 
@@ -261,9 +264,27 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         }
         g_faceList.push_back(face);
     }
-
     // Initialize Polyscope
     polyscope::init();
+
+    Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first);
+
+    std::vector<int> selectedVerticesXXX = { 1 };
+std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
+
+double radius = 0.005;
+auto* obj1 = registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
+obj1->updatePointPositions(polyscopePoints); // Update Polyscope 
+//polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
+
+    //std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+
+    //HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
+
+
+    // Initialize Polyscope
+    //polyscope::init();
 
     // Register the mean shape
     polyscope::registerSurfaceMesh("Mean Shape", eigenVectorToVertices(g_meanShape), g_faceList);
@@ -273,7 +294,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     g_deformedMesh = polyscope::getSurfaceMesh("Deformed Shape");
 
     // User controls via ImGui
-    polyscope::state::userCallback = []() {
+    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
         int totalModes = g_eigenvectors.cols();
         // Dropdown to choose reference shape
         if (ImGui::BeginCombo("Reference Shape", g_referenceShapeIndex == -1 ? "Mean Shape" : ("Input Shape " + std::to_string(g_referenceShapeIndex)).c_str())) {
@@ -301,6 +322,30 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         }
         // Update deformed shape
         updateDeformedMesh();
+
+
+        // STEP extra
+
+            // Button to print the coordinates of selected points
+        if (ImGui::Button("Print Selected Points")) {
+            std::cout << "Selected Points Coordinates:\n";
+            for (int idx : selectedVerticesXXX) {
+                if (idx >= 0 && idx < polyscopePoints.rows()) { // Ensure index is within bounds
+                    std::cout << "Index " << idx << ": (" << polyscopePoints(idx, 0) << ", " << polyscopePoints(idx, 1) << ", " << polyscopePoints(idx, 2) << ")\n";
+                }
+                else {
+                    std::cout << "Invalid index: " << idx << "\n";
+                }
+            }
+        }
+
+
+        std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+
+        HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
+
+
+
     };
 
 

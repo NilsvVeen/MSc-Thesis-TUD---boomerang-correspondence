@@ -7,3 +7,5 @@ void performPCAAndEditWithVisualization(
 std::vector<Eigen::MatrixXd> ICPAlignShapes(
     std::vector<Eigen::MatrixXd>& shapes,  // Pass shapes as non-const
     int max_iters);
+
+Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M);

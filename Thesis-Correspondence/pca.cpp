@@ -17,6 +17,11 @@
 #include <polyscope/polyscope.h>
 #include <polyscope/surface_mesh.h>
 
+#include <polyscope/polyscope.h>
+#include <polyscope/surface_mesh.h>
+#include <polyscope/point_cloud.h>
+#include <polyscope/pick.h>
+
 // Global variables for PCA results and interactive parameters:
 Eigen::VectorXd g_meanShape;
 Eigen::MatrixXd g_eigenvectors;
@@ -90,6 +95,126 @@ void updateDeformedMesh() {
     }
 }
 
+#include <polyscope/point_cloud.h>
+#include "stl_utils.h"
+//#include "stl_utils.h"
+//
+//
+    void HandlUserSelectionPCA(auto& pointCloud1, const Eigen::MatrixXd & V1, std::vector<int>& selectedVertices1,
+        const std::vector<std::array<double, 3>>&vertexColors1, double radius_default) {
+    if (polyscope::pick::haveSelection()) {
+
+        std::cout << "A" << std::endl;
+
+        auto pickResult = polyscope::pick::getSelection();
+        std::cout << "B" << std::endl;
+        if (pickResult.first == pointCloud1 || pickResult.first->getName() == "Point Cloud") {
+            std::cout << "C" << std::endl;
+
+            handleSelection(pointCloud1, selectedVertices1, vertexColors1);
+        }
+
+    }
+
+    std::cout << "Selected vertices in Point Cloud 1: ";
+    for (int v : selectedVertices1) std::cout << v << " ";
+    std::cout << std::endl;
+}
+
+
+
+
+void generateAndVisualizePoints(const Eigen::MatrixXd& M) {
+    // Get min and max X, Y coordinates
+    double minX = M.col(0).minCoeff();
+    double maxX = M.col(0).maxCoeff();
+    double minY = M.col(1).minCoeff();
+    double maxY = M.col(1).maxCoeff();
+
+    // Calculate average Z value
+    double avgZ = M.col(2).mean();
+
+    // Print the min/max values and the average Z for debugging
+    std::cout << "Min X: " << minX << ", Max X: " << maxX << "\n";
+    std::cout << "Min Y: " << minY << ", Max Y: " << maxY << "\n";
+    std::cout << "Average Z: " << avgZ << "\n";
+
+    // Make the bounding box bigger by expanding it
+    double dx = (maxX - minX) * 1.0;  
+    double dy = (maxY - minY) * 1.0;  
+
+    // Expand the bounding box in all directions
+    minX -= dx;
+    maxX += dx;
+    minY -= dy;
+    maxY += dy;
+
+    // Print the updated min/max values for debugging
+    std::cout << "Expanded Min X: " << minX << ", Expanded Max X: " << maxX << "\n";
+    std::cout << "Expanded Min Y: " << minY << ", Expanded Max Y: " << maxY << "\n";
+
+    // Number of points to generate (total number of points)
+    int numPoints = 5000;
+
+    // We will divide the expanded bounding box into a grid of approximately sqrt(numPoints) points per dimension
+    int gridSize = std::sqrt(numPoints);
+
+    // Step sizes for X and Y dimensions
+    double stepX = (maxX - minX) / (gridSize - 1);
+    double stepY = (maxY - minY) / (gridSize - 1);
+
+    // Generate points in the expanded X-Y bounding box with the average Z value
+    std::vector<Eigen::Vector3d> points;
+    for (int i = 0; i < gridSize; ++i) {
+        for (int j = 0; j < gridSize; ++j) {
+            // Calculate X and Y coordinates based on the grid
+            double x = minX + i * stepX;
+            double y = minY + j * stepY;
+
+            // Use average Z value for all points
+            Eigen::Vector3d point(x, y, avgZ);
+
+            // Print the generated point
+            std::cout << "Generated Point: (" << point[0] << ", " << point[1] << ", " << point[2] << ")\n";
+
+            // Store the point
+            points.push_back(point);
+        }
+    }
+
+    // Prepare points as Eigen::MatrixXd
+    Eigen::MatrixXd polyscopePoints(points.size(), 3);
+    for (size_t i = 0; i < points.size(); ++i) {
+        polyscopePoints(i, 0) = points[i][0];
+        polyscopePoints(i, 1) = points[i][1];
+        polyscopePoints(i, 2) = points[i][2];
+    }
+
+    std::vector<int> selectedVerticesXXX = { 1 };
+
+    std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+
+    std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
+    ;
+    double radius = 0.005;
+    // Visualize the points in Polyscope
+    //auto obj1 = polyscope::registerPointCloud("Generated Points", polyscopePoints);
+    auto* obj1 = registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
+    obj1->updatePointPositions(polyscopePoints); // Update Polyscope 
+    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
+
+        std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+
+        HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
+ 
+    };
+    polyscope::show();
+
+
+
+}
+
+
 // Main PCA computation and visualization setup
 void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
     if (inputShapes.empty()) {
@@ -150,7 +275,6 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     // User controls via ImGui
     polyscope::state::userCallback = []() {
         int totalModes = g_eigenvectors.cols();
-
         // Dropdown to choose reference shape
         if (ImGui::BeginCombo("Reference Shape", g_referenceShapeIndex == -1 ? "Mean Shape" : ("Input Shape " + std::to_string(g_referenceShapeIndex)).c_str())) {
             if (ImGui::Selectable("Mean Shape", g_referenceShapeIndex == -1)) {
@@ -163,26 +287,26 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             }
             ImGui::EndCombo();
         }
-
         // Slider for mode selection
         ImGui::SliderInt("Principal Mode", &g_principalIndex, 0, totalModes - 1);
-
         // Slider for weight
         ImGui::SliderFloat("Weight", &g_weight, -10000.0f, 10000.0f);
-
         // Reset weight button
         if (ImGui::Button("Reset Weight")) {
             g_weight = 0.0f;
         }
-
         // Generate random sample button
         if (ImGui::Button("Generate Random Sample")) {
             generateRandomShape();
         }
-
         // Update deformed shape
         updateDeformedMesh();
     };
+
+
+
+    //generateAndVisualizePoints(g_meanShape);
+    //generateAndVisualizePoints(inputShapes[0].first);
 
     // Show Polyscope UI
     polyscope::show();

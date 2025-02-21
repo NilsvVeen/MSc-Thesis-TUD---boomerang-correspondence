@@ -78,4 +78,8 @@ void orderGuide(Eigen::MatrixXd& V1);
 
 void resetPolyscope();
 
+void handleSelection(polyscope::PointCloud* pointCloud, std::vector<int>& selectedVertices, const std::vector<std::array<double, 3>>& defaultColors);
+
+polyscope::PointCloud* registerPointCloudWithColors(const std::string& name, const Eigen::MatrixXd& V, double pointRadius, std::vector<std::array<double, 3>>& vertexColors);
+
 #endif // STL_UTILS_H

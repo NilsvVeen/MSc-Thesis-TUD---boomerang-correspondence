@@ -615,6 +615,7 @@ void updateVertexColors(polyscope::PointCloud* pointCloud, const std::vector<int
 void handleSelection(polyscope::PointCloud* pointCloud, std::vector<int>& selectedVertices, const std::vector<std::array<double, 3>>& defaultColors) {
     int selectedIndex = polyscope::pick::getSelection().second;
 
+
     // Check if the vertex is already selected
     auto it = std::find(selectedVertices.begin(), selectedVertices.end(), selectedIndex);
     if (it != selectedVertices.end()) {

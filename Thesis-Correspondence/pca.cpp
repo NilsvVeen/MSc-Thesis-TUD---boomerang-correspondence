@@ -31,6 +31,8 @@ int g_vectorSize = 0;
 // Interactive parameters:
 int g_principalIndex = 0;
 float g_weight = 0.0f;
+std::vector<float> g_weights;  // Stores weights for each principal component
+
 int g_referenceShapeIndex = -1; // -1: mean shape, 0-N: input shape index
 
 // Face connectivity and mesh storage
@@ -94,12 +96,20 @@ void updateDeformedMesh() {
     // Select reference shape: either mean shape or one of the input shapes
     Eigen::VectorXd baseShape = (g_referenceShapeIndex == -1) ? g_meanShape : g_inputShapes[g_referenceShapeIndex];
 
-    // Apply deformation
-    Eigen::VectorXd deformation = g_eigenvectors.col(g_principalIndex) * g_weight;
-    Eigen::VectorXd deformedShape = baseShape + deformation;
+    //// Apply deformation
+    //Eigen::VectorXd deformation = g_eigenvectors.col(g_principalIndex) * g_weight;
+    //Eigen::VectorXd deformedShape = baseShape + deformation;
+
+    Eigen::VectorXd reconstructedShape = baseShape;
+
+    // Apply all principal component weights
+    for (int j = 0; j < g_eigenvectors.cols(); ++j) {
+        reconstructedShape += g_weights[j] * g_eigenvectors.col(j);
+    }
 
     // Update Polyscope mesh
-    std::vector<std::array<double, 3>> deformedPos = eigenVectorToVertices(deformedShape);
+    //std::vector<std::array<double, 3>> deformedPos = eigenVectorToVertices(deformedShape);
+    std::vector<std::array<double, 3>> deformedPos = eigenVectorToVertices(reconstructedShape);
     if (g_deformedMesh) {
         g_deformedMesh->updateVertexPositions(deformedPos);
     }
@@ -301,6 +311,8 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     // Default selection
     g_principalIndex = g_eigenvectors.cols() - 1;
     g_weight = 0.0f;
+    g_weights.resize(g_eigenvectors.cols(), 0.0f); // Initialize weights to zero
+
 
     // Convert faces to Polyscope format
     g_faceList.clear();
@@ -353,10 +365,17 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         // Slider for mode selection
         ImGui::SliderInt("Principal Mode", &g_principalIndex, 0, totalModes - 1);
         // Slider for weight
-        ImGui::SliderFloat("Weight", &g_weight, -10000.0f, 10000.0f);
+        //ImGui::SliderFloat("Weight", &g_weight, -10000.0f, 10000.0f);
+        // Sliders for each principal component weight
+        for (int i = 0; i < totalModes; ++i) {
+            ImGui::SliderFloat(("Weight " + std::to_string(i)).c_str(), &g_weights[i], -10000.0f, 10000.0f);
+        }
         // Reset weight button
-        if (ImGui::Button("Reset Weight")) {
-            g_weight = 0.0f;
+        //if (ImGui::Button("Reset Weight")) {
+        //    g_weight = 0.0f;
+        //}
+        if (ImGui::Button("Reset All Weights")) {
+            std::fill(g_weights.begin(), g_weights.end(), 0.0f);
         }
         // Generate random sample button
         if (ImGui::Button("Generate Random Sample")) {

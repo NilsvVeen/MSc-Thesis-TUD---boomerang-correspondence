@@ -10,7 +10,23 @@
 #include <fstream>
 #include <numeric>
 
+double computeSurfaceArea(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F) {
+    double totalArea = 0.0;
 
+    for (int i = 0; i < F.rows(); ++i) {
+        Eigen::Vector3d v0 = V.row(F(i, 0));
+        Eigen::Vector3d v1 = V.row(F(i, 1));
+        Eigen::Vector3d v2 = V.row(F(i, 2));
+
+        // Compute the cross product of the two edge vectors
+        Eigen::Vector3d crossProduct = (v1 - v0).cross(v2 - v0);
+
+        // Triangle area = 0.5 * norm of cross product
+        totalArea += 0.5 * crossProduct.norm();
+    }
+
+    return totalArea;
+}
 
 
 void computeAreaAndShear(const Eigen::MatrixXd& V1, const Eigen::MatrixXi& F1,
@@ -150,6 +166,11 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
     Eigen::VectorXd areaDistortions, shearDistortions;
     computeAreaAndShear(V1, F1, V2, F2, areaDistortions, shearDistortions);
 
+    double area1 = computeSurfaceArea(V1,F1);
+    double area2 = computeSurfaceArea(V2,F2);
+
+
+
     createDirectory(evaluateCorrespondenceFolder);
     createDirectory(evaluateCorrespondenceFolder);
 
@@ -192,12 +213,16 @@ void analyzeAndVisualizeCorrespondence(const Eigen::MatrixXd& V1, const Eigen::M
         sumFile << "Max: " << areaStats[1] << "\n";
         sumFile << "Mean: " << areaStats[2] << "\n";
         sumFile << "StdDev " << areaStats[3] << "\n";
+        
 
         sumFile << "Shear Distortion" << "\n";
         sumFile << "Distortion - Min: " << shearStats[0] << "\n";
         sumFile << "Max: " << shearStats[1] << "\n";
         sumFile << "Mean: " << shearStats[2] << "\n";
         sumFile << "StdDev " << shearStats[3] << "\n";
+
+        sumFile << "Area Object 1:" << area1 << "\n";
+        sumFile << "Area Object 2:" << area2 << "\n";
         sumFile.close();
 
 
@@ -370,6 +395,9 @@ void computeMeshDistances(
 
 
 }
+
+
+
 
 
 

@@ -340,3 +340,77 @@ void projectAndReplaceVertices(const Eigen::MatrixXd& mesh2_V, const Eigen::Matr
     std::cout << std::endl; // To move to the next line after the progress is complete
 }
 
+// this splits faces at the projected location
+void projectAndReplaceVerticesV2(const Eigen::MatrixXd& mesh2_V, const Eigen::MatrixXi& mesh2_F,
+    const Eigen::MatrixXd& V2_pointcloud, Eigen::MatrixXd& V2_pointcloud_new,
+    Eigen::MatrixXd& updated_mesh_V, Eigen::MatrixXi& updated_mesh_F) {
+
+    double threshold = 1e-5;
+    // Copy original mesh vertices and faces
+    updated_mesh_V = mesh2_V;
+    updated_mesh_F = mesh2_F;
+
+    // Initialize V2_pointcloud_new as empty
+    V2_pointcloud_new.resize(0, 3);
+
+    for (int i = 0; i < V2_pointcloud.rows(); ++i) {
+        // Find the closest points and their associated faces
+        Eigen::VectorXd squared_distances;
+        Eigen::MatrixXi closest_faces;
+        Eigen::MatrixXd closest_vertices;
+        igl::point_mesh_squared_distance(V2_pointcloud.row(i), mesh2_V, mesh2_F, squared_distances, closest_faces, closest_vertices);
+
+        // Get the projected point on the mesh
+        Eigen::RowVector3d projected_point = closest_vertices.row(0);  // Closest point on mesh
+
+        // Get the closest face index
+        int closest_face_idx = closest_faces(0, 0);
+
+        if (closest_face_idx < 0 || closest_face_idx >= updated_mesh_F.rows()) {
+            std::cerr << "Error: Invalid face index found for projected point at index " << i << std::endl;
+            continue;
+        }
+
+        // Get the vertices of the closest face
+        Eigen::RowVector3i face = updated_mesh_F.row(closest_face_idx);
+
+        // Check if projected_point is very close to an existing vertex
+        int closest_vertex_idx = -1;
+        double min_distance = std::numeric_limits<double>::max();
+
+        for (int j = 0; j < updated_mesh_V.rows(); ++j) {
+            double distance = (updated_mesh_V.row(j) - projected_point).squaredNorm();
+            if (distance < min_distance) {
+                min_distance = distance;
+                closest_vertex_idx = j;
+            }
+        }
+
+        if (min_distance < threshold) {
+            // If projected point is very close to an existing vertex, do not split the face
+            updated_mesh_V.row(closest_vertex_idx) = projected_point;
+        }
+        else {
+            // Otherwise, add the projected point as a new vertex
+            int new_vertex_idx = updated_mesh_V.rows();
+            updated_mesh_V.conservativeResize(updated_mesh_V.rows() + 1, Eigen::NoChange);
+            updated_mesh_V.row(new_vertex_idx) = projected_point;
+
+            // Replace the existing face with three new faces
+            updated_mesh_F.conservativeResize(updated_mesh_F.rows() + 2, Eigen::NoChange);
+            updated_mesh_F.row(closest_face_idx) = Eigen::RowVector3i(face(0), face(1), new_vertex_idx);
+            updated_mesh_F.row(updated_mesh_F.rows() - 2) = Eigen::RowVector3i(face(1), face(2), new_vertex_idx);
+            updated_mesh_F.row(updated_mesh_F.rows() - 1) = Eigen::RowVector3i(face(2), face(0), new_vertex_idx);
+        }
+
+        // Add the projected point to V2_pointcloud_new
+        V2_pointcloud_new.conservativeResize(V2_pointcloud_new.rows() + 1, Eigen::NoChange);
+        V2_pointcloud_new.row(V2_pointcloud_new.rows() - 1) = projected_point;
+
+        //// Update progress
+        //std::cout << "\rProcessing V2 point cloud: " << std::fixed << std::setprecision(2)
+        //    << (static_cast<double>(i + 1) / V2_pointcloud.rows()) * 100 << "% completed" << std::flush;
+    }
+
+    std::cout << std::endl; // Move to the next line after progress is complete
+}

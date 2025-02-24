@@ -211,9 +211,7 @@ Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M) {
     }
 
     //std::vector<int> selectedVerticesXXX = { 1 };
-
     //std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
-
     //std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
     //;
     //double radius = 0.005;
@@ -273,7 +271,73 @@ Eigen::MatrixXd extractInputPointsAsMatrix(const std::vector<int>& selectedVerti
 }
 
 
+Eigen::VectorXd applyConstraints(
+    const Eigen::VectorXd& meanShape,            // Mean shape (3N x 1)
+    const Eigen::MatrixXd& principalComponents,  // Principal components (3N x k)
+    const Eigen::VectorXi& constrainedIndices,   // Indices of constrained vertices (m x 1)
+    const Eigen::MatrixXd& targetPositions)      // Target positions (m x 3)
+{
+    int numConstraints = constrainedIndices.size();
+    int numVertices = meanShape.size() / 3;  // Number of vertices (N)
 
+    // Ensure last column of PC is ignored, or leave it in depending on your needs
+     //Eigen::MatrixXd PC = principalComponents.leftCols(principalComponents.cols() - 1); // Remove last PC
+     Eigen::MatrixXd PC = principalComponents.leftCols(principalComponents.cols() - 3); // Remove last PC
+    //Eigen::MatrixXd PC = principalComponents.col(0); // Retain all principal components
+
+    // Selection matrix M (3m x 3N)
+    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(3 * numConstraints, 3 * numVertices);
+
+    // Only modify the rows corresponding to constrained vertices in M
+    for (int i = 0; i < numConstraints; ++i) {
+        int idx = constrainedIndices(i);
+        M.block(3 * i, 3 * idx, 3, 3) = Eigen::Matrix3d::Identity(); // Identity matrix for the constrained vertices
+    }
+
+    // Convert targetPositions to vector
+    Eigen::VectorXd targetVec = Eigen::Map<const Eigen::VectorXd>(targetPositions.data(), 3 * numConstraints);
+
+    // Compute the difference between target positions and the current positions of constrained points
+    Eigen::VectorXd b = targetVec - M * meanShape;
+
+    // Regularization: Add a small value to the diagonal to avoid instability
+    double regularizationFactor = 1e-6;  // Regularization factor (tune this value)
+    Eigen::MatrixXd regularizedMatrix = (M * PC).transpose() * (M * PC) + regularizationFactor * Eigen::MatrixXd::Identity((M * PC).cols(), (M * PC).cols());
+
+    // Solve for the weights 'w' using a stable solver
+    Eigen::VectorXd w = regularizedMatrix.ldlt().solve((M * PC).transpose() * b);
+
+    // Compute the new shape by adding the weighted principal components
+    Eigen::VectorXd newShape = meanShape + PC * w;
+
+    // Returning the updated shape, keeping it flattened (3N x 1)
+    return newShape;
+}
+
+
+
+Eigen::MatrixXd computeMeanShape(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
+    if (inputShapes.empty()) {
+        throw std::runtime_error("No shapes provided!");
+    }
+
+    int numShapes = inputShapes.size();
+    int numPoints = inputShapes[0].first.rows();  // Number of points in each shape
+    int dim = inputShapes[0].first.cols();       // Should be 3 (x, y, z)
+
+    // Initialize the matrix to accumulate the sum of all shapes
+    Eigen::MatrixXd sumShape = Eigen::MatrixXd::Zero(numPoints, dim);
+
+    // Sum all shape matrices
+    for (const auto& shape : inputShapes) {
+        sumShape += shape.first;  // Add the vertex positions (x, y, z)
+    }
+
+    // Divide by the number of shapes to compute the mean
+    Eigen::MatrixXd meanShape = sumShape / numShapes;
+
+    return meanShape;
+}
 
 // Main PCA computation and visualization setup
 void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
@@ -326,16 +390,19 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     // Initialize Polyscope
     polyscope::init();
 
+
+    Eigen::MatrixXd meanShape3dMat = computeMeanShape(inputShapes);
     //// new points
     //Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first);
+    Eigen::MatrixXd polyscopePoints = meanShape3dMat;
 
-    //std::vector<int> selectedVerticesXXX = { 1 };
-    //std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
-    //std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
+    std::vector<int> selectedVerticesXXX = { 1 };
+    std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
+    std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
 
-    //double radius = 0.005;
-    //auto* obj1 = registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
-    //obj1->updatePointPositions(polyscopePoints); // Update Polyscope 
+    double radius = 0.005;
+    auto* obj1 = registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
+    obj1->updatePointPositions(polyscopePoints); // Update Polyscope 
     //
 
     // Register the mean shape
@@ -343,12 +410,13 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
     // Register first deformed shape
     polyscope::registerSurfaceMesh("Deformed Shape", eigenVectorToVertices(g_meanShape), g_faceList);
-    //polyscope::registerSurfaceMesh("Deformed Shape Version 2", eigenVectorToVertices(g_meanShape), g_faceList);
     g_deformedMesh = polyscope::getSurfaceMesh("Deformed Shape");
 
+    
+
     // User controls via ImGui
-    //polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
-    polyscope::state::userCallback = []() {
+    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
+    //polyscope::state::userCallback = []() {
         int totalModes = g_eigenvectors.cols();
         // Dropdown to choose reference shape
         if (ImGui::BeginCombo("Reference Shape", g_referenceShapeIndex == -1 ? "Mean Shape" : ("Input Shape " + std::to_string(g_referenceShapeIndex)).c_str())) {
@@ -387,75 +455,72 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
         // STEP extra
 
-        //    // Button to print the coordinates of selected points
-        //if (ImGui::Button("Print Selected Points")) {
-        //    std::cout << "Selected Points Coordinates:\n";
-        //    for (int idx : selectedVerticesXXX) {
-        //        if (idx >= 0 && idx < polyscopePoints.rows()) { // Ensure index is within bounds
-        //            std::cout << "Index " << idx << ": (" << polyscopePoints(idx, 0) << ", " << polyscopePoints(idx, 1) << ", " << polyscopePoints(idx, 2) << ")\n";
-        //        }
-        //        else {
-        //            std::cout << "Invalid index: " << idx << "\n";
-        //        }
-        //    }
-        //}
+            // Button to print the coordinates of selected points
+        if (ImGui::Button("Print Selected Points")) {
+            std::cout << "Selected Points Coordinates:\n";
+            for (int idx : selectedVerticesXXX) {
+                if (idx >= 0 && idx < polyscopePoints.rows()) { // Ensure index is within bounds
+                    std::cout << "Index " << idx << ": (" << polyscopePoints(idx, 0) << ", " << polyscopePoints(idx, 1) << ", " << polyscopePoints(idx, 2) << ")\n";
+                }
+                else {
+                    std::cout << "Invalid index: " << idx << "\n";
+                }
+            }
+        }
 
 
         //std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
 
-        //HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
+        HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
 
-        //if (ImGui::Button("Construct Shape from Input Points")) {
+        if (ImGui::Button("Construct Shape from Input Points")) {
+            std::cout << "Make new Shape" << std::endl;
+            Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
+
+            Eigen::MatrixXi constrainedIndices(selectedVerticesXXX.size(), 1);
+
+            for (size_t i = 0; i < selectedVerticesXXX.size(); ++i) {
+                constrainedIndices(i, 0) = selectedVerticesXXX[i];
+            }
+
+            //std::cout << "A " << selected_points << std::endl;
+            //// Step 1: Compute the mean of the full shape beforehand (before any centering)
+            //Eigen::MatrixXd reshapedMeanShape(g_numVertices, 3);  // Reshaped from flattened g_meanShape
+            //for (int i = 0; i < g_numVertices; ++i) {
+            //    reshapedMeanShape(i, 0) = g_meanShape[3 * i];     // x-coordinate
+            //    reshapedMeanShape(i, 1) = g_meanShape[3 * i + 1]; // y-coordinate
+            //    reshapedMeanShape(i, 2) = g_meanShape[3 * i + 2]; // z-coordinate
+            //}
 
 
-        //    std::cout << "Make new Shape" << std::endl;
-
-        //    Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
-        //    std::cout << "A " << selected_points << std::endl;
-
-        //    // Step 1: Compute the mean of the full shape beforehand (before any centering)
-        //    Eigen::MatrixXd reshapedMeanShape(g_numVertices, 3);  // Reshaped from flattened g_meanShape
-        //    for (int i = 0; i < g_numVertices; ++i) {
-        //        reshapedMeanShape(i, 0) = g_meanShape[3 * i];     // x-coordinate
-        //        reshapedMeanShape(i, 1) = g_meanShape[3 * i + 1]; // y-coordinate
-        //        reshapedMeanShape(i, 2) = g_meanShape[3 * i + 2]; // z-coordinate
-        //    }
-
-        //    // Compute the mean of the reshaped mean shape (mean of all vertices)
-        //    // Make sure that meanShape is a row vector
-        //    Eigen::RowVector3d meanShape = reshapedMeanShape.colwise().mean(); // meanShape as a RowVector3d
+            Eigen::MatrixXd outputShape = applyConstraints(g_meanShape, g_eigenvectors, constrainedIndices, selected_points);
 
 
-        //    std::cout << "A" << selected_points << std::endl;
-        //    std::cout << "B" << meanShape << std::endl;
-
-        //    // Step 2: Center selected points around the computed mean shape
-        //    // Ensure that meanShape is treated as a row vector during subtraction
-        //    Eigen::MatrixXd centeredSelectedPoints = selected_points.rowwise() - meanShape;
+            polyscope::registerSurfaceMesh("PCA RES", eigenVectorToVertices(outputShape), g_faceList);
 
 
 
-        //    // Step 2: Perform PCA on the selected points (SVD)
-        //    Eigen::JacobiSVD<Eigen::MatrixXd> svd(centeredSelectedPoints, Eigen::ComputeThinU | Eigen::ComputeThinV);
-        //    Eigen::MatrixXd newEigenvectors = svd.matrixU();  // New PCA directions based on selected points
-        //    // Optionally update the global eigenvectors with the new PCA vectors
-        //    g_eigenvectors = newEigenvectors;
-        //    std::cout << "Updated PCA based on selected points" << std::endl;
-        //    // Step 3: Deform the model based on updated PCA (adjusting the shape using the weight)
-        //    Eigen::MatrixXd deformedShape = reshapedMeanShape;
-        //    for (int i = 0; i < g_eigenvectors.cols(); ++i) {
-        //        deformedShape += g_weight * g_eigenvectors.col(i).transpose();
-        //    }
-        //    // Step 4: Flatten the deformed shape back into a 1D vector
-        //    Eigen::VectorXd flattenedDeformedShape(g_vectorSize);
-        //    for (int i = 0; i < g_numVertices; ++i) {
-        //        flattenedDeformedShape.segment<3>(3 * i) = deformedShape.row(i).transpose();
-        //    }
-        //    // Step 5: Update the deformed shape in Polyscope
-        //    polyscope::getSurfaceMesh("Deformed Shape Version 2")->updateVertexPositions(eigenVectorToVertices(flattenedDeformedShape));
+            //// Step 2: Perform PCA on the selected points (SVD)
+            //Eigen::JacobiSVD<Eigen::MatrixXd> svd(centeredSelectedPoints, Eigen::ComputeThinU | Eigen::ComputeThinV);
+            //Eigen::MatrixXd newEigenvectors = svd.matrixU();  // New PCA directions based on selected points
+            //// Optionally update the global eigenvectors with the new PCA vectors
+            //g_eigenvectors = newEigenvectors;
+            //std::cout << "Updated PCA based on selected points" << std::endl;
+            //// Step 3: Deform the model based on updated PCA (adjusting the shape using the weight)
+            //Eigen::MatrixXd deformedShape = reshapedMeanShape;
+            //for (int i = 0; i < g_eigenvectors.cols(); ++i) {
+            //    deformedShape += g_weight * g_eigenvectors.col(i).transpose();
+            //}
+            //// Step 4: Flatten the deformed shape back into a 1D vector
+            //Eigen::VectorXd flattenedDeformedShape(g_vectorSize);
+            //for (int i = 0; i < g_numVertices; ++i) {
+            //    flattenedDeformedShape.segment<3>(3 * i) = deformedShape.row(i).transpose();
+            //}
+            //// Step 5: Update the deformed shape in Polyscope
+            //polyscope::getSurfaceMesh("Deformed Shape Version 2")->updateVertexPositions(eigenVectorToVertices(flattenedDeformedShape));
 
 
-        //}
+        }
 
 
 

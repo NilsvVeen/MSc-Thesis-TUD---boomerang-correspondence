@@ -257,14 +257,7 @@ Eigen::MatrixXd extractInputPointsAsMatrix(const std::vector<int>& selectedVerti
         pointsMatrix(i, 1) = polyscopePoints(v, 1);  // y-coordinate
         pointsMatrix(i, 2) = polyscopePoints(v, 2);  // z-coordinate
 
-        //std::cout << "point added: "
-        //    << polyscopePoints(v, 0) << ", "
-        //    << polyscopePoints(v, 1) << ", "
-        //    << polyscopePoints(v, 2) << std::endl;
-        //std::cout << "point added CHECK : "
-        //    << pointsMatrix(i, 0) << ", "
-        //    << pointsMatrix(i, 1) << ", "
-        //    << pointsMatrix(i, 2) << std::endl;
+
     }
 
     return pointsMatrix;
@@ -498,26 +491,6 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
             polyscope::registerSurfaceMesh("PCA RES", eigenVectorToVertices(outputShape), g_faceList);
 
-
-
-            //// Step 2: Perform PCA on the selected points (SVD)
-            //Eigen::JacobiSVD<Eigen::MatrixXd> svd(centeredSelectedPoints, Eigen::ComputeThinU | Eigen::ComputeThinV);
-            //Eigen::MatrixXd newEigenvectors = svd.matrixU();  // New PCA directions based on selected points
-            //// Optionally update the global eigenvectors with the new PCA vectors
-            //g_eigenvectors = newEigenvectors;
-            //std::cout << "Updated PCA based on selected points" << std::endl;
-            //// Step 3: Deform the model based on updated PCA (adjusting the shape using the weight)
-            //Eigen::MatrixXd deformedShape = reshapedMeanShape;
-            //for (int i = 0; i < g_eigenvectors.cols(); ++i) {
-            //    deformedShape += g_weight * g_eigenvectors.col(i).transpose();
-            //}
-            //// Step 4: Flatten the deformed shape back into a 1D vector
-            //Eigen::VectorXd flattenedDeformedShape(g_vectorSize);
-            //for (int i = 0; i < g_numVertices; ++i) {
-            //    flattenedDeformedShape.segment<3>(3 * i) = deformedShape.row(i).transpose();
-            //}
-            //// Step 5: Update the deformed shape in Polyscope
-            //polyscope::getSurfaceMesh("Deformed Shape Version 2")->updateVertexPositions(eigenVectorToVertices(flattenedDeformedShape));
 
 
         }

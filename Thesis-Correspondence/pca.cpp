@@ -333,13 +333,13 @@ Eigen::MatrixXd computeMeanShape(const std::vector<std::pair<Eigen::MatrixXd, Ei
 }
 
 
-// Function to compute optimal weights w using gradient descent
+// Function to compute optimal weights w using gradient descent with Jacobian
 Eigen::VectorXd computeOptimalWeightsWithGD(
     const Eigen::VectorXd& g_meanShape,      // (3N, 1) mean shape stored in a flat format
     const Eigen::MatrixXd& g_eigenvectors,  // (3N, k) eigenvectors stored in a flat format
     const Eigen::MatrixXd& selected_points, // (M, 2) 2D outline points stored as [(x0,y0), (x1,y1), ...]
-    double learning_rate = 0.01,            // Learning rate for gradient descent
-    int num_iterations = 1000              // Number of iterations for gradient descent
+    double learning_rate = 0.0001,            // Learning rate for gradient descent
+    int num_iterations = 10000              // Number of iterations for gradient descent
 ) {
     int N = g_meanShape.size() / 3;  // Number of 3D points
     int k = g_eigenvectors.cols();   // Number of principal components
@@ -384,20 +384,33 @@ Eigen::VectorXd computeOptimalWeightsWithGD(
         closestIndices[j] = best_idx;
     }
 
-    // Step 5: Gradient Descent for optimal weights w
+    // Step 5: Gradient Descent for optimal weights w using Jacobian
     Eigen::VectorXd w = Eigen::VectorXd::Zero(k);  // Initialize weights (k × 1)
 
     for (int iteration = 0; iteration < num_iterations; ++iteration) {
-        // Calculate the gradient
-        Eigen::VectorXd gradient = Eigen::VectorXd::Zero(k);
+        // Step 5.1: Calculate the residuals (difference between projected and selected points)
+        Eigen::VectorXd residuals(2 * M);
         for (int j = 0; j < M; ++j) {
             int idx = closestIndices[j];
-            Eigen::Vector2d diff = selected_points_flat.segment<2>(2 * j) - proj_meanShape.segment<2>(2 * idx);
-            gradient += proj_eigenVectors.block(2 * idx, 0, 2, k).transpose() * diff;
+            residuals.segment<2>(2 * j) = selected_points_flat.segment<2>(2 * j) - proj_meanShape.segment<2>(2 * idx);
         }
 
-        // Update weights using gradient descent
-        w -= learning_rate * gradient;
+        // Step 5.2: Calculate the Jacobian matrix (size 2M × k)
+        Eigen::MatrixXd jacobian(2 * M, k);
+        for (int j = 0; j < M; ++j) {
+            int idx = closestIndices[j];
+            jacobian.block(2 * j, 0, 2, k) = proj_eigenVectors.block(2 * idx, 0, 2, k);
+        }
+
+        // Step 5.3: Calculate the gradient (Jacobian^T * residuals)
+        Eigen::VectorXd gradient = jacobian.transpose() * residuals;
+
+        // Step 5.4: Calculate the Hessian approximation (Jacobian^T * Jacobian)
+        Eigen::MatrixXd hessian = jacobian.transpose() * jacobian;
+
+        // Step 5.5: Update weights using a Gauss-Newton step (or gradient descent with Hessian)
+        Eigen::VectorXd update = hessian.ldlt().solve(gradient); // Solve for the update (using LDLT decomposition for stability)
+        w += learning_rate * update;  // Apply the update with the learning rate
 
         // Step 6: Recalculate the projected shape using the updated weights
         Eigen::VectorXd reconstructedShape = proj_meanShape;
@@ -419,6 +432,7 @@ Eigen::VectorXd computeOptimalWeightsWithGD(
 
     return w; // Return the optimized weights
 }
+
 
 
 
@@ -479,7 +493,8 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     //Eigen::MatrixXd polyscopePoints = meanShape3dMat
     Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first);
 
-    std::vector<int> selectedVerticesXXX = { 1 };
+    //std::vector<int> selectedVerticesXXX = { 1 };
+    std::vector<int> selectedVerticesXXX = {1634, 2430, 3315};
     std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
     std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
 

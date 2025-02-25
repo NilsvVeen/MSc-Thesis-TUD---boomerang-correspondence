@@ -338,8 +338,8 @@ Eigen::VectorXd computeOptimalWeightsWithGD(
     const Eigen::VectorXd& g_meanShape,      // (3N, 1) mean shape stored in a flat format
     const Eigen::MatrixXd& g_eigenvectors,  // (3N, k) eigenvectors stored in a flat format
     const Eigen::MatrixXd& selected_points, // (M, 2) 2D outline points stored as [(x0,y0), (x1,y1), ...]
-    double learning_rate = 0.0001,            // Learning rate for gradient descent
-    int num_iterations = 10000              // Number of iterations for gradient descent
+    double learning_rate = 0.01,          // Learning rate for gradient descent
+    double tolerance = 1e-6                 // Convergence threshold
 ) {
     int N = g_meanShape.size() / 3;  // Number of 3D points
     int k = g_eigenvectors.cols();   // Number of principal components
@@ -348,14 +348,14 @@ Eigen::VectorXd computeOptimalWeightsWithGD(
     // Step 1: Extract x, y coordinates from g_meanShape (size 2N × 1)
     Eigen::VectorXd proj_meanShape(2 * N);
     for (int i = 0; i < N; ++i) {
-        proj_meanShape(2 * i) = g_meanShape(3 * i);     // x_i
+        proj_meanShape(2 * i) = g_meanShape(3 * i);         // x_i
         proj_meanShape(2 * i + 1) = g_meanShape(3 * i + 1); // y_i
     }
 
     // Step 2: Extract x, y components from eigenvectors (size 2N × k)
     Eigen::MatrixXd proj_eigenVectors(2 * N, k);
     for (int i = 0; i < N; ++i) {
-        proj_eigenVectors.row(2 * i) = g_eigenvectors.row(3 * i);     // x components
+        proj_eigenVectors.row(2 * i) = g_eigenvectors.row(3 * i);         // x components
         proj_eigenVectors.row(2 * i + 1) = g_eigenvectors.row(3 * i + 1); // y components
     }
 
@@ -386,52 +386,55 @@ Eigen::VectorXd computeOptimalWeightsWithGD(
 
     // Step 5: Gradient Descent for optimal weights w using Jacobian
     Eigen::VectorXd w = Eigen::VectorXd::Zero(k);  // Initialize weights (k × 1)
+    double prev_energy = std::numeric_limits<double>::max(); // Previous iteration's energy
+    int iteration = 0;
+    Eigen::VectorXd reconstructedShape;
+    // Step 6: Initialize reconstructed shape with mean shape
+    Eigen::VectorXd proj_reconstructedShape = proj_meanShape;
 
-    for (int iteration = 0; iteration < num_iterations; ++iteration) {
-        // Step 5.1: Calculate the residuals (difference between projected and selected points)
+    for (int iteration = 0; iteration < 100000; ++iteration) {
+        // Step 5.1: Compute residuals using the latest projected reconstructed shape
         Eigen::VectorXd residuals(2 * M);
         for (int j = 0; j < M; ++j) {
             int idx = closestIndices[j];
-            residuals.segment<2>(2 * j) = selected_points_flat.segment<2>(2 * j) - proj_meanShape.segment<2>(2 * idx);
+            residuals.segment<2>(2 * j) = selected_points_flat.segment<2>(2 * j) - proj_reconstructedShape.segment<2>(2 * idx);
         }
 
-        // Step 5.2: Calculate the Jacobian matrix (size 2M × k)
+        // Step 5.2: Compute Jacobian
         Eigen::MatrixXd jacobian(2 * M, k);
         for (int j = 0; j < M; ++j) {
             int idx = closestIndices[j];
             jacobian.block(2 * j, 0, 2, k) = proj_eigenVectors.block(2 * idx, 0, 2, k);
         }
 
-        // Step 5.3: Calculate the gradient (Jacobian^T * residuals)
+        // Step 5.3: Compute gradient and Hessian
         Eigen::VectorXd gradient = jacobian.transpose() * residuals;
-
-        // Step 5.4: Calculate the Hessian approximation (Jacobian^T * Jacobian)
         Eigen::MatrixXd hessian = jacobian.transpose() * jacobian;
 
-        // Step 5.5: Update weights using a Gauss-Newton step (or gradient descent with Hessian)
-        Eigen::VectorXd update = hessian.ldlt().solve(gradient); // Solve for the update (using LDLT decomposition for stability)
-        w += learning_rate * update;  // Apply the update with the learning rate
+        // Step 5.4: Compute update step
+        Eigen::VectorXd update = hessian.ldlt().solve(gradient);
+        w += learning_rate * update;
 
-        // Step 6: Recalculate the projected shape using the updated weights
-        Eigen::VectorXd reconstructedShape = proj_meanShape;
+        // Step 6: Update the reconstructed shape with the new weights
+        proj_reconstructedShape = proj_meanShape;  // Reset to mean shape
         for (int j = 0; j < k; ++j) {
-            reconstructedShape += w[j] * proj_eigenVectors.col(j);
+            proj_reconstructedShape += w[j] * proj_eigenVectors.col(j);
         }
 
-        // Step 7: Recalculate the energy for the new shape
-        Eigen::VectorXd b_new(2 * M);
-        for (int j = 0; j < M; ++j) {
-            int idx = closestIndices[j];
-            b_new.segment<2>(2 * j) = selected_points_flat.segment<2>(2 * j) - reconstructedShape.segment<2>(2 * idx);
-        }
-
-        // Calculate the error (energy) for this iteration
-        double energy = b_new.squaredNorm();
+        // Step 7: Compute energy
+        double energy = residuals.squaredNorm();
         std::cout << "Iteration " << iteration << ", Energy: " << energy << std::endl;
+
+        // Stopping condition: Check if the update is small
+        if (update.norm() < 1e-6) {
+            std::cout << "Converged at iteration " << iteration << std::endl;
+            break;
+        }
     }
 
     return w; // Return the optimized weights
 }
+
 
 
 

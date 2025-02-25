@@ -332,6 +332,97 @@ Eigen::MatrixXd computeMeanShape(const std::vector<std::pair<Eigen::MatrixXd, Ei
     return meanShape;
 }
 
+
+// Function to compute optimal weights w using gradient descent
+Eigen::VectorXd computeOptimalWeightsWithGD(
+    const Eigen::VectorXd& g_meanShape,      // (3N, 1) mean shape stored in a flat format
+    const Eigen::MatrixXd& g_eigenvectors,  // (3N, k) eigenvectors stored in a flat format
+    const Eigen::MatrixXd& selected_points, // (M, 2) 2D outline points stored as [(x0,y0), (x1,y1), ...]
+    double learning_rate = 0.01,            // Learning rate for gradient descent
+    int num_iterations = 1000              // Number of iterations for gradient descent
+) {
+    int N = g_meanShape.size() / 3;  // Number of 3D points
+    int k = g_eigenvectors.cols();   // Number of principal components
+    int M = selected_points.rows();  // Number of outline points
+
+    // Step 1: Extract x, y coordinates from g_meanShape (size 2N × 1)
+    Eigen::VectorXd proj_meanShape(2 * N);
+    for (int i = 0; i < N; ++i) {
+        proj_meanShape(2 * i) = g_meanShape(3 * i);     // x_i
+        proj_meanShape(2 * i + 1) = g_meanShape(3 * i + 1); // y_i
+    }
+
+    // Step 2: Extract x, y components from eigenvectors (size 2N × k)
+    Eigen::MatrixXd proj_eigenVectors(2 * N, k);
+    for (int i = 0; i < N; ++i) {
+        proj_eigenVectors.row(2 * i) = g_eigenvectors.row(3 * i);     // x components
+        proj_eigenVectors.row(2 * i + 1) = g_eigenvectors.row(3 * i + 1); // y components
+    }
+
+    // Step 3: Flatten selected_points (M, 2) ? (2M, 1)
+    Eigen::VectorXd selected_points_flat(2 * M);
+    for (int j = 0; j < M; ++j) {
+        selected_points_flat(2 * j) = selected_points(j, 0); // x_j
+        selected_points_flat(2 * j + 1) = selected_points(j, 1); // y_j
+    }
+
+    // Step 4: Find closest mean shape point for each outline point
+    std::vector<int> closestIndices(M);
+    for (int j = 0; j < M; ++j) {
+        Eigen::Vector2d outline_pt = selected_points.row(j);
+        double minDist = std::numeric_limits<double>::max();
+        int best_idx = -1;
+
+        for (int i = 0; i < N; ++i) {
+            Eigen::Vector2d shape_pt = proj_meanShape.segment<2>(2 * i);
+            double dist = (shape_pt - outline_pt).squaredNorm();
+            if (dist < minDist) {
+                minDist = dist;
+                best_idx = i;
+            }
+        }
+        closestIndices[j] = best_idx;
+    }
+
+    // Step 5: Gradient Descent for optimal weights w
+    Eigen::VectorXd w = Eigen::VectorXd::Zero(k);  // Initialize weights (k × 1)
+
+    for (int iteration = 0; iteration < num_iterations; ++iteration) {
+        // Calculate the gradient
+        Eigen::VectorXd gradient = Eigen::VectorXd::Zero(k);
+        for (int j = 0; j < M; ++j) {
+            int idx = closestIndices[j];
+            Eigen::Vector2d diff = selected_points_flat.segment<2>(2 * j) - proj_meanShape.segment<2>(2 * idx);
+            gradient += proj_eigenVectors.block(2 * idx, 0, 2, k).transpose() * diff;
+        }
+
+        // Update weights using gradient descent
+        w -= learning_rate * gradient;
+
+        // Step 6: Recalculate the projected shape using the updated weights
+        Eigen::VectorXd reconstructedShape = proj_meanShape;
+        for (int j = 0; j < k; ++j) {
+            reconstructedShape += w[j] * proj_eigenVectors.col(j);
+        }
+
+        // Step 7: Recalculate the energy for the new shape
+        Eigen::VectorXd b_new(2 * M);
+        for (int j = 0; j < M; ++j) {
+            int idx = closestIndices[j];
+            b_new.segment<2>(2 * j) = selected_points_flat.segment<2>(2 * j) - reconstructedShape.segment<2>(2 * idx);
+        }
+
+        // Calculate the error (energy) for this iteration
+        double energy = b_new.squaredNorm();
+        std::cout << "Iteration " << iteration << ", Energy: " << energy << std::endl;
+    }
+
+    return w; // Return the optimized weights
+}
+
+
+
+
 // Main PCA computation and visualization setup
 void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
     if (inputShapes.empty()) {
@@ -385,9 +476,8 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
 
     Eigen::MatrixXd meanShape3dMat = computeMeanShape(inputShapes);
-    //// new points
-    //Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first);
-    Eigen::MatrixXd polyscopePoints = meanShape3dMat;
+    //Eigen::MatrixXd polyscopePoints = meanShape3dMat
+    Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first);
 
     std::vector<int> selectedVerticesXXX = { 1 };
     std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
@@ -400,8 +490,6 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
     // Register the mean shape
     polyscope::registerSurfaceMesh("Mean Shape", eigenVectorToVertices(g_meanShape), g_faceList);
-
-    // Register first deformed shape
     polyscope::registerSurfaceMesh("Deformed Shape", eigenVectorToVertices(g_meanShape), g_faceList);
     g_deformedMesh = polyscope::getSurfaceMesh("Deformed Shape");
 
@@ -470,11 +558,11 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             std::cout << "Make new Shape" << std::endl;
             Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
 
-            Eigen::MatrixXi constrainedIndices(selectedVerticesXXX.size(), 1);
+  /*          Eigen::MatrixXi constrainedIndices(selectedVerticesXXX.size(), 1);
 
             for (size_t i = 0; i < selectedVerticesXXX.size(); ++i) {
                 constrainedIndices(i, 0) = selectedVerticesXXX[i];
-            }
+            }*/
 
             //std::cout << "A " << selected_points << std::endl;
             //// Step 1: Compute the mean of the full shape beforehand (before any centering)
@@ -486,10 +574,25 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             //}
 
 
-            Eigen::MatrixXd outputShape = applyConstraints(g_meanShape, g_eigenvectors, constrainedIndices, selected_points);
+            //Eigen::MatrixXd outputShape = applyConstraints(g_meanShape, g_eigenvectors, constrainedIndices, selected_points);
 
 
-            polyscope::registerSurfaceMesh("PCA RES", eigenVectorToVertices(outputShape), g_faceList);
+            //polyscope::registerSurfaceMesh("PCA RES", eigenVectorToVertices(outputShape), g_faceList);
+
+
+            Eigen::VectorXd optimalWeights = computeOptimalWeightsWithGD(g_meanShape, g_eigenvectors, selected_points);
+
+            std::cout << "Optimal Weights:\n" << optimalWeights << std::endl;
+
+            // Step 1: Start with the base shape (mean shape)
+            Eigen::VectorXd reconstructedShape = g_meanShape;
+
+            //// Step 2: Apply all principal component weights
+            for (int j = 0; j < g_eigenvectors.cols() - 1; ++j) {
+                reconstructedShape += optimalWeights[j] * g_eigenvectors.col(j);  // Add the weighted eigenvectors
+            }
+
+            polyscope::registerSurfaceMesh("Fitted shape", eigenVectorToVertices(reconstructedShape), g_faceList);
 
 
 

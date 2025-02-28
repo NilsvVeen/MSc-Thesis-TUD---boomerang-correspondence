@@ -6,6 +6,12 @@
 #include <direct.h>  // For _mkdir on Windows
 #include <filesystem> // For clearing the folder (C++17)
 
+#include <filesystem>
+#include <vector>
+#include <iostream>
+#include <Eigen/Dense>
+#include "stl_utils.h"
+
 // Function to create a directory if it does not exist
 void createDirectory(const std::string& dirName) {
 #ifdef _WIN32
@@ -56,5 +62,35 @@ void writeParamsToFile(const std::string& filename, const std::vector<double>& p
     }
     else {
         std::cerr << "Unable to open file " << filename << std::endl;
+    }
+}
+
+
+void loadMeshesFromFolder(const std::string& folderPath,
+    std::vector<Eigen::MatrixXd>& inputV,
+    std::vector<Eigen::MatrixXi>& inputF) {
+    for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(folderPath)) {
+        std::string filename = entry.path().filename().string();
+
+        // Check if the file is an .obj and contains "Shape" in the name
+        if (entry.path().extension() == ".obj" && filename.find("Shape") != std::string::npos) {
+            Eigen::MatrixXd V;
+            Eigen::MatrixXi F;
+            readMeshFromFile(entry.path().string(), V, F);
+            inputV.push_back(V);
+            inputF.push_back(F);
+        }
+    }
+}
+
+void loadMeshes(const std::vector<std::string>& filePaths,
+    std::vector<Eigen::MatrixXd>& inputV,
+    std::vector<Eigen::MatrixXi>& inputF) {
+    for (const std::string& filePath : filePaths) {
+        Eigen::MatrixXd V;
+        Eigen::MatrixXi F;
+        readMeshFromFile(filePath, V, F);
+        inputV.push_back(V);
+        inputF.push_back(F);
     }
 }

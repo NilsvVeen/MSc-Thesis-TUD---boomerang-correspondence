@@ -108,7 +108,7 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_11_decimate01.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/boomerang_15_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
 
         // Call the function to view the STL object
@@ -757,8 +757,8 @@ int main2()
     if (newShapeMake) {
 
 
-        Eigen::MatrixXd V1, V2, V3, V4, V5, V6;
-        Eigen::MatrixXi F1, F2, F3, F4, F5, F6;
+        Eigen::MatrixXd V1, V2, V3, V4, V5, V6, V7;
+        Eigen::MatrixXi F1, F2, F3, F4, F5, F6, F7;
 
         //readMeshFromFile( "backup_09_10/" + correspondence3dMatched + "/M1.obj", V1, F1);
         //readMeshFromFile("backup_09_10/" + correspondence3dMatched + "/M2.obj", V2, F2);
@@ -772,6 +772,7 @@ int main2()
         readMeshFromFile("res-9-12/" + correspondence3dMatched + "/M2.obj", V4, F4);
         readMeshFromFile("res-9-13/" + correspondence3dMatched + "/M2.obj", V5, F5);
         readMeshFromFile("res-9-14/" + correspondence3dMatched + "/M2.obj", V6, F6);
+        readMeshFromFile("res-9-15/" + correspondence3dMatched + "/M2.obj", V7, F7);
 
         // Combine into a vector of pairs
         std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>> inputShapes = {
@@ -780,7 +781,8 @@ int main2()
             {V3, F3},
             {V4, F4},
             {V5, F5},
-            {V6, F6}
+            {V6, F6},
+            {V7, F7}
         };
 
         //createDirectory(ObjectsMatchedPath);
@@ -797,8 +799,8 @@ int main2()
     if (alignShapes) {
 
         std::cout << "PCA" << std::endl;
-        Eigen::MatrixXd V1, V2, V3, V4, V5, V6;
-        Eigen::MatrixXi F1, F2, F3, F4, F5, F6;
+        Eigen::MatrixXd V1, V2, V3, V4, V5, V6, V7;
+        Eigen::MatrixXi F1, F2, F3, F4, F5, F6, F7;
 
         readMeshFromFile(objectsMatchedPath + "Shape_1.obj", V1, F1);
         readMeshFromFile(objectsMatchedPath + "Shape_2.obj", V2, F2);
@@ -806,6 +808,7 @@ int main2()
         readMeshFromFile(objectsMatchedPath + "Shape_4.obj", V4, F4);
         readMeshFromFile(objectsMatchedPath + "Shape_5.obj", V5, F5);
         readMeshFromFile(objectsMatchedPath + "Shape_6.obj", V6, F6);
+        readMeshFromFile(objectsMatchedPath + "Shape_7.obj", V7, F7);
 
 
         //// Combine into a vector of pairs
@@ -815,12 +818,13 @@ int main2()
             {V3, F3},
             {V4, F4},
             {V5, F5},
-            {V6, F6}
+            {V6, F6},
+            {V7, F7}
         };
 
         //// Combine into a vector of pairs
-        std::vector<Eigen::MatrixXd> inputV= {V1,V2,V3,V4,V5,V6};
-        std::vector<Eigen::MatrixXi> inputF= {F1,F2,F3,F4,F5,F6};
+        std::vector<Eigen::MatrixXd> inputV= {V1,V2,V3,V4,V5,V6,V7};
+        std::vector<Eigen::MatrixXi> inputF= {F1,F2,F3,F4,F5,F6,F7};
         main_phase2(inputShapes, objectsMatchedPath);
 
         std::vector<Eigen::MatrixXd> inputNew = ICPAlignShapes(inputV, 10);
@@ -831,7 +835,8 @@ int main2()
             {inputNew[2], F3},
             {inputNew[3], F4},
             {inputNew[4], F5},
-            {inputNew[5], F6}
+            {inputNew[5], F6},
+            {inputNew[6], F7}
         };
         main_phase2(inputShapesNew, ICPAllignmentFolder);
 
@@ -844,8 +849,8 @@ int main2()
     if (PCA) {
 
         std::cout << "PCA" << std::endl;
-        Eigen::MatrixXd V1, V2, V3, V4, V5, V6;
-        Eigen::MatrixXi F1, F2, F3, F4, F5, F6;
+        Eigen::MatrixXd V1, V2, V3, V4, V5, V6, V7;
+        Eigen::MatrixXi F1, F2, F3, F4, F5, F6, F7;
 
         readMeshFromFile(ICPAllignmentFolder + "Shape_1.obj", V1, F1);
         readMeshFromFile(ICPAllignmentFolder + "Shape_2.obj", V2, F2);
@@ -853,6 +858,7 @@ int main2()
         readMeshFromFile(ICPAllignmentFolder + "Shape_4.obj", V4, F4);
         readMeshFromFile(ICPAllignmentFolder + "Shape_5.obj", V5, F5);
         readMeshFromFile(ICPAllignmentFolder + "Shape_6.obj", V6, F6);
+        readMeshFromFile(ICPAllignmentFolder + "Shape_7.obj", V7, F7);
 
 
         //// Combine into a vector of pairs
@@ -861,8 +867,9 @@ int main2()
             {V2, F2},
             {V3, F3},
             //{V4, F4}
-            {V5, F5}
+            {V5, F5},
             //{V6, F6}
+            {V7,F7}
         };
 
 

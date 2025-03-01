@@ -66,22 +66,48 @@ void writeParamsToFile(const std::string& filename, const std::vector<double>& p
 }
 
 
+#include <regex>
+#include <iostream>
+#include <filesystem>
+#include <vector>
+#include <Eigen/Dense>
+
 void loadMeshesFromFolder(const std::string& folderPath,
     std::vector<Eigen::MatrixXd>& inputV,
     std::vector<Eigen::MatrixXi>& inputF) {
-    for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(folderPath)) {
-        std::string filename = entry.path().filename().string();
 
-        // Check if the file is an .obj and contains "Shape" in the name
-        if (entry.path().extension() == ".obj" && filename.find("Shape") != std::string::npos) {
-            Eigen::MatrixXd V;
-            Eigen::MatrixXi F;
-            readMeshFromFile(entry.path().string(), V, F);
-            inputV.push_back(V);
-            inputF.push_back(F);
+    std::regex shapePattern(R"(^Shape.*\.obj$)");  // Matches "ShapeXYZ.obj", "Shape1.obj", etc.
+
+    try {
+        for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+            std::string filename = entry.path().filename().string();
+
+            // Debugging: Print filenames
+            std::cout << "Checking file: " << filename << std::endl;
+
+            // Check if the file is an .obj and matches "Shape*.obj"
+            if (entry.path().extension() == ".obj" && std::regex_match(filename, shapePattern)) {
+                std::cout << "Loading mesh: " << filename << std::endl;
+
+                Eigen::MatrixXd V;
+                Eigen::MatrixXi F;
+
+                // Check if reading the file is successful
+                if (readMeshFromFile(entry.path().string(), V, F)) {
+                    inputV.push_back(V);
+                    inputF.push_back(F);
+                }
+                else {
+                    std::cerr << "Error reading mesh: " << filename << std::endl;
+                }
+            }
         }
     }
+    catch (const std::exception& e) {
+        std::cerr << "Filesystem error: " << e.what() << std::endl;
+    }
 }
+
 
 void loadMeshes(const std::vector<std::string>& filePaths,
     std::vector<Eigen::MatrixXd>& inputV,

@@ -755,6 +755,7 @@ int main2()
 
     const std::string objectsMatchedPath = "Matched/";
     if (newShapeMake) {
+        std::cout << "Make new shape" << std::endl;
         // List of file paths
         //13
         std::vector<std::string> filePaths = {
@@ -770,7 +771,7 @@ int main2()
             "res-9-18/" + correspondence3dMatched + "/M2.obj",
             "res-9-19/" + correspondence3dMatched + "/M2.obj",
             "res-9-20/" + correspondence3dMatched + "/M2.obj",
-            "res-9-22/" + correspondence3dMatched + "/M2.obj",
+            "res-9-22/" + correspondence3dMatched + "/M2.obj"
         };
 
         std::vector<Eigen::MatrixXd> inputV;

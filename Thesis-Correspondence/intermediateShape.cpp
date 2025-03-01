@@ -290,7 +290,8 @@ void main_phase2(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>&
 
     // Interpolate the transformed meshes
     V_new = interpolateVertices(vertices, weights);
-    polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F_new);
+    auto* objInterpolated = polyscope::registerSurfaceMesh("Interpolated Shape", V_new, F_new);
+    objInterpolated->addVertexScalarQuantity("color", indices); // Add color to interpolated shape
 
     polyscope::state::userCallback = []() {
         for (size_t i = 0; i < vertices.size(); ++i) {

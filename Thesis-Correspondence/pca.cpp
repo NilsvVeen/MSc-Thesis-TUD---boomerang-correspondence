@@ -512,11 +512,14 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     g_deformedMesh = polyscope::getSurfaceMesh("Deformed Shape");
 
     
+    // Global or static storage for optimal weights
+    static Eigen::VectorXd optimalWeights;
+    static float lambda = 0.1f; // Default regularization strength
 
     // User controls via ImGui
     polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
-    //polyscope::state::userCallback = []() {
         int totalModes = g_eigenvectors.cols();
+
         // Dropdown to choose reference shape
         if (ImGui::BeginCombo("Reference Shape", g_referenceShapeIndex == -1 ? "Mean Shape" : ("Input Shape " + std::to_string(g_referenceShapeIndex)).c_str())) {
             if (ImGui::Selectable("Mean Shape", g_referenceShapeIndex == -1)) {
@@ -529,36 +532,33 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             }
             ImGui::EndCombo();
         }
+
         // Slider for mode selection
         ImGui::SliderInt("Principal Mode", &g_principalIndex, 0, totalModes - 1);
-        // Slider for weight
-        //ImGui::SliderFloat("Weight", &g_weight, -10000.0f, 10000.0f);
+
         // Sliders for each principal component weight
         for (int i = 0; i < totalModes; ++i) {
             ImGui::SliderFloat(("Weight " + std::to_string(i)).c_str(), &g_weights[i], -10000.0f, 10000.0f);
         }
-        // Reset weight button
-        //if (ImGui::Button("Reset Weight")) {
-        //    g_weight = 0.0f;
-        //}
+
+        // Reset all weights button
         if (ImGui::Button("Reset All Weights")) {
             std::fill(g_weights.begin(), g_weights.end(), 0.0f);
         }
+
         // Generate random sample button
         if (ImGui::Button("Generate Random Sample")) {
             generateRandomShape();
         }
+
         // Update deformed shape
         updateDeformedMesh();
 
-
-        // STEP extra
-
-            // Button to print the coordinates of selected points
+        // Print selected points
         if (ImGui::Button("Print Selected Points")) {
             std::cout << "Selected Points Coordinates:\n";
             for (int idx : selectedVerticesXXX) {
-                if (idx >= 0 && idx < polyscopePoints.rows()) { // Ensure index is within bounds
+                if (idx >= 0 && idx < polyscopePoints.rows()) {
                     std::cout << "Index " << idx << ": (" << polyscopePoints(idx, 0) << ", " << polyscopePoints(idx, 1) << ", " << polyscopePoints(idx, 2) << ")\n";
                 }
                 else {
@@ -567,58 +567,34 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             }
         }
 
-
-        //std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
-
         HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
 
-        if (ImGui::Button("Construct Shape from Input Points")) {
-            std::cout << "Make new Shape" << std::endl;
+        // Button to compute optimal weights
+        if (ImGui::Button("Compute Optimal Weights")) {
+            std::cout << "Computing Optimal Weights..." << std::endl;
             Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
-
-  /*          Eigen::MatrixXi constrainedIndices(selectedVerticesXXX.size(), 1);
-
-            for (size_t i = 0; i < selectedVerticesXXX.size(); ++i) {
-                constrainedIndices(i, 0) = selectedVerticesXXX[i];
-            }*/
-
-            //std::cout << "A " << selected_points << std::endl;
-            //// Step 1: Compute the mean of the full shape beforehand (before any centering)
-            //Eigen::MatrixXd reshapedMeanShape(g_numVertices, 3);  // Reshaped from flattened g_meanShape
-            //for (int i = 0; i < g_numVertices; ++i) {
-            //    reshapedMeanShape(i, 0) = g_meanShape[3 * i];     // x-coordinate
-            //    reshapedMeanShape(i, 1) = g_meanShape[3 * i + 1]; // y-coordinate
-            //    reshapedMeanShape(i, 2) = g_meanShape[3 * i + 2]; // z-coordinate
-            //}
-
-
-            //Eigen::MatrixXd outputShape = applyConstraints(g_meanShape, g_eigenvectors, constrainedIndices, selected_points);
-
-
-            //polyscope::registerSurfaceMesh("PCA RES", eigenVectorToVertices(outputShape), g_faceList);
-
-
-            Eigen::VectorXd optimalWeights = computeOptimalWeightsWithGD(g_meanShape, g_eigenvectors, selected_points);
-
-            std::cout << "Optimal Weights:\n" << optimalWeights << std::endl;
-
-            // Step 1: Start with the base shape (mean shape)
-            Eigen::VectorXd reconstructedShape = g_meanShape;
-
-            //// Step 2: Apply all principal component weights
-            for (int j = 0; j < g_eigenvectors.cols() - 1; ++j) {
-                reconstructedShape += optimalWeights[j] * g_eigenvectors.col(j);  // Add the weighted eigenvectors
-            }
-
-            polyscope::registerSurfaceMesh("Fitted shape", eigenVectorToVertices(reconstructedShape), g_faceList);
-
-
-
+            optimalWeights = computeOptimalWeightsWithGD(g_meanShape, g_eigenvectors, selected_points);
+            std::cout << "Optimal Weights Computed:\n" << optimalWeights << std::endl;
         }
 
+        // Slider for custom lambda
+        ImGui::SliderFloat("Lambda", &lambda, 0.0f, 1.0f, "%.01f");
 
+        // Button to apply stored weights with lambda regularization
+        if (ImGui::Button("Apply Weights with Custom Lambda")) {
+            std::cout << "Applying stored optimal weights with lambda = " << lambda << std::endl;
 
+            Eigen::VectorXd reconstructedShape = g_meanShape;
+
+            // Apply the regularization term (1 / (1 + lambda)) to the weights
+            for (int j = 0; j < g_eigenvectors.cols() - 6; ++j) {
+                reconstructedShape += optimalWeights[j]  * lambda * g_eigenvectors.col(j);
+            }
+
+            polyscope::registerSurfaceMesh("Fitted shape (Custom Lambda)", eigenVectorToVertices(reconstructedShape), g_faceList);
+        }
     };
+
 
 
 

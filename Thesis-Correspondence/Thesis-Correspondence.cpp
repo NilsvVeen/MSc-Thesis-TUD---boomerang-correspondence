@@ -756,6 +756,7 @@ int main2()
     const std::string objectsMatchedPath = "Matched/";
     if (newShapeMake) {
         // List of file paths
+        //13
         std::vector<std::string> filePaths = {
             "res-9-10/" + correspondence3dMatched + "/M1.obj",
             "res-9-10/" + correspondence3dMatched + "/M2.obj",

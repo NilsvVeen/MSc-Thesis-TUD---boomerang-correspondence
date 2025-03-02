@@ -271,7 +271,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
         bool useWholeBoundary = true;
         bool LSCM_bool = true;
-        bool ARAP_bool = false;
+        bool ARAP_bool = true;
         bool HARMONIC_bool = false;
         if (useWholeBoundary) {
 
@@ -322,10 +322,47 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
                 igl::lscm(V, F, B_new, BC_new, UV);
             }
             if (HARMONIC_bool) {
+                int midIndex = boundary_vertices.rows() / 2;
+
+                Eigen::VectorXi B_new(2);
+                B_new << B(0), B(midIndex);
+
+                Eigen::MatrixXd BC_new(2, 2);
+                BC_new.row(0) = BC.row(0);
+                BC_new.row(1) = BC.row(midIndex);
+                igl::harmonic(V, F, B_new, BC_new, 1, UV);
+
 
             }
             if (ARAP_bool) {
+                int midIndex = boundary_vertices.rows() / 2;
 
+                Eigen::VectorXi B_new(2);
+                B_new << B(0), B(midIndex);
+
+                Eigen::MatrixXd BC_new(2, 2);
+                BC_new.row(0) = BC.row(0);
+                BC_new.row(1) = BC.row(midIndex);
+
+
+                Eigen::MatrixXd initial_guess;
+
+                // Initialize UV with harmonic parametrization
+                igl::harmonic(V, F, B_new, BC_new, 1, initial_guess);
+
+                igl::ARAPData arap_data;
+                arap_data.with_dynamics = true;
+                Eigen::VectorXi b = Eigen::VectorXi::Zero(0);
+                Eigen::MatrixXd bc = Eigen::MatrixXd::Zero(0, 0);
+
+                // Initialize ARAP
+                arap_data.max_iter = 1000;
+                // 2 means that we're going to *solve* in 2d
+                arap_precomputation(V, F, 2, b, arap_data);
+
+                UV = initial_guess;
+
+                arap_solve(bc, arap_data, UV);
             }
 
 

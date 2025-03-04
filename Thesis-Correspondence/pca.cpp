@@ -56,6 +56,8 @@ std::vector<std::array<double, 3>> eigenVectorToVertices(const Eigen::VectorXd& 
     return vertices;
 }
 
+
+
 Eigen::MatrixXd eigenVectorToMatrix(const Eigen::VectorXd& shapeVec) {
     Eigen::MatrixXd vertices(g_numVertices, 3);
     for (int v = 0; v < g_numVertices; ++v) {
@@ -334,12 +336,13 @@ Eigen::MatrixXd computeMeanShape(const std::vector<std::pair<Eigen::MatrixXd, Ei
 
 
 // Function to compute optimal weights w using gradient descent with Jacobian
-Eigen::VectorXd computeOptimalWeightsWithGD(
+std::pair<Eigen::VectorXd, std::vector<int>> computeOptimalWeightsWithGD(
     const Eigen::VectorXd& g_meanShape,      // (3N, 1) mean shape stored in a flat format
     const Eigen::MatrixXd& g_eigenvectors,  // (3N, k) eigenvectors stored in a flat format
     const Eigen::MatrixXd& selected_points, // (M, 2) 2D outline points stored as [(x0,y0), (x1,y1), ...]
     double learning_rate = 0.01,          // Learning rate for gradient descent
-    double tolerance = 1e-6                 // Convergence threshold
+    double tolerance = 1e-6               // Convergence threshold
+
 ) {
     int N = g_meanShape.size() / 3;  // Number of 3D points
     int k = g_eigenvectors.cols();   // Number of principal components
@@ -432,12 +435,99 @@ Eigen::VectorXd computeOptimalWeightsWithGD(
         }
     }
 
-    return w; // Return the optimized weights
+    return std::make_pair(w, closestIndices); // Return the optimized weights
 }
 
 
+// Function for Laplacian smoothing
+void laplacianSmoothing(Eigen::MatrixXd& V, const Eigen::MatrixXi& F, int iterations = 10) {
+    int numVertices = V.rows();
+    int numFaces = F.rows();
+
+    // Create a matrix to store vertex neighbors
+    std::vector<std::vector<int>> vertexNeighbors(numVertices);
+
+    // Step 1: Build the adjacency list (neighbors of each vertex)
+    for (int f = 0; f < numFaces; ++f) {
+        for (int i = 0; i < 3; ++i) {
+            int v1 = F(f, i);
+            int v2 = F(f, (i + 1) % 3);
+            vertexNeighbors[v1].push_back(v2);
+            vertexNeighbors[v2].push_back(v1);
+        }
+    }
+
+    // Step 2: Perform Laplacian smoothing
+    for (int it = 0; it < iterations; ++it) {
+        Eigen::MatrixXd V_new = V;  // Copy of the current vertices
+
+        // Iterate through each vertex and update its position
+        for (int v = 0; v < numVertices; ++v) {
+            Eigen::RowVector3d newPos(0, 0, 0);
+            int count = 0;
+
+            // Average the position of all neighbors
+            for (int neighbor : vertexNeighbors[v]) {
+                newPos += V.row(neighbor);
+                count++;
+            }
+
+            // Set the new vertex position as the average
+            if (count > 0) {
+                newPos /= count;
+                V_new.row(v) = newPos;
+            }
+        }
+
+        // Update the vertex positions with the smoothed version
+        V = V_new;
+    }
+}
 
 
+#include <igl/arap.h>
+// Function to perform ARAP on the reconstructed shape
+Eigen::MatrixXd performARAP(
+    const Eigen::MatrixXd& V_init,   // (N, 3) Initial vertices (from PCA)
+    const Eigen::MatrixXi& F,        // (M, 3) Faces of the mesh
+    const Eigen::MatrixXd& V_fixed,  // (M, 2) 2D outline points (used for constraints)
+    const std::vector<int>& fixedIndices // Indices of points to keep fixed
+) {
+
+    std::cout << "ARAP" << std::endl;
+    // Print input sizes for debugging
+    std::cout << "V_init size: " << V_init.rows() << " x " << V_init.cols() << std::endl;
+    std::cout << "F size: " << F.rows() << " x " << F.cols() << std::endl;
+    std::cout << "V_fixed size: " << V_fixed.rows() << " x " << V_fixed.cols() << std::endl;
+    std::cout << "fixedIndices size: " << fixedIndices.size() << std::endl;
+    int dim = 3; // ARAP in 3D
+
+    // Step 1: Convert std::vector<int> fixedIndices to Eigen::MatrixXi
+    Eigen::MatrixXi fixedIndicesMat(fixedIndices.size(), 1);
+    for (int i = 0; i < fixedIndices.size(); ++i) {
+        fixedIndicesMat(i, 0) = fixedIndices[i];
+    }
+
+    // Step 2: Setup ARAP energy
+    igl::ARAPData arap_data;
+    arap_data.with_dynamics = false; // Standard ARAP
+    igl::arap_precomputation(V_init, F, dim, fixedIndicesMat, arap_data);
+
+    // Step 3: Initialize ARAP solver with initial shape
+    Eigen::MatrixXd V = V_init;
+
+    // Step 4: Set constraint points
+    Eigen::MatrixXd bc(fixedIndices.size(), 3);
+    for (int i = 0; i < fixedIndices.size(); ++i) {
+        bc.row(i).head(2) = V_fixed.row(i); // Keep x, y from selected outline
+        bc(i, 2) = V(fixedIndices[i], 2);   // Let ARAP solve for Z
+    }
+
+    // Step 5: Solve iterative ARAP
+    igl::arap_solve(bc, arap_data, V);
+
+    return V; // Final deformed shape
+}
 
 
 // Main PCA computation and visualization setup
@@ -514,10 +604,11 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     
     // Global or static storage for optimal weights
     static Eigen::VectorXd optimalWeights;
+    std::vector<int> closestIndices;
     static float lambda = 0.1f; // Default regularization strength
 
     // User controls via ImGui
-    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius]() {
+    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius, &inputShapes, &closestIndices]() {
         int totalModes = g_eigenvectors.cols();
 
         // Dropdown to choose reference shape
@@ -568,12 +659,15 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         }
 
         HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
-
+        
         // Button to compute optimal weights
         if (ImGui::Button("Compute Optimal Weights")) {
             std::cout << "Computing Optimal Weights..." << std::endl;
             Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
-            optimalWeights = computeOptimalWeightsWithGD(g_meanShape, g_eigenvectors, selected_points);
+            auto result = computeOptimalWeightsWithGD(g_meanShape, g_eigenvectors, selected_points);
+            optimalWeights = result.first;
+            closestIndices = result.second;
+
             std::cout << "Optimal Weights Computed:\n" << optimalWeights << std::endl;
         }
 
@@ -590,7 +684,22 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
                 reconstructedShape += optimalWeights[j]  * lambda * g_eigenvectors.col(j);
             }
 
-            polyscope::registerSurfaceMesh("Fitted shape (Custom Lambda)", eigenVectorToVertices(reconstructedShape), g_faceList);
+
+
+            polyscope::registerSurfaceMesh("Fitted shape", eigenVectorToVertices(reconstructedShape), g_faceList);
+
+
+            Eigen::MatrixXd V_arap = performARAP(eigenVectorToMatrix(reconstructedShape), inputShapes[0].second, extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints), closestIndices);
+
+            polyscope::registerSurfaceMesh("Fitted shape ARAP", V_arap, inputShapes[0].second);
+
+
+            Eigen::MatrixXd V_lap = V_arap;
+            Eigen::MatrixXi F_lap = inputShapes[0].second;
+            laplacianSmoothing(V_lap, F_lap);
+
+            polyscope::registerSurfaceMesh("Fitted shape ARAP + Laplacian", V_lap, F_lap);
+
         }
     };
 

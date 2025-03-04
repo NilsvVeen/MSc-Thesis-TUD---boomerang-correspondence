@@ -586,8 +586,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
             Eigen::VectorXd reconstructedShape = g_meanShape;
 
-            // Apply the regularization term (1 / (1 + lambda)) to the weights
-            for (int j = 0; j < g_eigenvectors.cols() - 6; ++j) {
+            for (int j = 0; j < g_eigenvectors.cols() - 1; ++j) {
                 reconstructedShape += optimalWeights[j]  * lambda * g_eigenvectors.col(j);
             }
 

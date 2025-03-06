@@ -334,52 +334,79 @@ Eigen::MatrixXd computeMeanShape(const std::vector<std::pair<Eigen::MatrixXd, Ei
     return meanShape;
 }
 
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
+#include <iostream>
+#include <vector>
+#include <limits>
+#include <tuple>
 
-// Function to compute optimal weights w using gradient descent with Jacobian
-std::pair<Eigen::VectorXd, std::vector<int>> computeOptimalWeightsWithGD(
-    const Eigen::VectorXd& g_meanShape,      // (3N, 1) mean shape stored in a flat format
-    const Eigen::MatrixXd& g_eigenvectors,  // (3N, k) eigenvectors stored in a flat format
-    const Eigen::MatrixXd& selected_points, // (M, 2) 2D outline points stored as [(x0,y0), (x1,y1), ...]
-    double learning_rate = 0.01,          // Learning rate for gradient descent
-    double tolerance = 1e-6               // Convergence threshold
+std::tuple<Eigen::VectorXd, Eigen::VectorXd, std::vector<int>>
+computeOptimalWeightsAndFFD_Sparse(
+    const Eigen::VectorXd& g_meanShape,    // (3N, 1)
+    const Eigen::MatrixXd& g_eigenvectors, // (3N, k)
+    const Eigen::MatrixXd& selected_points,// (M, 2)
+    int    maxIterations = 1000,
+    double learning_rate = 0.01,
+    double lambdaFFD = 0.1,  // Tikhonov regularization for cFFD
+    double tolerance = 1e-6
+)
+{
+    // ---------------------------------------------------
+    // 1) Basic dimensions
+    // ---------------------------------------------------
+    const int N = static_cast<int>(g_meanShape.size() / 3); // # of 3D vertices
+    const int k = static_cast<int>(g_eigenvectors.cols());  // # of PCA components
+    const int M = static_cast<int>(selected_points.rows()); // # of 2D points
 
-) {
-    int N = g_meanShape.size() / 3;  // Number of 3D points
-    int k = g_eigenvectors.cols();   // Number of principal components
-    int M = selected_points.rows();  // Number of outline points
-
-    // Step 1: Extract x, y coordinates from g_meanShape (size 2N × 1)
+    // ---------------------------------------------------
+    // 2) Project mean shape into 2D (size 2N)
+    // ---------------------------------------------------
     Eigen::VectorXd proj_meanShape(2 * N);
-    for (int i = 0; i < N; ++i) {
-        proj_meanShape(2 * i) = g_meanShape(3 * i);         // x_i
-        proj_meanShape(2 * i + 1) = g_meanShape(3 * i + 1); // y_i
+    for (int i = 0; i < N; ++i)
+    {
+        proj_meanShape(2 * i + 0) = g_meanShape(3 * i + 0);
+        proj_meanShape(2 * i + 1) = g_meanShape(3 * i + 1);
+        // ignoring the z-component in this example
     }
 
-    // Step 2: Extract x, y components from eigenvectors (size 2N × k)
+    // ---------------------------------------------------
+    // 3) Project eigenvectors to 2D (size 2N x k)
+    // ---------------------------------------------------
     Eigen::MatrixXd proj_eigenVectors(2 * N, k);
-    for (int i = 0; i < N; ++i) {
-        proj_eigenVectors.row(2 * i) = g_eigenvectors.row(3 * i);         // x components
-        proj_eigenVectors.row(2 * i + 1) = g_eigenvectors.row(3 * i + 1); // y components
+    for (int i = 0; i < N; ++i)
+    {
+        proj_eigenVectors.row(2 * i + 0) = g_eigenvectors.row(3 * i + 0); // x-row
+        proj_eigenVectors.row(2 * i + 1) = g_eigenvectors.row(3 * i + 1); // y-row
     }
 
-    // Step 3: Flatten selected_points (M, 2) ? (2M, 1)
+    // ---------------------------------------------------
+    // 4) Flatten the (M,2) points to (2M)
+    // ---------------------------------------------------
     Eigen::VectorXd selected_points_flat(2 * M);
-    for (int j = 0; j < M; ++j) {
-        selected_points_flat(2 * j) = selected_points(j, 0); // x_j
-        selected_points_flat(2 * j + 1) = selected_points(j, 1); // y_j
+    for (int j = 0; j < M; ++j)
+    {
+        selected_points_flat(2 * j + 0) = selected_points(j, 0);
+        selected_points_flat(2 * j + 1) = selected_points(j, 1);
     }
 
-    // Step 4: Find closest mean shape point for each outline point
-    std::vector<int> closestIndices(M);
-    for (int j = 0; j < M; ++j) {
+    // ---------------------------------------------------
+    // 5) One-time closest-vertex matching 
+    //    (If you want dynamic re-matching each iteration, 
+    //     do this in the loop.)
+    // ---------------------------------------------------
+    std::vector<int> closestIndices(M, -1);
+    for (int j = 0; j < M; ++j)
+    {
         Eigen::Vector2d outline_pt = selected_points.row(j);
         double minDist = std::numeric_limits<double>::max();
         int best_idx = -1;
-
-        for (int i = 0; i < N; ++i) {
+        for (int i = 0; i < N; ++i)
+        {
             Eigen::Vector2d shape_pt = proj_meanShape.segment<2>(2 * i);
             double dist = (shape_pt - outline_pt).squaredNorm();
-            if (dist < minDist) {
+            if (dist < minDist)
+            {
                 minDist = dist;
                 best_idx = i;
             }
@@ -387,56 +414,144 @@ std::pair<Eigen::VectorXd, std::vector<int>> computeOptimalWeightsWithGD(
         closestIndices[j] = best_idx;
     }
 
-    // Step 5: Gradient Descent for optimal weights w using Jacobian
-    Eigen::VectorXd w = Eigen::VectorXd::Zero(k);  // Initialize weights (k × 1)
-    double prev_energy = std::numeric_limits<double>::max(); // Previous iteration's energy
-    int iteration = 0;
-    Eigen::VectorXd reconstructedShape;
-    // Step 6: Initialize reconstructed shape with mean shape
-    Eigen::VectorXd proj_reconstructedShape = proj_meanShape;
+    // ---------------------------------------------------
+    // 6) Initialize unknowns:
+    //    - w (k x 1)
+    //    - cFFD (2N x 1)
+    // ---------------------------------------------------
+    Eigen::VectorXd w = Eigen::VectorXd::Zero(k);
+    Eigen::VectorXd cFFD = Eigen::VectorXd::Zero(2 * N);
 
-    for (int iteration = 0; iteration < 100000; ++iteration) {
-        // Step 5.1: Compute residuals using the latest projected reconstructed shape
+    // ---------------------------------------------------
+    // 7) Main Gauss-Newton / gradient descent loop
+    // ---------------------------------------------------
+    for (int iter = 0; iter < maxIterations; ++iter)
+    {
+        // (a) Compute current shape in 2D:
+        //     S2D = mean + E*w + cFFD
+        Eigen::VectorXd proj_reconstructedShape =
+            proj_meanShape + proj_eigenVectors * w + cFFD;
+
+        // (b) Compute residual r = (2M x 1)
+        //     for each matched vertex
         Eigen::VectorXd residuals(2 * M);
-        for (int j = 0; j < M; ++j) {
-            int idx = closestIndices[j];
-            residuals.segment<2>(2 * j) = selected_points_flat.segment<2>(2 * j) - proj_reconstructedShape.segment<2>(2 * idx);
+        for (int m = 0; m < M; ++m)
+        {
+            int idx = closestIndices[m];
+            Eigen::Vector2d obs = selected_points_flat.segment<2>(2 * m);
+            Eigen::Vector2d model = proj_reconstructedShape.segment<2>(2 * idx);
+            residuals.segment<2>(2 * m) = obs - model; // (obs - model)
         }
 
-        // Step 5.2: Compute Jacobian
-        Eigen::MatrixXd jacobian(2 * M, k);
-        for (int j = 0; j < M; ++j) {
-            int idx = closestIndices[j];
-            jacobian.block(2 * j, 0, 2, k) = proj_eigenVectors.block(2 * idx, 0, 2, k);
+        // --- Build a sparse Jacobian J in triplet form ---
+        // J is (2M) x (k + 2N).
+        // Each matched point contributes:
+        //  -> 2 x k nonzeros for the partial wrt w
+        //  -> 2 nonzeros for partial wrt cFFD
+        // So total nonzeros ~ M * (2*k + 2).
+        std::vector<Eigen::Triplet<double>> triplets;
+        triplets.reserve(M * (2 * k + 2));
+
+        // Fill triplets for each row pair (2*m, 2*m+1)
+        for (int m = 0; m < M; ++m)
+        {
+            int idx = closestIndices[m];
+            int rowX = 2 * m + 0;
+            int rowY = 2 * m + 1;
+
+            // partial wrt w:
+            //   block(2*m, 0, 2, k) = -proj_eigenVectors.block(2*idx, 0, 2, k)
+            // We'll do it entry by entry
+            for (int colW = 0; colW < k; ++colW)
+            {
+                double valX = -proj_eigenVectors(2 * idx + 0, colW);
+                double valY = -proj_eigenVectors(2 * idx + 1, colW);
+
+                if (std::abs(valX) > 1e-15)
+                    triplets.emplace_back(rowX, colW, valX);
+                if (std::abs(valY) > 1e-15)
+                    triplets.emplace_back(rowY, colW, valY);
+            }
+
+            // partial wrt cFFD:
+            //   J(2*m,   k + 2*idx)   = -1
+            //   J(2*m+1, k + 2*idx+1) = -1
+            {
+                int cffdColX = k + 2 * idx + 0;
+                int cffdColY = k + 2 * idx + 1;
+                triplets.emplace_back(rowX, cffdColX, -1.0);
+                triplets.emplace_back(rowY, cffdColY, -1.0);
+            }
         }
 
-        // Step 5.3: Compute gradient and Hessian
-        Eigen::VectorXd gradient = jacobian.transpose() * residuals;
-        Eigen::MatrixXd hessian = jacobian.transpose() * jacobian;
+        // Build sparse J
+        const int numRows = 2 * M;
+        const int numCols = k + 2 * N;
+        Eigen::SparseMatrix<double> J(numRows, numCols);
+        J.setFromTriplets(triplets.begin(), triplets.end());
 
-        // Step 5.4: Compute update step
-        Eigen::VectorXd update = hessian.ldlt().solve(gradient);
-        w += learning_rate * update;
+        // (c) Compute JTJ = J^T * J as a sparse matrix
+        //     and JTr = J^T * r as a dense vector
+        Eigen::SparseMatrix<double> JT = J.transpose();
+        // (k+2N) x (2M) * (2M x (k+2N)) => (k+2N) x (k+2N)
+        //  J^T * J
+        Eigen::SparseMatrix<double> JTJ = JT * J;
 
-        // Step 6: Update the reconstructed shape with the new weights
-        proj_reconstructedShape = proj_meanShape;  // Reset to mean shape
-        for (int j = 0; j < k; ++j) {
-            proj_reconstructedShape += w[j] * proj_eigenVectors.col(j);
+        // (k+2N) x (2M) * (2M x 1) => (k+2N) x 1
+        Eigen::VectorXd JTr = JT * residuals;
+
+        // (d) Tikhonov regularization for cFFD:
+        //     Add lambdaFFD to the diagonal of the cFFD portion of JTJ
+        //     That is the diagonal from k..(k+2N-1).
+        for (int i = 0; i < 2 * N; ++i)
+        {
+            int diagIndex = k + i; // columns after w
+            // Add to the diagonal entry (diagIndex, diagIndex)
+            double val = JTJ.coeff(diagIndex, diagIndex);
+            val += lambdaFFD; // add the regularization
+            JTJ.coeffRef(diagIndex, diagIndex) = val;
         }
 
-        // Step 7: Compute energy
-        double energy = residuals.squaredNorm();
-        std::cout << "Iteration " << iteration << ", Energy: " << energy << std::endl;
+        // (e) Solve the system (JTJ) * delta = JTr in sparse format
+        // Use a sparse Cholesky factorization
+        Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
+        solver.compute(JTJ);
+        if (solver.info() != Eigen::Success)
+        {
+            std::cerr << "Sparse decomposition failed at iteration " << iter << std::endl;
+            break;
+        }
+        Eigen::VectorXd delta = solver.solve(JTr);
+        if (solver.info() != Eigen::Success)
+        {
+            std::cerr << "Sparse solve failed at iteration " << iter << std::endl;
+            break;
+        }
 
-        // Stopping condition: Check if the update is small
-        if (update.norm() < 1e-6) {
-            std::cout << "Converged at iteration " << iteration << std::endl;
+        // (f) Update w, cFFD
+        w -= learning_rate * delta.segment(0, k);
+        cFFD -= learning_rate * delta.segment(k, 2 * N);
+
+        // (g) Check stopping condition
+        double updateNorm = delta.norm();
+        double residualNorm = residuals.squaredNorm();
+        std::cout << "Iter " << iter
+            << ": residual^2 = " << residualNorm
+            << ", updateNorm = " << updateNorm
+            << std::endl;
+
+        if (updateNorm < tolerance)
+        {
+            std::cout << "Converged at iteration " << iter << std::endl;
             break;
         }
     }
 
-    return std::make_pair(w, closestIndices); // Return the optimized weights
+    // Return final results
+    return std::make_tuple(w, cFFD, closestIndices);
 }
+
+
 
 
 // Function for Laplacian smoothing
@@ -604,6 +719,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     
     // Global or static storage for optimal weights
     static Eigen::VectorXd optimalWeights;
+    static Eigen::VectorXd def;
     std::vector<int> closestIndices;
     static float lambda = 0.1f; // Default regularization strength
 
@@ -664,9 +780,9 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         if (ImGui::Button("Compute Optimal Weights")) {
             std::cout << "Computing Optimal Weights..." << std::endl;
             Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
-            auto result = computeOptimalWeightsWithGD(g_meanShape, g_eigenvectors, selected_points);
-            optimalWeights = result.first;
-            closestIndices = result.second;
+            auto result = computeOptimalWeightsAndFFD_Sparse(g_meanShape, g_eigenvectors, selected_points);
+            optimalWeights = std::get<0>(result);
+            def = std::get<1>(result);
 
             std::cout << "Optimal Weights Computed:\n" << optimalWeights << std::endl;
         }
@@ -680,6 +796,9 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
             Eigen::VectorXd reconstructedShape = g_meanShape;
 
+            std::cout << "Weights" << optimalWeights << std::endl;
+            std::cout << "cfd" << def.head(5) << std::endl;
+
             for (int j = 0; j < g_eigenvectors.cols() - 1; ++j) {
                 reconstructedShape += optimalWeights[j]  * lambda * g_eigenvectors.col(j);
             }
@@ -688,17 +807,13 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
             polyscope::registerSurfaceMesh("Fitted shape", eigenVectorToVertices(reconstructedShape), g_faceList);
 
+            Eigen::VectorXd reconstructedShape2 = reconstructedShape;
+            reconstructedShape2 += def;
 
-            Eigen::MatrixXd V_arap = performARAP(eigenVectorToMatrix(reconstructedShape), inputShapes[0].second, extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints), closestIndices);
-
-            polyscope::registerSurfaceMesh("Fitted shape ARAP", V_arap, inputShapes[0].second);
+            polyscope::registerSurfaceMesh("Fitted shape22", eigenVectorToVertices(reconstructedShape2), g_faceList);
 
 
-            Eigen::MatrixXd V_lap = V_arap;
-            Eigen::MatrixXi F_lap = inputShapes[0].second;
-            laplacianSmoothing(V_lap, F_lap);
 
-            polyscope::registerSurfaceMesh("Fitted shape ARAP + Laplacian", V_lap, F_lap);
 
         }
     };

@@ -335,6 +335,41 @@ Eigen::MatrixXd computeMeanShape(const std::vector<std::pair<Eigen::MatrixXd, Ei
 }
 
 #include <Eigen/Dense>
+
+/**
+ * @brief Convert a (2N x 1) 2D per-vertex offset vector
+ *        into a (3N x 1) 3D offset vector with zero for z.
+ *
+ * For each vertex i:
+ *   out(3*i + 0) = in(2*i + 0)  // x-offset
+ *   out(3*i + 1) = in(2*i + 1)  // y-offset
+ *   out(3*i + 2) = 0.0          // z-offset = 0
+ *
+ * @param cFFD_2D  (2N x 1) input vector
+ * @return         (3N x 1) output vector
+ */
+Eigen::VectorXd convert2DOffsetsTo3D(const Eigen::VectorXd& cFFD_2D)
+{
+    // The input cFFD_2D has size 2N
+    int N = static_cast<int>(cFFD_2D.size() / 2);
+    // We'll create a 3N vector for 3D offsets
+    Eigen::VectorXd cFFD_3D(3 * N);
+
+    for (int i = 0; i < N; ++i)
+    {
+        double offsetX = cFFD_2D(2 * i + 0);
+        double offsetY = cFFD_2D(2 * i + 1);
+
+        cFFD_3D(3 * i + 0) = offsetX;
+        cFFD_3D(3 * i + 1) = offsetY;
+        cFFD_3D(3 * i + 2) = 0.0;    // no offset in z
+    }
+
+    return cFFD_3D;
+}
+
+
+#include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <iostream>
 #include <vector>
@@ -808,7 +843,10 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             polyscope::registerSurfaceMesh("Fitted shape", eigenVectorToVertices(reconstructedShape), g_faceList);
 
             Eigen::VectorXd reconstructedShape2 = reconstructedShape;
-            reconstructedShape2 += def;
+            Eigen::VectorXd cFFD_3D = convert2DOffsetsTo3D(def); // size 3N
+            reconstructedShape2 += cFFD_3D;
+
+
 
             polyscope::registerSurfaceMesh("Fitted shape22", eigenVectorToVertices(reconstructedShape2), g_faceList);
 

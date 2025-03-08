@@ -890,6 +890,25 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             polyscope::registerSurfaceMesh("Fitted shape22", eigenVectorToVertices(reconstructedShape2), g_faceList);
 
 
+            //
+            //
+            //
+
+
+            //Eigen::MatrixXd V_arap = performARAP(eigenVectorToMatrix(reconstructedShape), inputShapes[0].second, extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints), closestIndices);
+
+            //polyscope::registerSurfaceMesh("Fitted shape ARAP", V_arap, inputShapes[0].second);
+
+
+            //Eigen::MatrixXd V_lap = V_arap;
+            //Eigen::MatrixXi F_lap = inputShapes[0].second;
+            //laplacianSmoothing(V_lap, F_lap);
+
+            //polyscope::registerSurfaceMesh("Fitted shape ARAP + Laplacian", V_lap, F_lap);
+
+
+
+
 
 
         }

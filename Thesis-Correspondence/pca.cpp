@@ -375,38 +375,75 @@ Eigen::VectorXd convert2DOffsetsTo3D(const Eigen::VectorXd& cFFD_2D)
 #include <vector>
 #include <limits>
 #include <tuple>
+#include <set>
+#include <utility>
+#include <cmath>
 
+// Helper: Extract unique connectivity (edges) from the face matrix F.
+// F is assumed to be an (numFaces x 3) matrix with vertex indices.
+std::vector<std::pair<int, int>> extractConnectivity(const Eigen::MatrixXi& F)
+{
+    std::set<std::pair<int, int>> edgeSet;
+    const int numFaces = F.rows();
+    for (int f = 0; f < numFaces; ++f)
+    {
+        // For each triangle face, get the three vertices
+        int i = F(f, 0);
+        int j = F(f, 1);
+        int k = F(f, 2);
+        // Insert each edge as (min, max) so that duplicates are avoided.
+        edgeSet.insert(std::make_pair(std::min(i, j), std::max(i, j)));
+        edgeSet.insert(std::make_pair(std::min(j, k), std::max(j, k)));
+        edgeSet.insert(std::make_pair(std::min(k, i), std::max(k, i)));
+    }
+    return std::vector<std::pair<int, int>>(edgeSet.begin(), edgeSet.end());
+}
+
+// Main function: Computes optimal PCA weights and free–form deformation (cFFD)
+// using Gauss–Newton with an extra smoothness constraint extracted from (V,F).
+//
+// g_meanShape: (3N x 1) vectorized mean shape (from vertices V)
+// g_eigenvectors: (3N x k) PCA eigenvectors
+// selected_points: (M x 2) matrix of 2D target points (e.g., outline points)
+// F: (numFaces x 3) face connectivity matrix
 std::tuple<Eigen::VectorXd, Eigen::VectorXd, std::vector<int>>
 computeOptimalWeightsAndFFD_Sparse(
-    const Eigen::VectorXd& g_meanShape,    // (3N, 1)
-    const Eigen::MatrixXd& g_eigenvectors, // (3N, k)
-    const Eigen::MatrixXd& selected_points,// (M, 2)
+    const Eigen::VectorXd& g_meanShape,    // (3N x 1)
+    const Eigen::MatrixXd& g_eigenvectors,   // (3N x k)
+    const Eigen::MatrixXd& selected_points,  // (M x 2)
+    const Eigen::MatrixXi& F,                // (numFaces x 3)
     int    maxIterations = 1000,
     double learning_rate = 0.01,
-    double lambdaFFD = 0.1,  // Tikhonov regularization for cFFD
+    double lambdaFFD = 0.1,  // weight for smoothness regularization (higher => smoother)
     double tolerance = 1e-6
 )
 {
     // ---------------------------------------------------
     // 1) Basic dimensions
     // ---------------------------------------------------
-    const int N = static_cast<int>(g_meanShape.size() / 3); // # of 3D vertices
-    const int k = static_cast<int>(g_eigenvectors.cols());  // # of PCA components
-    const int M = static_cast<int>(selected_points.rows()); // # of 2D points
+    const int N = static_cast<int>(g_meanShape.size() / 3); // number of 3D vertices
+    const int k = static_cast<int>(g_eigenvectors.cols());  // number of PCA components
+    const int M = static_cast<int>(selected_points.rows()); // number of 2D target points
 
     // ---------------------------------------------------
-    // 2) Project mean shape into 2D (size 2N)
+    // 2) Compute connectivity from F
+    // ---------------------------------------------------
+    std::vector<std::pair<int, int>> connectivity = extractConnectivity(F);
+    const int numSmoothEdges = static_cast<int>(connectivity.size());
+
+    // ---------------------------------------------------
+    // 3) Project mean shape into 2D (size: 2N)
     // ---------------------------------------------------
     Eigen::VectorXd proj_meanShape(2 * N);
     for (int i = 0; i < N; ++i)
     {
         proj_meanShape(2 * i + 0) = g_meanShape(3 * i + 0);
         proj_meanShape(2 * i + 1) = g_meanShape(3 * i + 1);
-        // ignoring the z-component in this example
+        // ignoring the z-component
     }
 
     // ---------------------------------------------------
-    // 3) Project eigenvectors to 2D (size 2N x k)
+    // 4) Project eigenvectors to 2D (size: 2N x k)
     // ---------------------------------------------------
     Eigen::MatrixXd proj_eigenVectors(2 * N, k);
     for (int i = 0; i < N; ++i)
@@ -416,7 +453,7 @@ computeOptimalWeightsAndFFD_Sparse(
     }
 
     // ---------------------------------------------------
-    // 4) Flatten the (M,2) points to (2M)
+    // 5) Flatten the (M x 2) selected_points to a (2M) vector
     // ---------------------------------------------------
     Eigen::VectorXd selected_points_flat(2 * M);
     for (int j = 0; j < M; ++j)
@@ -426,9 +463,7 @@ computeOptimalWeightsAndFFD_Sparse(
     }
 
     // ---------------------------------------------------
-    // 5) One-time closest-vertex matching 
-    //    (If you want dynamic re-matching each iteration, 
-    //     do this in the loop.)
+    // 6) One-time closest-vertex matching for data term
     // ---------------------------------------------------
     std::vector<int> closestIndices(M, -1);
     for (int j = 0; j < M; ++j)
@@ -450,105 +485,107 @@ computeOptimalWeightsAndFFD_Sparse(
     }
 
     // ---------------------------------------------------
-    // 6) Initialize unknowns:
-    //    - w (k x 1)
-    //    - cFFD (2N x 1)
+    // 7) Initialize unknowns:
+    //    - w (k x 1): PCA coefficients
+    //    - cFFD (2N x 1): free-form deformation per vertex in 2D
     // ---------------------------------------------------
     Eigen::VectorXd w = Eigen::VectorXd::Zero(k);
     Eigen::VectorXd cFFD = Eigen::VectorXd::Zero(2 * N);
 
     // ---------------------------------------------------
-    // 7) Main Gauss-Newton / gradient descent loop
+    // 8) Main Gauss-Newton / gradient descent loop with smoothness constraints
     // ---------------------------------------------------
     for (int iter = 0; iter < maxIterations; ++iter)
     {
-        // (a) Compute current shape in 2D:
-        //     S2D = mean + E*w + cFFD
-        Eigen::VectorXd proj_reconstructedShape =
-            proj_meanShape + proj_eigenVectors * w + cFFD;
+        // (a) Compute current 2D shape:
+        //     S2D = proj_meanShape + proj_eigenVectors * w + cFFD
+        Eigen::VectorXd proj_reconstructedShape = proj_meanShape + proj_eigenVectors * w + cFFD;
 
-        // (b) Compute residual r = (2M x 1)
-        //     for each matched vertex
-        Eigen::VectorXd residuals(2 * M);
+        // (b) Compute data residuals (for selected points):
+        Eigen::VectorXd r_data(2 * M);
         for (int m = 0; m < M; ++m)
         {
             int idx = closestIndices[m];
             Eigen::Vector2d obs = selected_points_flat.segment<2>(2 * m);
             Eigen::Vector2d model = proj_reconstructedShape.segment<2>(2 * idx);
-            residuals.segment<2>(2 * m) = obs - model; // (obs - model)
+            r_data.segment<2>(2 * m) = obs - model;
         }
 
-        // --- Build a sparse Jacobian J in triplet form ---
-        // J is (2M) x (k + 2N).
-        // Each matched point contributes:
-        //  -> 2 x k nonzeros for the partial wrt w
-        //  -> 2 nonzeros for partial wrt cFFD
-        // So total nonzeros ~ M * (2*k + 2).
+        // (c) Build Jacobian for data residuals: size (2M x (k + 2N))
         std::vector<Eigen::Triplet<double>> triplets;
         triplets.reserve(M * (2 * k + 2));
-
-        // Fill triplets for each row pair (2*m, 2*m+1)
         for (int m = 0; m < M; ++m)
         {
             int idx = closestIndices[m];
-            int rowX = 2 * m + 0;
+            int rowX = 2 * m;
             int rowY = 2 * m + 1;
-
-            // partial wrt w:
-            //   block(2*m, 0, 2, k) = -proj_eigenVectors.block(2*idx, 0, 2, k)
-            // We'll do it entry by entry
+            // Derivatives with respect to PCA coefficients w:
             for (int colW = 0; colW < k; ++colW)
             {
                 double valX = -proj_eigenVectors(2 * idx + 0, colW);
                 double valY = -proj_eigenVectors(2 * idx + 1, colW);
-
                 if (std::abs(valX) > 1e-15)
                     triplets.emplace_back(rowX, colW, valX);
                 if (std::abs(valY) > 1e-15)
                     triplets.emplace_back(rowY, colW, valY);
             }
-
-            // partial wrt cFFD:
-            //   J(2*m,   k + 2*idx)   = -1
-            //   J(2*m+1, k + 2*idx+1) = -1
-            {
-                int cffdColX = k + 2 * idx + 0;
-                int cffdColY = k + 2 * idx + 1;
-                triplets.emplace_back(rowX, cffdColX, -1.0);
-                triplets.emplace_back(rowY, cffdColY, -1.0);
-            }
+            // Derivatives with respect to cFFD:
+            int col_cffdX = k + 2 * idx;
+            int col_cffdY = k + 2 * idx + 1;
+            triplets.emplace_back(rowX, col_cffdX, -1.0);
+            triplets.emplace_back(rowY, col_cffdY, -1.0);
         }
 
-        // Build sparse J
-        const int numRows = 2 * M;
-        const int numCols = k + 2 * N;
-        Eigen::SparseMatrix<double> J(numRows, numCols);
-        J.setFromTriplets(triplets.begin(), triplets.end());
+        // (d) Build smoothness residuals and corresponding Jacobian entries.
+        // For each edge (i,j) from connectivity, add two residuals (x and y).
+        const int numSmoothRows = 2 * numSmoothEdges;
+        Eigen::VectorXd r_smooth(numSmoothRows);
+        const double smoothWeight = std::sqrt(lambdaFFD);  // so that cost = lambdaFFD * ||diff||^2
 
-        // (c) Compute JTJ = J^T * J as a sparse matrix
-        //     and JTr = J^T * r as a dense vector
-        Eigen::SparseMatrix<double> JT = J.transpose();
-        // (k+2N) x (2M) * (2M x (k+2N)) => (k+2N) x (k+2N)
-        //  J^T * J
-        Eigen::SparseMatrix<double> JTJ = JT * J;
-
-        // (k+2N) x (2M) * (2M x 1) => (k+2N) x 1
-        Eigen::VectorXd JTr = JT * residuals;
-
-        // (d) Tikhonov regularization for cFFD:
-        //     Add lambdaFFD to the diagonal of the cFFD portion of JTJ
-        //     That is the diagonal from k..(k+2N-1).
-        for (int i = 0; i < 2 * N; ++i)
+        int smoothRowOffset = 2 * M; // starting row for smoothness terms
+        for (int s = 0; s < numSmoothEdges; ++s)
         {
-            int diagIndex = k + i; // columns after w
-            // Add to the diagonal entry (diagIndex, diagIndex)
-            double val = JTJ.coeff(diagIndex, diagIndex);
-            val += lambdaFFD; // add the regularization
-            JTJ.coeffRef(diagIndex, diagIndex) = val;
+            int i = connectivity[s].first;
+            int j = connectivity[s].second;
+            // Get the current displacements (from cFFD) for vertices i and j
+            double di_x = cFFD(2 * i);
+            double di_y = cFFD(2 * i + 1);
+            double dj_x = cFFD(2 * j);
+            double dj_y = cFFD(2 * j + 1);
+            // Residuals: aim for cFFD(i) - cFFD(j) = 0 (weighted)
+            r_smooth(2 * s) = smoothWeight * (di_x - dj_x);
+            r_smooth(2 * s + 1) = smoothWeight * (di_y - dj_y);
+
+            // Jacobian entries (only affect cFFD block, columns: k + 2*i, k+2*j, etc.)
+            int col_i_x = k + 2 * i;
+            int col_i_y = k + 2 * i + 1;
+            int col_j_x = k + 2 * j;
+            int col_j_y = k + 2 * j + 1;
+            int row_smooth_x = smoothRowOffset + 2 * s;
+            int row_smooth_y = smoothRowOffset + 2 * s + 1;
+            triplets.emplace_back(row_smooth_x, col_i_x, smoothWeight);
+            triplets.emplace_back(row_smooth_x, col_j_x, -smoothWeight);
+            triplets.emplace_back(row_smooth_y, col_i_y, smoothWeight);
+            triplets.emplace_back(row_smooth_y, col_j_y, -smoothWeight);
         }
 
-        // (e) Solve the system (JTJ) * delta = JTr in sparse format
-        // Use a sparse Cholesky factorization
+        // Total augmented system: data rows + smoothness rows.
+        const int totalRows = 2 * M + numSmoothRows;
+        const int totalCols = k + 2 * N;
+        Eigen::SparseMatrix<double> J_aug(totalRows, totalCols);
+        J_aug.setFromTriplets(triplets.begin(), triplets.end());
+
+        // (e) Form the augmented residual vector.
+        Eigen::VectorXd r_aug(totalRows);
+        r_aug.head(2 * M) = r_data;
+        r_aug.tail(numSmoothRows) = r_smooth;
+
+        // (f) Compute the Gauss-Newton update:
+        //      Solve (J_aug^T * J_aug) delta = J_aug^T * r_aug
+        Eigen::SparseMatrix<double> JT = J_aug.transpose();
+        Eigen::SparseMatrix<double> JTJ = JT * J_aug;
+        Eigen::VectorXd JTr = JT * r_aug;
+
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
         solver.compute(JTJ);
         if (solver.info() != Eigen::Success)
@@ -563,18 +600,19 @@ computeOptimalWeightsAndFFD_Sparse(
             break;
         }
 
-        // (f) Update w, cFFD
+        // (g) Update parameters:
+        //      - w: PCA coefficients (first k entries)
+        //      - cFFD: free-form deformation (next 2N entries)
         w -= learning_rate * delta.segment(0, k);
         cFFD -= learning_rate * delta.segment(k, 2 * N);
 
-        // (g) Check stopping condition
+        // (h) Check convergence:
         double updateNorm = delta.norm();
-        double residualNorm = residuals.squaredNorm();
+        double residualNorm = r_aug.squaredNorm();
         std::cout << "Iter " << iter
             << ": residual^2 = " << residualNorm
             << ", updateNorm = " << updateNorm
             << std::endl;
-
         if (updateNorm < tolerance)
         {
             std::cout << "Converged at iteration " << iter << std::endl;
@@ -582,9 +620,10 @@ computeOptimalWeightsAndFFD_Sparse(
         }
     }
 
-    // Return final results
+    // Return the final PCA coefficients, free-form deformations, and closest point indices.
     return std::make_tuple(w, cFFD, closestIndices);
 }
+
 
 
 
@@ -815,7 +854,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         if (ImGui::Button("Compute Optimal Weights")) {
             std::cout << "Computing Optimal Weights..." << std::endl;
             Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
-            auto result = computeOptimalWeightsAndFFD_Sparse(g_meanShape, g_eigenvectors, selected_points);
+            auto result = computeOptimalWeightsAndFFD_Sparse(g_meanShape, g_eigenvectors, selected_points, inputShapes[0].second);
             optimalWeights = std::get<0>(result);
             def = std::get<1>(result);
 

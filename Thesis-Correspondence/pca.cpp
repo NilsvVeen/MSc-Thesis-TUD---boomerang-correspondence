@@ -627,185 +627,238 @@ computeOptimalWeightsAndFFD_Sparse(
 
 
 #include <Eigen/Core>
-#include <Eigen/QR>
+#include <Eigen/Dense>
 #include <tuple>
 #include <vector>
-#include <limits>
-#include <cmath>
-
-// Helper function to compute the Bernstein polynomial value.
-double Bernstein(int i, int n, double t) {
-    double binom = 1.0;
-    for (int k = 1; k <= i; k++) {
-        binom *= double(n - k + 1) / k;
-    }
-    return binom * std::pow(t, i) * std::pow(1 - t, n - i);
-}
-
-#include <Eigen/Core>
-#include <tuple>
-#include <vector>
+#include <iostream>
 #include <limits>
 #include <cmath>
 #include <algorithm>
 
-// iterativeGridFFD:
-//   - selected_points: (M x 2) 2D target positions to move the model toward
-//   - V: (N x 3) original vertices of the 3D model
-//   - F: (numFaces x 3) face connectivity (unused here)
-//   - iterations: number of FFD passes to apply (e.g. 100)
-//   - alpha: how strongly each selected point pulls the nearest control point on each iteration
-//
-// Returns:
-//   1) finalV: (N x 3) the final deformed shape after 'iterations' passes
-//   2) transformation: a flattened vector of the final grid control displacements (size = gridX*gridY*2)
-//      from the *last* iteration only
-//   3) residuals: residual errors for each selected point after the last iteration
-//   4) correspondences: which control point each selected point affected on the last iteration
-std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd, std::vector<int>>
-iterativeGridFFD(
-    const Eigen::MatrixXd& selected_points,  // (M x 2)
-    const Eigen::MatrixXd& V,                // (N x 3)
-    const Eigen::MatrixXi& F,                // (numFaces x 3)
-    int iterations = 100,
-    double alpha = 0.1
-) {
-    // We'll keep track of the shape as we deform it each iteration
-    Eigen::MatrixXd currentV = V;
+// A small struct storing how a single vertex is influenced by 4 control points:
+struct CPInfluence
+{
+    // Indices of the 4 corner control points (flattened)
+    int cp00, cp10, cp01, cp11;
+    // Bilinear weights for each corner
+    double w00, w10, w01, w11;
+};
 
-    // Grid resolution (can be adjusted as needed)
-    const int gridX = 6;
-    const int gridY = 6;
-    const int numCP = gridX * gridY;
-
-    // We'll define some variables that we update each iteration
-    std::vector<Eigen::Vector2d> cpOrig(numCP);   // Original grid CP positions
-    std::vector<Eigen::Vector2d> cpDisp(numCP);   // Displacements
-    std::vector<int> correspondences;             // For the selected points
-    Eigen::VectorXd residuals(selected_points.rows());
-
-    // We run the deformation multiple times
-    for (int iter = 0; iter < iterations; ++iter) {
-        // 1) Compute bounding box that includes both current shape and selected points
-        double min_x = std::min(currentV.col(0).minCoeff(), selected_points.col(0).minCoeff());
-        double max_x = std::max(currentV.col(0).maxCoeff(), selected_points.col(0).maxCoeff());
-        double min_y = std::min(currentV.col(1).minCoeff(), selected_points.col(1).minCoeff());
-        double max_y = std::max(currentV.col(1).maxCoeff(), selected_points.col(1).maxCoeff());
-
-        // 2) Build the grid of control points (original positions)
-        for (int i = 0; i < numCP; i++) {
-            cpDisp[i] = Eigen::Vector2d::Zero(); // reset displacements each iteration
-        }
-        std::vector<int> cpCount(numCP, 0);
-
-        for (int i = 0; i < gridX; i++) {
-            double s = (gridX == 1) ? 0.0 : double(i) / (gridX - 1);
-            for (int j = 0; j < gridY; j++) {
-                double t = (gridY == 1) ? 0.0 : double(j) / (gridY - 1);
-                int idx = i * gridY + j;
-                cpOrig[idx] = Eigen::Vector2d(
-                    min_x + s * (max_x - min_x),
-                    min_y + t * (max_y - min_y)
-                );
-            }
-        }
-
-        // 3) For each selected point, find the nearest grid CP & move it
-        correspondences.resize(selected_points.rows());
-        for (int i = 0; i < selected_points.rows(); i++) {
-            double x = selected_points(i, 0);
-            double y = selected_points(i, 1);
-
-            // If your points are in an inverted coordinate system, you might do something like:
-            // y = max_y - (y - min_y);
-
-            // Map into grid index space
-            double s_norm = (x - min_x) / (max_x - min_x) * (gridX - 1);
-            double t_norm = (y - min_y) / (max_y - min_y) * (gridY - 1);
-
-            int ix = std::round(s_norm);
-            int iy = std::round(t_norm);
-            ix = std::max(0, std::min(ix, gridX - 1));
-            iy = std::max(0, std::min(iy, gridY - 1));
-
-            int cpIdx = ix * gridY + iy;
-            correspondences[i] = cpIdx;
-
-            // Move the CP by alpha * difference
-            Eigen::Vector2d desiredDisp = alpha * (Eigen::Vector2d(x, y) - cpOrig[cpIdx]);
-            cpDisp[cpIdx] += desiredDisp;
-            cpCount[cpIdx] += 1;
-        }
-
-        // Average the displacements for CPs that multiple selected points affect
-        for (int i = 0; i < numCP; i++) {
-            if (cpCount[i] > 0) {
-                cpDisp[i] /= cpCount[i];
-            }
-        }
-
-        // 4) Apply grid-based FFD to deform the current shape
-        Eigen::MatrixXd newV = currentV;
-        for (int i = 0; i < currentV.rows(); i++) {
-            double x = currentV(i, 0);
-            double y = currentV(i, 1);
-
-            // Map (x,y) into grid index space
-            double s = (x - min_x) / (max_x - min_x) * (gridX - 1);
-            double t = (y - min_y) / (max_y - min_y) * (gridY - 1);
-
-            int ix = std::floor(s);
-            int iy = std::floor(t);
-            ix = std::max(0, std::min(ix, gridX - 2));
-            iy = std::max(0, std::min(iy, gridY - 2));
-
-            double u = s - ix;
-            double v_param = t - iy;
-
-            // Indices of the four corners
-            int idx00 = ix * gridY + iy;
-            int idx10 = (ix + 1) * gridY + iy;
-            int idx01 = ix * gridY + (iy + 1);
-            int idx11 = (ix + 1) * gridY + (iy + 1);
-
-            // Bilinear interpolation
-            Eigen::Vector2d disp =
-                (1 - u) * (1 - v_param) * cpDisp[idx00] +
-                u * (1 - v_param) * cpDisp[idx10] +
-                (1 - u) * v_param * cpDisp[idx01] +
-                u * v_param * cpDisp[idx11];
-
-            newV(i, 0) = x + disp.x();
-            newV(i, 1) = y + disp.y();
-            // z remains the same
-        }
-
-        // Update current shape for the next iteration
-        currentV = newV;
-
-        // (Optional) Compute residuals for each selected point after this iteration
-        // We check how far the CPs ended up from the target. 
-        for (int i = 0; i < selected_points.rows(); i++) {
-            int cpIdx = correspondences[i];
-            Eigen::Vector2d cpNew = cpOrig[cpIdx] + cpDisp[cpIdx];
-            Eigen::Vector2d target(selected_points(i, 0), selected_points(i, 1));
-            residuals(i) = (cpNew - target).norm();
-        }
-        std::cout << "res: : " << residuals.colwise().mean() << std::endl;
-
-    }
-
-    // After the final iteration, we have currentV as our final shape
-    // We can also flatten the final control point displacements if desired
-    Eigen::VectorXd transformation(numCP * 2);
-    for (int i = 0; i < numCP; i++) {
-        transformation(2 * i) = cpDisp[i].x();
-        transformation(2 * i + 1) = cpDisp[i].y();
-    }
-
-
-    return std::make_tuple(currentV, transformation, residuals, correspondences);
+// Compute a bounding box that includes both the shape (V) and the selected 2D points.
+static void unifiedBoundingBox(
+    const Eigen::MatrixXd& V,
+    const Eigen::MatrixXd& selected_points,
+    double& min_x, double& max_x,
+    double& min_y, double& max_y)
+{
+    min_x = std::min(V.col(0).minCoeff(), selected_points.col(0).minCoeff());
+    max_x = std::max(V.col(0).maxCoeff(), selected_points.col(0).maxCoeff());
+    min_y = std::min(V.col(1).minCoeff(), selected_points.col(1).minCoeff());
+    max_y = std::max(V.col(1).maxCoeff(), selected_points.col(1).maxCoeff());
+    // If the shape and points are identical or extremely close, ensure non-zero range:
+    if (max_x - min_x < 1e-12) { max_x = min_x + 1.0; }
+    if (max_y - min_y < 1e-12) { max_y = min_y + 1.0; }
 }
+
+// Precompute how each vertex is influenced by the grid control points.
+// For each vertex i, we find which cell of the grid it falls into, compute
+// bilinear weights (w00, w10, w01, w11), and store the 4 corner CP indices.
+static std::vector<CPInfluence> precomputeFFDWeights(
+    const Eigen::MatrixXd& V,
+    double min_x, double max_x,
+    double min_y, double max_y,
+    int gridX, int gridY)
+{
+    const int N = (int)V.rows();
+    std::vector<CPInfluence> influences(N);
+
+    for (int i = 0; i < N; i++)
+    {
+        double x = V(i, 0);
+        double y = V(i, 1);
+
+        // Map (x,y) into grid space in [0, gridX-1], [0, gridY-1]
+        double sx = (x - min_x) / (max_x - min_x) * (gridX - 1);
+        double sy = (y - min_y) / (max_y - min_y) * (gridY - 1);
+
+        int ix = (int)std::floor(sx);
+        int iy = (int)std::floor(sy);
+
+        // Clamp to avoid out-of-bounds
+        if (ix < 0) ix = 0;
+        if (iy < 0) iy = 0;
+        if (ix >= gridX - 1) ix = gridX - 2;
+        if (iy >= gridY - 1) iy = gridY - 2;
+
+        double u = sx - ix;
+        double v = sy - iy;
+
+        // Flattened CP indices
+        int cp00 = ix * gridY + iy;
+        int cp10 = (ix + 1) * gridY + iy;
+        int cp01 = ix * gridY + (iy + 1);
+        int cp11 = (ix + 1) * gridY + (iy + 1);
+
+        CPInfluence inf;
+        inf.cp00 = cp00; inf.cp10 = cp10; inf.cp01 = cp01; inf.cp11 = cp11;
+        inf.w00 = (1 - u) * (1 - v);
+        inf.w10 = u * (1 - v);
+        inf.w01 = (1 - u) * v;
+        inf.w11 = u * v;
+        influences[i] = inf;
+    }
+    return influences;
+}
+
+// Deform the entire shape (in x,y) using the precomputed FFD weights and the param vector.
+// param.size() = 2*(gridX*gridY), storing (dx, dy) for each CP in row-major flattening.
+static Eigen::MatrixXd deformShape(
+    const Eigen::MatrixXd& V,
+    const std::vector<CPInfluence>& influences,
+    const Eigen::VectorXd& param)
+{
+    Eigen::MatrixXd newV = V;
+    for (int i = 0; i < (int)V.rows(); i++)
+    {
+        const auto& inf = influences[i];
+
+        // Retrieve the displacements from param
+        auto getDisp = [&](int cpIndex) {
+            double dx = param(2 * cpIndex + 0);
+            double dy = param(2 * cpIndex + 1);
+            return std::make_pair(dx, dy);
+        };
+
+        auto [dx00, dy00] = getDisp(inf.cp00);
+        auto [dx10, dy10] = getDisp(inf.cp10);
+        auto [dx01, dy01] = getDisp(inf.cp01);
+        auto [dx11, dy11] = getDisp(inf.cp11);
+
+        // Weighted sum
+        double dx = inf.w00 * dx00 + inf.w10 * dx10 + inf.w01 * dx01 + inf.w11 * dx11;
+        double dy = inf.w00 * dy00 + inf.w10 * dy10 + inf.w01 * dy01 + inf.w11 * dy11;
+
+        newV(i, 0) = V(i, 0) + dx;
+        newV(i, 1) = V(i, 1) + dy;
+        // z stays the same
+    }
+    return newV;
+}
+
+// The main function performing "non-rigid ICP" with a linear solve each iteration.
+std::tuple<Eigen::MatrixXd, Eigen::VectorXd, std::vector<int>>
+nonRigidICPFFD_Linear(
+    const Eigen::MatrixXd& selected_points,  // Mx2
+    const Eigen::MatrixXd& V,               // Nx3
+    int gridX=4, int gridY=4,
+    int outerIterations=100)
+{
+    // 1) Compute a bounding box that covers both shape + selected points
+    double min_x, max_x, min_y, max_y;
+    unifiedBoundingBox(V, selected_points, min_x, max_x, min_y, max_y);
+
+    // 2) Precompute how each vertex is influenced by the grid CPs
+    std::vector<CPInfluence> influences =
+        precomputeFFDWeights(V, min_x, max_x, min_y, max_y, gridX, gridY);
+
+    // 3) Initialize param = zero displacement
+    int numCP = gridX * gridY;
+    Eigen::VectorXd param = Eigen::VectorXd::Zero(2 * numCP);
+
+    // We'll keep track of correspondences: for each 2D point, which vertex?
+    int M = (int)selected_points.rows();
+    std::vector<int> correspondences(M, 0);
+
+    // We also maintain a "deformed shape" for each iteration
+    Eigen::MatrixXd deformedV = V;
+
+    // 4) Outer iteration loop
+    for (int iter = 0; iter < outerIterations; iter++)
+    {
+        // (A) Deform the shape with the current param
+        deformedV = deformShape(V, influences, param);
+
+        // (B) Reassign correspondences: each 2D point -> nearest DEFORMED vertex in x,y
+        for (int m = 0; m < M; m++)
+        {
+            double px = selected_points(m, 0);
+            double py = selected_points(m, 1);
+
+            double bestDist = std::numeric_limits<double>::max();
+            int bestIdx = -1;
+            for (int i = 0; i < (int)deformedV.rows(); i++)
+            {
+                double dx = deformedV(i, 0) - px;
+                double dy = deformedV(i, 1) - py;
+                double dist2 = dx * dx + dy * dy;
+                if (dist2 < bestDist)
+                {
+                    bestDist = dist2;
+                    bestIdx = i;
+                }
+            }
+            correspondences[m] = bestIdx;
+        }
+
+        // (C) Build the linear system A * param = b, with 2*M equations
+        //     Because for each match:
+        //       x_i + sum_c (w_i,c * dx_c) = p_x
+        //       y_i + sum_c (w_i,c * dy_c) = p_y
+        //     We'll do row 2*m for the x eq, row 2*m+1 for y eq.
+        Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2 * M, 2 * numCP);
+        Eigen::VectorXd b = Eigen::VectorXd::Zero(2 * M);
+
+        for (int m = 0; m < M; m++)
+        {
+            int vidx = correspondences[m];
+            const auto& inf = influences[vidx];
+
+            double vx = V(vidx, 0);
+            double vy = V(vidx, 1);
+            double px = selected_points(m, 0);
+            double py = selected_points(m, 1);
+
+            // For x eq: row = 2*m
+            double rx = px - vx; // we want sum_c w_i,c * dx_c = rx
+            // Fill columns for the 4 corners
+            auto setX = [&](int cpIndex, double w) {
+                A(2 * m + 0, 2 * cpIndex + 0) += w; // dx component
+            };
+
+            setX(inf.cp00, inf.w00);
+            setX(inf.cp10, inf.w10);
+            setX(inf.cp01, inf.w01);
+            setX(inf.cp11, inf.w11);
+
+            b(2 * m + 0) = rx;
+
+            // For y eq: row = 2*m+1
+            double ry = py - vy;
+            auto setY = [&](int cpIndex, double w) {
+                A(2 * m + 1, 2 * cpIndex + 1) += w; // dy component
+            };
+
+            setY(inf.cp00, inf.w00);
+            setY(inf.cp10, inf.w10);
+            setY(inf.cp01, inf.w01);
+            setY(inf.cp11, inf.w11);
+
+            b(2 * m + 1) = ry;
+        }
+
+        // Solve the linear system for param (in least-squares sense)
+        Eigen::VectorXd newParam = A.colPivHouseholderQr().solve(b);
+
+        // (Optional) Check how much param changes, or we can just assign
+        param = newParam;
+    }
+
+    // One last deformation with the final param
+    deformedV = deformShape(V, influences, param);
+
+    return std::make_tuple(deformedV, param, correspondences);
+}
+
 
 
 
@@ -962,7 +1015,9 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first);
 
     //std::vector<int> selectedVerticesXXX = { 1 };
-    std::vector<int> selectedVerticesXXX = {1634, 2430, 3315};
+    //std::vector<int> selectedVerticesXXX = {1634, 2430, 3315};
+    std::vector<int> selectedVerticesXXX = { 2768, 2769, 2767, 2972, 3041, 3110, 2758, 2689, 2690, 2624, 2625, 2558, 2559, 2491, 2420, 2419, 2418, 2347, 2346, 2635, 2636, 2637, 2639, 2570, 2501, 2431, 2362, 2290, 2219, 2218, 2216, 2210, 2213, 2214, 2215, 1921, 1850, 2344, 2209, 2208, 2207, 2136, 2064, 2626, 2622, 3245, 3043, 2904, 2976, 2978, 2837, 2908, 3246, 3247, 3248, 3179, 3036, 3105, 3174, 2966, 2897, 2828, 2273, 2202, 2059, 1987, 1916, 1845, 1779, 1708, 1774, 1703, 1632, 1637, 1566, 1495, 1353, 1424, 1351, 1282, 1420, 1561, 1490, 1992, 2060, 2131 };
+
     std::cout << "selectv:" << selectedVerticesXXX[0] << " " << selectedVerticesXXX.size() << std::endl;
     std::vector<std::array<double, 3>> vertexColors1  = std::vector<std::array<double, 3>>(polyscopePoints.rows(), { {1.0, 1.0, 1.0} });
 
@@ -1045,7 +1100,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             //def = std::get<1>(result);
 
 
-            auto res2 = iterativeGridFFD(selected_points, meanShape3dMat, inputShapes[0].second);
+            auto res2 = nonRigidICPFFD_Linear(selected_points, meanShape3dMat);
             Eigen::MatrixXd V_new = std::get<0>(res2);
 
             polyscope::registerSurfaceMesh("A", meanShape3dMat, inputShapes[0].second);

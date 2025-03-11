@@ -626,6 +626,175 @@ computeOptimalWeightsAndFFD_Sparse(
 
 
 
+#include <Eigen/Core>
+#include <Eigen/QR>
+#include <tuple>
+#include <vector>
+#include <limits>
+#include <cmath>
+
+// Helper function to compute the Bernstein polynomial value.
+double Bernstein(int i, int n, double t) {
+    double binom = 1.0;
+    for (int k = 1; k <= i; k++) {
+        binom *= double(n - k + 1) / k;
+    }
+    return binom * std::pow(t, i) * std::pow(1 - t, n - i);
+}
+
+#include <Eigen/Core>
+#include <tuple>
+#include <vector>
+#include <limits>
+#include <cmath>
+#include <algorithm>
+
+// gridBasedFFD:
+//   - selected_points: (M x 2) 2D target positions that we want the model to move toward.
+//   - V: (N x 3) original vertices of the 3D model.
+//   - F: (numFaces x 3) face connectivity (unused here, but provided for interface consistency).
+//
+// This function uses a grid-based approach (here with a fixed 4×4 grid over the model’s (x,y) extents).
+// For each selected point, we find the nearest control point (by mapping the target into grid space)
+// and update that control point’s displacement (i.e. desired shift) as the difference between the target 
+// and the control point’s original position. Then we apply a bilinear interpolation to compute each vertex’s 
+// (x,y) displacement from the grid. The function returns a tuple containing:
+//   1. newV: the deformed (N x 3) vertex matrix (with updated x,y, z unchanged).
+//   2. transformation: a flattened vector of control point displacements (size = gridX*gridY*2).
+//   3. residuals: for each selected point, the error (difference between the target and the moved control point).
+//   4. correspondences: for each selected point, the flattened index of the grid control point it affected.
+std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd, std::vector<int>>
+gridBasedFFD(
+    const Eigen::MatrixXd& selected_points,  // (M x 2)
+    const Eigen::MatrixXd& V,                // (N x 3)
+    const Eigen::MatrixXi& F                 // (numFaces x 3)
+) {
+    // --- Setup grid parameters ---
+    const int gridX = 4;  // number of control points in x-direction
+    const int gridY = 4;  // number of control points in y-direction
+    const int numCP = gridX * gridY;
+
+    // Compute 2D bounding box (x,y) for V.
+    double min_x = V.col(0).minCoeff();
+    double max_x = V.col(0).maxCoeff();
+    double min_y = V.col(1).minCoeff();
+    double max_y = V.col(1).maxCoeff();
+
+    // --- Build the grid of control points (original positions) ---
+    // These are placed uniformly over the bounding box.
+    std::vector<Eigen::Vector2d> cpOrig(numCP);
+    for (int i = 0; i < gridX; i++) {
+        double s = (gridX == 1) ? 0.0 : double(i) / (gridX - 1);
+        for (int j = 0; j < gridY; j++) {
+            double t = (gridY == 1) ? 0.0 : double(j) / (gridY - 1);
+            int idx = i * gridY + j;
+            cpOrig[idx] = Eigen::Vector2d(min_x + s * (max_x - min_x),
+                min_y + t * (max_y - min_y));
+        }
+    }
+
+    // --- Initialize control point displacements (2D) ---
+    // These will be computed from the selected points.
+    std::vector<Eigen::Vector2d> cpDisp(numCP, Eigen::Vector2d::Zero());
+    std::vector<int> cpCount(numCP, 0);
+
+    // For each selected point, determine which grid control point it affects.
+    // We do this by mapping the selected 2D point (which is in the same coordinate system as V)
+    // into normalized [0,1] grid space and then rounding to the nearest grid control point.
+    const int M = selected_points.rows();
+    std::vector<int> correspondences(M, -1);
+    for (int i = 0; i < M; i++) {
+        double x = selected_points(i, 0);
+        double y = selected_points(i, 1);
+        // Normalize into [0,1]
+        double s_norm = (x - min_x) / (max_x - min_x);
+        double t_norm = (y - min_y) / (max_y - min_y);
+        // Map into grid index space and round
+        int ix = std::round(s_norm * (gridX - 1));
+        int iy = std::round(t_norm * (gridY - 1));
+        // Clamp indices to valid range
+        ix = std::min(gridX - 1, std::max(0, ix));
+        iy = std::min(gridY - 1, std::max(0, iy));
+        int cpIdx = ix * gridY + iy;
+        correspondences[i] = cpIdx;
+
+        // Desired displacement at this control point: move it so that its new position becomes the target.
+        Eigen::Vector2d desiredDisp = Eigen::Vector2d(x, y) - cpOrig[cpIdx];
+        cpDisp[cpIdx] += desiredDisp;
+        cpCount[cpIdx] += 1;
+    }
+
+    // Average the displacements for each control point if multiple targets affected it.
+    for (int i = 0; i < numCP; i++) {
+        if (cpCount[i] > 0)
+            cpDisp[i] /= cpCount[i];
+    }
+
+    // --- Apply grid-based FFD to deform all vertices ---
+    // For each vertex, compute its normalized (s,t) coordinate in the grid and then
+    // use bilinear interpolation of the control point displacements.
+    const int N = V.rows();
+    Eigen::MatrixXd newV = V;  // start with original V
+    for (int i = 0; i < N; i++) {
+        double x = V(i, 0);
+        double y = V(i, 1);
+        // Normalize to grid space in [0, gridX-1] and [0, gridY-1]
+        double s = (x - min_x) / (max_x - min_x) * (gridX - 1);
+        double t = (y - min_y) / (max_y - min_y) * (gridY - 1);
+        int ix = std::floor(s);
+        int iy = std::floor(t);
+        // Clamp indices and adjust if at the boundary.
+        if (ix < 0) ix = 0;
+        if (iy < 0) iy = 0;
+        if (ix >= gridX - 1) { ix = gridX - 2; s = gridX - 1; }
+        if (iy >= gridY - 1) { iy = gridY - 2; t = gridY - 1; }
+
+        double u = s - ix;       // local coordinate in cell (in x)
+        double v_param = t - iy;   // local coordinate in cell (in y)
+
+        // Indices of the four corners of the cell:
+        int idx00 = ix * gridY + iy;
+        int idx10 = (ix + 1) * gridY + iy;
+        int idx01 = ix * gridY + (iy + 1);
+        int idx11 = (ix + 1) * gridY + (iy + 1);
+
+        // Bilinear interpolation of displacements:
+        Eigen::Vector2d disp = (1 - u) * (1 - v_param) * cpDisp[idx00]
+            + u * (1 - v_param) * cpDisp[idx10]
+            + (1 - u) * v_param * cpDisp[idx01]
+            + u * v_param * cpDisp[idx11];
+
+        // Update vertex x,y with the interpolated displacement.
+        newV(i, 0) = x + disp.x();
+        newV(i, 1) = y + disp.y();
+        // newV(i, 2) remains unchanged.
+    }
+
+    // --- Compute residuals for diagnostic purposes ---
+    // For each selected point, we compare the updated control point (original + displacement)
+    // with the target position.
+    Eigen::VectorXd residuals(M);
+    for (int i = 0; i < M; i++) {
+        int cpIdx = correspondences[i];
+        Eigen::Vector2d cpNew = cpOrig[cpIdx] + cpDisp[cpIdx];
+        Eigen::Vector2d target(selected_points(i, 0), selected_points(i, 1));
+        residuals(i) = (cpNew - target).norm();
+    }
+
+    // --- Flatten the grid displacement into a transformation vector ---
+    // This vector has 2 values per control point (x and y displacement).
+    Eigen::VectorXd transformation(numCP * 2);
+    for (int i = 0; i < numCP; i++) {
+        transformation(2 * i) = cpDisp[i].x();
+        transformation(2 * i + 1) = cpDisp[i].y();
+    }
+
+    return std::make_tuple(newV, transformation, residuals, correspondences);
+}
+
+
+
+
 
 
 // Function for Laplacian smoothing
@@ -798,7 +967,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
     static float lambda = 0.1f; // Default regularization strength
 
     // User controls via ImGui
-    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius, &inputShapes, &closestIndices]() {
+    polyscope::state::userCallback = [&obj1, &polyscopePoints, &selectedVerticesXXX, &vertexColors1, &radius, &inputShapes, &closestIndices, &meanShape3dMat]() {
         int totalModes = g_eigenvectors.cols();
 
         // Dropdown to choose reference shape
@@ -854,9 +1023,17 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         if (ImGui::Button("Compute Optimal Weights")) {
             std::cout << "Computing Optimal Weights..." << std::endl;
             Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
-            auto result = computeOptimalWeightsAndFFD_Sparse(g_meanShape, g_eigenvectors, selected_points, inputShapes[0].second);
-            optimalWeights = std::get<0>(result);
-            def = std::get<1>(result);
+            //auto result = computeOptimalWeightsAndFFD_Sparse(g_meanShape, g_eigenvectors, selected_points, inputShapes[0].second);
+            //optimalWeights = std::get<0>(result);
+            //def = std::get<1>(result);
+
+
+            auto res2 = gridBasedFFD(selected_points, meanShape3dMat, inputShapes[0].second);
+            Eigen::MatrixXd V_new = std::get<0>(res2);
+
+            polyscope::registerSurfaceMesh("A", meanShape3dMat, inputShapes[0].second);
+            polyscope::registerSurfaceMesh("B", V_new, inputShapes[0].second);
+
 
             std::cout << "Optimal Weights Computed:\n" << optimalWeights << std::endl;
         }

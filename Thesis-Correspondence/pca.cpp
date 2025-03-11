@@ -649,148 +649,165 @@ double Bernstein(int i, int n, double t) {
 #include <cmath>
 #include <algorithm>
 
-// gridBasedFFD:
-//   - selected_points: (M x 2) 2D target positions that we want the model to move toward.
-//   - V: (N x 3) original vertices of the 3D model.
-//   - F: (numFaces x 3) face connectivity (unused here, but provided for interface consistency).
+// iterativeGridFFD:
+//   - selected_points: (M x 2) 2D target positions to move the model toward
+//   - V: (N x 3) original vertices of the 3D model
+//   - F: (numFaces x 3) face connectivity (unused here)
+//   - iterations: number of FFD passes to apply (e.g. 100)
+//   - alpha: how strongly each selected point pulls the nearest control point on each iteration
 //
-// This function uses a grid-based approach (here with a fixed 4×4 grid over the model’s (x,y) extents).
-// For each selected point, we find the nearest control point (by mapping the target into grid space)
-// and update that control point’s displacement (i.e. desired shift) as the difference between the target 
-// and the control point’s original position. Then we apply a bilinear interpolation to compute each vertex’s 
-// (x,y) displacement from the grid. The function returns a tuple containing:
-//   1. newV: the deformed (N x 3) vertex matrix (with updated x,y, z unchanged).
-//   2. transformation: a flattened vector of control point displacements (size = gridX*gridY*2).
-//   3. residuals: for each selected point, the error (difference between the target and the moved control point).
-//   4. correspondences: for each selected point, the flattened index of the grid control point it affected.
+// Returns:
+//   1) finalV: (N x 3) the final deformed shape after 'iterations' passes
+//   2) transformation: a flattened vector of the final grid control displacements (size = gridX*gridY*2)
+//      from the *last* iteration only
+//   3) residuals: residual errors for each selected point after the last iteration
+//   4) correspondences: which control point each selected point affected on the last iteration
 std::tuple<Eigen::MatrixXd, Eigen::VectorXd, Eigen::VectorXd, std::vector<int>>
-gridBasedFFD(
+iterativeGridFFD(
     const Eigen::MatrixXd& selected_points,  // (M x 2)
     const Eigen::MatrixXd& V,                // (N x 3)
-    const Eigen::MatrixXi& F                 // (numFaces x 3)
+    const Eigen::MatrixXi& F,                // (numFaces x 3)
+    int iterations = 100,
+    double alpha = 0.1
 ) {
-    // --- Setup grid parameters ---
-    const int gridX = 4;  // number of control points in x-direction
-    const int gridY = 4;  // number of control points in y-direction
+    // We'll keep track of the shape as we deform it each iteration
+    Eigen::MatrixXd currentV = V;
+
+    // Grid resolution (can be adjusted as needed)
+    const int gridX = 6;
+    const int gridY = 6;
     const int numCP = gridX * gridY;
 
-    // Compute 2D bounding box (x,y) for V.
-    double min_x = V.col(0).minCoeff();
-    double max_x = V.col(0).maxCoeff();
-    double min_y = V.col(1).minCoeff();
-    double max_y = V.col(1).maxCoeff();
+    // We'll define some variables that we update each iteration
+    std::vector<Eigen::Vector2d> cpOrig(numCP);   // Original grid CP positions
+    std::vector<Eigen::Vector2d> cpDisp(numCP);   // Displacements
+    std::vector<int> correspondences;             // For the selected points
+    Eigen::VectorXd residuals(selected_points.rows());
 
-    // --- Build the grid of control points (original positions) ---
-    // These are placed uniformly over the bounding box.
-    std::vector<Eigen::Vector2d> cpOrig(numCP);
-    for (int i = 0; i < gridX; i++) {
-        double s = (gridX == 1) ? 0.0 : double(i) / (gridX - 1);
-        for (int j = 0; j < gridY; j++) {
-            double t = (gridY == 1) ? 0.0 : double(j) / (gridY - 1);
-            int idx = i * gridY + j;
-            cpOrig[idx] = Eigen::Vector2d(min_x + s * (max_x - min_x),
-                min_y + t * (max_y - min_y));
+    // We run the deformation multiple times
+    for (int iter = 0; iter < iterations; ++iter) {
+        // 1) Compute bounding box that includes both current shape and selected points
+        double min_x = std::min(currentV.col(0).minCoeff(), selected_points.col(0).minCoeff());
+        double max_x = std::max(currentV.col(0).maxCoeff(), selected_points.col(0).maxCoeff());
+        double min_y = std::min(currentV.col(1).minCoeff(), selected_points.col(1).minCoeff());
+        double max_y = std::max(currentV.col(1).maxCoeff(), selected_points.col(1).maxCoeff());
+
+        // 2) Build the grid of control points (original positions)
+        for (int i = 0; i < numCP; i++) {
+            cpDisp[i] = Eigen::Vector2d::Zero(); // reset displacements each iteration
         }
+        std::vector<int> cpCount(numCP, 0);
+
+        for (int i = 0; i < gridX; i++) {
+            double s = (gridX == 1) ? 0.0 : double(i) / (gridX - 1);
+            for (int j = 0; j < gridY; j++) {
+                double t = (gridY == 1) ? 0.0 : double(j) / (gridY - 1);
+                int idx = i * gridY + j;
+                cpOrig[idx] = Eigen::Vector2d(
+                    min_x + s * (max_x - min_x),
+                    min_y + t * (max_y - min_y)
+                );
+            }
+        }
+
+        // 3) For each selected point, find the nearest grid CP & move it
+        correspondences.resize(selected_points.rows());
+        for (int i = 0; i < selected_points.rows(); i++) {
+            double x = selected_points(i, 0);
+            double y = selected_points(i, 1);
+
+            // If your points are in an inverted coordinate system, you might do something like:
+            // y = max_y - (y - min_y);
+
+            // Map into grid index space
+            double s_norm = (x - min_x) / (max_x - min_x) * (gridX - 1);
+            double t_norm = (y - min_y) / (max_y - min_y) * (gridY - 1);
+
+            int ix = std::round(s_norm);
+            int iy = std::round(t_norm);
+            ix = std::max(0, std::min(ix, gridX - 1));
+            iy = std::max(0, std::min(iy, gridY - 1));
+
+            int cpIdx = ix * gridY + iy;
+            correspondences[i] = cpIdx;
+
+            // Move the CP by alpha * difference
+            Eigen::Vector2d desiredDisp = alpha * (Eigen::Vector2d(x, y) - cpOrig[cpIdx]);
+            cpDisp[cpIdx] += desiredDisp;
+            cpCount[cpIdx] += 1;
+        }
+
+        // Average the displacements for CPs that multiple selected points affect
+        for (int i = 0; i < numCP; i++) {
+            if (cpCount[i] > 0) {
+                cpDisp[i] /= cpCount[i];
+            }
+        }
+
+        // 4) Apply grid-based FFD to deform the current shape
+        Eigen::MatrixXd newV = currentV;
+        for (int i = 0; i < currentV.rows(); i++) {
+            double x = currentV(i, 0);
+            double y = currentV(i, 1);
+
+            // Map (x,y) into grid index space
+            double s = (x - min_x) / (max_x - min_x) * (gridX - 1);
+            double t = (y - min_y) / (max_y - min_y) * (gridY - 1);
+
+            int ix = std::floor(s);
+            int iy = std::floor(t);
+            ix = std::max(0, std::min(ix, gridX - 2));
+            iy = std::max(0, std::min(iy, gridY - 2));
+
+            double u = s - ix;
+            double v_param = t - iy;
+
+            // Indices of the four corners
+            int idx00 = ix * gridY + iy;
+            int idx10 = (ix + 1) * gridY + iy;
+            int idx01 = ix * gridY + (iy + 1);
+            int idx11 = (ix + 1) * gridY + (iy + 1);
+
+            // Bilinear interpolation
+            Eigen::Vector2d disp =
+                (1 - u) * (1 - v_param) * cpDisp[idx00] +
+                u * (1 - v_param) * cpDisp[idx10] +
+                (1 - u) * v_param * cpDisp[idx01] +
+                u * v_param * cpDisp[idx11];
+
+            newV(i, 0) = x + disp.x();
+            newV(i, 1) = y + disp.y();
+            // z remains the same
+        }
+
+        // Update current shape for the next iteration
+        currentV = newV;
+
+        // (Optional) Compute residuals for each selected point after this iteration
+        // We check how far the CPs ended up from the target. 
+        for (int i = 0; i < selected_points.rows(); i++) {
+            int cpIdx = correspondences[i];
+            Eigen::Vector2d cpNew = cpOrig[cpIdx] + cpDisp[cpIdx];
+            Eigen::Vector2d target(selected_points(i, 0), selected_points(i, 1));
+            residuals(i) = (cpNew - target).norm();
+        }
+        std::cout << "res: : " << residuals.colwise().mean() << std::endl;
+
     }
 
-    // --- Initialize control point displacements (2D) ---
-    // These will be computed from the selected points.
-    std::vector<Eigen::Vector2d> cpDisp(numCP, Eigen::Vector2d::Zero());
-    std::vector<int> cpCount(numCP, 0);
-
-    // For each selected point, determine which grid control point it affects.
-    // We do this by mapping the selected 2D point (which is in the same coordinate system as V)
-    // into normalized [0,1] grid space and then rounding to the nearest grid control point.
-    const int M = selected_points.rows();
-    std::vector<int> correspondences(M, -1);
-    for (int i = 0; i < M; i++) {
-        double x = selected_points(i, 0);
-        double y = selected_points(i, 1);
-        // Normalize into [0,1]
-        double s_norm = (x - min_x) / (max_x - min_x);
-        double t_norm = (y - min_y) / (max_y - min_y);
-        // Map into grid index space and round
-        int ix = std::round(s_norm * (gridX - 1));
-        int iy = std::round(t_norm * (gridY - 1));
-        // Clamp indices to valid range
-        ix = std::min(gridX - 1, std::max(0, ix));
-        iy = std::min(gridY - 1, std::max(0, iy));
-        int cpIdx = ix * gridY + iy;
-        correspondences[i] = cpIdx;
-
-        // Desired displacement at this control point: move it so that its new position becomes the target.
-        Eigen::Vector2d desiredDisp = Eigen::Vector2d(x, y) - cpOrig[cpIdx];
-        cpDisp[cpIdx] += desiredDisp;
-        cpCount[cpIdx] += 1;
-    }
-
-    // Average the displacements for each control point if multiple targets affected it.
-    for (int i = 0; i < numCP; i++) {
-        if (cpCount[i] > 0)
-            cpDisp[i] /= cpCount[i];
-    }
-
-    // --- Apply grid-based FFD to deform all vertices ---
-    // For each vertex, compute its normalized (s,t) coordinate in the grid and then
-    // use bilinear interpolation of the control point displacements.
-    const int N = V.rows();
-    Eigen::MatrixXd newV = V;  // start with original V
-    for (int i = 0; i < N; i++) {
-        double x = V(i, 0);
-        double y = V(i, 1);
-        // Normalize to grid space in [0, gridX-1] and [0, gridY-1]
-        double s = (x - min_x) / (max_x - min_x) * (gridX - 1);
-        double t = (y - min_y) / (max_y - min_y) * (gridY - 1);
-        int ix = std::floor(s);
-        int iy = std::floor(t);
-        // Clamp indices and adjust if at the boundary.
-        if (ix < 0) ix = 0;
-        if (iy < 0) iy = 0;
-        if (ix >= gridX - 1) { ix = gridX - 2; s = gridX - 1; }
-        if (iy >= gridY - 1) { iy = gridY - 2; t = gridY - 1; }
-
-        double u = s - ix;       // local coordinate in cell (in x)
-        double v_param = t - iy;   // local coordinate in cell (in y)
-
-        // Indices of the four corners of the cell:
-        int idx00 = ix * gridY + iy;
-        int idx10 = (ix + 1) * gridY + iy;
-        int idx01 = ix * gridY + (iy + 1);
-        int idx11 = (ix + 1) * gridY + (iy + 1);
-
-        // Bilinear interpolation of displacements:
-        Eigen::Vector2d disp = (1 - u) * (1 - v_param) * cpDisp[idx00]
-            + u * (1 - v_param) * cpDisp[idx10]
-            + (1 - u) * v_param * cpDisp[idx01]
-            + u * v_param * cpDisp[idx11];
-
-        // Update vertex x,y with the interpolated displacement.
-        newV(i, 0) = x + disp.x();
-        newV(i, 1) = y + disp.y();
-        // newV(i, 2) remains unchanged.
-    }
-
-    // --- Compute residuals for diagnostic purposes ---
-    // For each selected point, we compare the updated control point (original + displacement)
-    // with the target position.
-    Eigen::VectorXd residuals(M);
-    for (int i = 0; i < M; i++) {
-        int cpIdx = correspondences[i];
-        Eigen::Vector2d cpNew = cpOrig[cpIdx] + cpDisp[cpIdx];
-        Eigen::Vector2d target(selected_points(i, 0), selected_points(i, 1));
-        residuals(i) = (cpNew - target).norm();
-    }
-
-    // --- Flatten the grid displacement into a transformation vector ---
-    // This vector has 2 values per control point (x and y displacement).
+    // After the final iteration, we have currentV as our final shape
+    // We can also flatten the final control point displacements if desired
     Eigen::VectorXd transformation(numCP * 2);
     for (int i = 0; i < numCP; i++) {
         transformation(2 * i) = cpDisp[i].x();
         transformation(2 * i + 1) = cpDisp[i].y();
     }
 
-    return std::make_tuple(newV, transformation, residuals, correspondences);
+
+    return std::make_tuple(currentV, transformation, residuals, correspondences);
 }
+
+
 
 
 
@@ -1028,7 +1045,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             //def = std::get<1>(result);
 
 
-            auto res2 = gridBasedFFD(selected_points, meanShape3dMat, inputShapes[0].second);
+            auto res2 = iterativeGridFFD(selected_points, meanShape3dMat, inputShapes[0].second);
             Eigen::MatrixXd V_new = std::get<0>(res2);
 
             polyscope::registerSurfaceMesh("A", meanShape3dMat, inputShapes[0].second);

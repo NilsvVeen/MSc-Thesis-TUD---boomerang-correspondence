@@ -765,13 +765,13 @@ int main2()
             "res-9-12/" + correspondence3dMatched + "/M2.obj",
             "res-9-13/" + correspondence3dMatched + "/M2.obj",
             "res-9-14/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-15/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-16/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-17/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-18/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-19/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-20/" + correspondence3dMatched + "/M2.obj",
-            //"res-9-22/" + correspondence3dMatched + "/M2.obj"
+            "res-9-15/" + correspondence3dMatched + "/M2.obj",
+            "res-9-16/" + correspondence3dMatched + "/M2.obj",
+            "res-9-17/" + correspondence3dMatched + "/M2.obj",
+            "res-9-18/" + correspondence3dMatched + "/M2.obj",
+            "res-9-19/" + correspondence3dMatched + "/M2.obj",
+            "res-9-20/" + correspondence3dMatched + "/M2.obj",
+            "res-9-21/" + correspondence3dMatched + "/M2.obj"
         };
 
         std::vector<Eigen::MatrixXd> inputV;

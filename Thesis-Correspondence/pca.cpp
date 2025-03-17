@@ -146,7 +146,7 @@ void updateDeformedMesh() {
 
 
 
-Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M) {
+Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M, int numPoints=5000) {
     // Get min and max X, Y coordinates
     double minX = M.col(0).minCoeff();
     double maxX = M.col(0).maxCoeff();
@@ -176,7 +176,7 @@ Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M) {
     std::cout << "Expanded Min Y: " << minY << ", Expanded Max Y: " << maxY << "\n";
 
     // Number of points to generate (total number of points)
-    int numPoints = 5000;
+    //int numPoints = 5000;
 
     // We will divide the expanded bounding box into a grid of approximately sqrt(numPoints) points per dimension
     int gridSize = std::sqrt(numPoints);
@@ -918,6 +918,11 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
                 }
             }
         }
+        if (ImGui::Button("Clear Selected Vertices")) {
+            selectedVerticesXXX.clear();
+            std::cout << "Selected vertices list cleared." << std::endl;
+        }
+
 
         HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
         
@@ -973,12 +978,37 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
         }
 
+        // Button to overwrite polyscopePoints
+
+        static int InputInt = 5000; // Default value for input
+        ImGui::SliderInt("Input Points", &InputInt, 1000, 50000); // Adjust range as needed
+
+        // Snap InputInt to the nearest 100
+        InputInt = (InputInt / 100) * 100;
+
+        if (ImGui::Button("Generate New Points Grid")) {
+            std::cout << "Generating new polyscope points with InputInt = " << InputInt << std::endl;
+
+            polyscopePoints = generateAndVisualizePoints(inputShapes[0].first, InputInt);
+
+            // Clear selection to avoid invalid indices
+            selectedVerticesXXX.clear();
+            std::cout << "Cleared selected vertices due to grid change." << std::endl;
+
+            // Re-register point cloud to avoid inconsistencies
+            polyscope::removePointCloud("Point Cloud");
+            registerPointCloudWithColors("Point Cloud", polyscopePoints, radius, vertexColors1);
+        }
+
+
         // Grid size sliders
         static int GridX = 10; // Default grid size X
         static int GridY = 10; // Default grid size Y
 
         ImGui::SliderInt("GridX", &GridX, 2, 50); // Adjust range as needed
         ImGui::SliderInt("GridY", &GridY, 2, 50); // Adjust range as needed
+
+
 
 
         if (ImGui::Button("Compute FFD")) {

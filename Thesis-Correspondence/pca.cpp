@@ -479,7 +479,7 @@ std::tuple<Eigen::MatrixXd, Eigen::VectorXd, std::vector<int>>
 nonRigidICPFFD_Linear(
     const Eigen::MatrixXd& selected_points,  // Mx2
     const Eigen::MatrixXd& V,               // Nx3
-    int gridX = 8, int gridY = 8,
+    int gridX = 10, int gridY = 10,
     int outerIterations = 100)
 {
     // 1) Compute a bounding box that covers both shape + selected points
@@ -932,24 +932,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             std::cout << "Optimal Weights Computed:\n" << optimalWeights << std::endl;
         }
 
-        if (ImGui::Button("Compute FFD")) {
-            std::cout << "Computing FFD" << std::endl;
-            Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
 
-            Eigen::VectorXd reconstructedShape = g_meanShape;
-
-            for (int j = 0; j < g_eigenvectors.cols() - 1; ++j) {
-                reconstructedShape += optimalWeights[j] * lambda * g_eigenvectors.col(j);
-            }
-
-            auto res2 = nonRigidICPFFD_Linear(selected_points, eigenVectorToMatrix(reconstructedShape));
-
-            Eigen::MatrixXd V_new = std::get<0>(res2);
-
-            polyscope::registerSurfaceMesh("A", eigenVectorToMatrix(reconstructedShape), inputShapes[0].second);
-            polyscope::registerSurfaceMesh("B", V_new, inputShapes[0].second);
-
-        }
 
 
         // Slider for custom lambda
@@ -987,6 +970,33 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             laplacianSmoothing(V_lap, F_lap);
 
             polyscope::registerSurfaceMesh("Fitted shape ARAP + Laplacian", V_lap, F_lap);
+
+        }
+
+        // Grid size sliders
+        static int GridX = 10; // Default grid size X
+        static int GridY = 10; // Default grid size Y
+
+        ImGui::SliderInt("GridX", &GridX, 2, 50); // Adjust range as needed
+        ImGui::SliderInt("GridY", &GridY, 2, 50); // Adjust range as needed
+
+
+        if (ImGui::Button("Compute FFD")) {
+            std::cout << "Computing FFD" << std::endl;
+            Eigen::MatrixXd selected_points = extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints);
+
+            Eigen::VectorXd reconstructedShape = g_meanShape;
+
+            for (int j = 0; j < g_eigenvectors.cols() - 1; ++j) {
+                reconstructedShape += optimalWeights[j] * lambda * g_eigenvectors.col(j);
+            }
+
+            auto res2 = nonRigidICPFFD_Linear(selected_points, eigenVectorToMatrix(reconstructedShape), GridX, GridY);
+
+            Eigen::MatrixXd V_new = std::get<0>(res2);
+
+            polyscope::registerSurfaceMesh("A", eigenVectorToMatrix(reconstructedShape), inputShapes[0].second);
+            polyscope::registerSurfaceMesh("FFD result", V_new, inputShapes[0].second);
 
         }
     };

@@ -83,8 +83,8 @@ int main2()
         printFilesInDirectory(GLOBAL_MODELS_DIRECTORY);
 
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09.stl";
-        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
         std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
+        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/rotorI.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -108,8 +108,8 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/boomerang_15_decimate01.stl";
-        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_09_decimate01.stl";
+        //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Deborah.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_15_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
@@ -758,20 +758,25 @@ int main2()
         std::cout << "Make new shape" << std::endl;
         // List of file paths
         //13
+        //std::vector<std::string> filePaths = {
+        //    "res-9-10/" + correspondence3dMatched + "/M1.obj",
+        //    "res-9-10/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-11/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-12/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-13/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-14/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-15/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-16/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-17/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-18/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-19/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-20/" + correspondence3dMatched + "/M2.obj",
+        //    "res-9-21/" + correspondence3dMatched + "/M2.obj"
+        //};
         std::vector<std::string> filePaths = {
-            "res-9-10/" + correspondence3dMatched + "/M1.obj",
-            "res-9-10/" + correspondence3dMatched + "/M2.obj",
-            "res-9-11/" + correspondence3dMatched + "/M2.obj",
-            "res-9-12/" + correspondence3dMatched + "/M2.obj",
-            "res-9-13/" + correspondence3dMatched + "/M2.obj",
-            "res-9-14/" + correspondence3dMatched + "/M2.obj",
-            "res-9-15/" + correspondence3dMatched + "/M2.obj",
-            "res-9-16/" + correspondence3dMatched + "/M2.obj",
-            "res-9-17/" + correspondence3dMatched + "/M2.obj",
-            "res-9-18/" + correspondence3dMatched + "/M2.obj",
-            "res-9-19/" + correspondence3dMatched + "/M2.obj",
-            "res-9-20/" + correspondence3dMatched + "/M2.obj",
-            "res-9-21/" + correspondence3dMatched + "/M2.obj"
+            "res-rotI-rotII/" + correspondence3dMatched + "/M1.obj",
+            "res-rotI-rotII/" + correspondence3dMatched + "/M2.obj",
+            "res-rotI-deborah/" + correspondence3dMatched + "/M2.obj"
         };
 
         std::vector<Eigen::MatrixXd> inputV;

@@ -271,7 +271,7 @@ bool paramsurface5(const Eigen::MatrixXd& V, const Eigen::MatrixXi& F, Eigen::Ma
 
         bool useWholeBoundary = true;
         bool LSCM_bool = true;
-        bool ARAP_bool = true;
+        bool ARAP_bool = false;
         bool HARMONIC_bool = false;
         if (useWholeBoundary) {
 

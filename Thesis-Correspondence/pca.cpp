@@ -197,7 +197,7 @@ Eigen::MatrixXd generateAndVisualizePoints(const Eigen::MatrixXd& M, int numPoin
             Eigen::Vector3d point(x, y, avgZ);
 
             // Print the generated point
-            std::cout << "Generated Point: (" << point[0] << ", " << point[1] << ", " << point[2] << ")\n";
+            //std::cout << "Generated Point: (" << point[0] << ", " << point[1] << ", " << point[2] << ")\n";
 
             // Store the point
             points.push_back(point);
@@ -788,6 +788,38 @@ Eigen::MatrixXd performARAP(
     return V; // Final deformed shape
 }
 
+void printThicknesses(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
+    for (size_t i = 0; i < inputShapes.size(); ++i) {
+        const Eigen::MatrixXd& V = inputShapes[i].first;
+
+        if (V.rows() == 0 || V.cols() < 3) {
+            std::cout << "Shape " << i << " has invalid vertex data.\n";
+            continue;
+        }
+
+        double minZ = V.col(2).minCoeff();
+        double maxZ = V.col(2).maxCoeff();
+        double thickness = std::abs(maxZ - minZ);
+
+        std::cout << "Shape " << i << " thickness (Z): " << thickness << std::endl;
+    }
+}
+
+double computeThickness(const Eigen::MatrixXd& V) {
+    if (V.rows() == 0 || V.cols() < 3) {
+        std::cerr << "Invalid vertex data.\n";
+        return 0.0;
+    }
+
+    double minZ = V.col(2).minCoeff();
+    double maxZ = V.col(2).maxCoeff();
+    auto val = std::abs(maxZ - minZ);
+    std::cout << "mean shape thickness: " << val << std::endl;
+
+    return val;
+}
+
+
 
 // Main PCA computation and visualization setup
 void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
@@ -795,6 +827,8 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         std::cerr << "No shapes provided." << std::endl;
         return;
     }
+
+    printThicknesses(inputShapes);
 
     int numShapes = static_cast<int>(inputShapes.size());
     g_numVertices = static_cast<int>(inputShapes[0].first.rows());
@@ -842,6 +876,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
 
     Eigen::MatrixXd meanShape3dMat = computeMeanShape(inputShapes);
+    computeThickness(meanShape3dMat);
     //Eigen::MatrixXd polyscopePoints = meanShape3dMat
     int defaultGridTotal = 10000;
     Eigen::MatrixXd polyscopePoints = generateAndVisualizePoints(inputShapes[0].first, defaultGridTotal);

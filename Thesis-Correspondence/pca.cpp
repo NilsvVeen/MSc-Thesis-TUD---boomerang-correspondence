@@ -962,6 +962,28 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
             std::cout << "Selected vertices list cleared." << std::endl;
         }
 
+        if (ImGui::Button("Show Selected Points (Green)")) {
+            Eigen::MatrixXd selectedPointsGreen(selectedVerticesXXX.size(), 3);
+            int validCount = 0;
+
+            for (int idx : selectedVerticesXXX) {
+                if (idx >= 0 && idx < polyscopePoints.rows()) {
+                    selectedPointsGreen.row(validCount) = polyscopePoints.row(idx);
+                    ++validCount;
+                }
+                else {
+                    std::cout << "Invalid index: " << idx << "\n";
+                }
+            }
+
+            selectedPointsGreen.conservativeResize(validCount, Eigen::NoChange);
+
+            if (validCount > 0) {
+                std::vector<std::array<double, 3>> greenColors(validCount, { {1.0, 0.0, 0.0} });
+                registerPointCloudWithColors("Selected Points (Red)", selectedPointsGreen, 0.01, greenColors);
+            }
+        }
+
 
         HandlUserSelectionPCA(obj1, polyscopePoints, selectedVerticesXXX, vertexColors1, radius);
         
@@ -1004,16 +1026,16 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
 
 
-            Eigen::MatrixXd V_arap = performARAP(eigenVectorToMatrix(reconstructedShape), inputShapes[0].second, extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints), closestIndices);
+            //Eigen::MatrixXd V_arap = performARAP(eigenVectorToMatrix(reconstructedShape), inputShapes[0].second, extractInputPointsAsMatrix(selectedVerticesXXX, polyscopePoints), closestIndices);
 
-            polyscope::registerSurfaceMesh("Fitted shape ARAP", V_arap, inputShapes[0].second);
+            //polyscope::registerSurfaceMesh("Fitted shape ARAP", V_arap, inputShapes[0].second);
 
 
-            Eigen::MatrixXd V_lap = V_arap;
-            Eigen::MatrixXi F_lap = inputShapes[0].second;
-            laplacianSmoothing(V_lap, F_lap);
+            //Eigen::MatrixXd V_lap = V_arap;
+            //Eigen::MatrixXi F_lap = inputShapes[0].second;
+            //laplacianSmoothing(V_lap, F_lap);
 
-            polyscope::registerSurfaceMesh("Fitted shape ARAP + Laplacian", V_lap, F_lap);
+            //polyscope::registerSurfaceMesh("Fitted shape ARAP + Laplacian", V_lap, F_lap);
 
         }
 

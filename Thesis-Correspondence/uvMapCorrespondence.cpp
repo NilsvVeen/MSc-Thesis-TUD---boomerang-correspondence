@@ -505,90 +505,101 @@ Eigen::RowVector2d projectPointOntoTriangle(
 
 
 void UVToCorrespondence(
-    const Eigen::MatrixXd& V1,  // Mesh 1 vertices       n x 3
-    const Eigen::MatrixXi& F1, // Mesh 1 faces          m x 3
-    const Eigen::MatrixXd& B1, // Boundary 1 vertices   p x 3
-    const Eigen::MatrixXd& UV1, // UV map of mesh 1     n x 2
+    const Eigen::MatrixXd& V1,  // Mesh 1 vertices
+    const Eigen::MatrixXi& F1,  // Mesh 1 faces
+    const Eigen::MatrixXd& B1,  // Boundary 1 vertices
+    const Eigen::MatrixXd& UV1, // UV map of mesh 1
 
-    const Eigen::MatrixXd& V2,  // Mesh 2 vertices       s x 3
-    const Eigen::MatrixXi& F2,  // Mesh 2 faces          q x 3
-    const Eigen::MatrixXd& B2,  // Boundary 2 vertices   p x 3
-    const Eigen::MatrixXd& UV2,  // UV map of mesh 2     s x 2
+    const Eigen::MatrixXd& V2,  // Mesh 2 vertices
+    const Eigen::MatrixXi& F2,  // Mesh 2 faces
+    const Eigen::MatrixXd& B2,  // Boundary 2 vertices
+    const Eigen::MatrixXd& UV2, // UV map of mesh 2
+
     const std::string correspondence3dMatched
 ) {
-
-    Eigen::MatrixXd connectedBorder;
-    Eigen::MatrixXd connectedBorder2;
-
+    // --- Settings and I/O
+    Eigen::MatrixXd connectedBorder, connectedBorder2;
     bool readExisting = false;
+
     if (readExisting) {
         connectedBorder = readVerticesFromPLY(correspondence3dMatched + "/borders.obj");
         connectedBorder2 = readVerticesFromPLY(correspondence3dMatched + "/borders2.obj");
     }
     else {
         connectedBorder = findConnectedBorder(V1, F1, B1);
-        writeVerticesToPLY(correspondence3dMatched  + "/borders.obj", connectedBorder);
+        writeVerticesToPLY(correspondence3dMatched + "/borders.obj", connectedBorder);
 
         connectedBorder2 = findConnectedBorder(V2, F2, B2);
         writeVerticesToPLY(correspondence3dMatched + "/borders2.obj", connectedBorder2);
     }
 
-
-
-
-
+    // --- Side classification
     auto [sideA, sideB] = classifyFacesByBorder(V1, F1, connectedBorder);
     auto [sideA2, sideB2] = classifyFacesByBorder(V2, F2, connectedBorder2);
 
-    // Print the face indices for each side
-    std::cout << "Faces on Side A: " << sideA.size() << std::endl;
-    std::cout << "Faces on Side B: " << sideB.size() << std::endl;
-    std::cout << "2: Faces on Side A: " << sideA2.size() << std::endl;
-    std::cout << "2: Faces on Side B: " << sideB2.size() << std::endl;
+    std::cout << "Mesh 1 - Side A: " << sideA.size() << ", Side B: " << sideB.size() << std::endl;
+    std::cout << "Mesh 2 - Side A: " << sideA2.size() << ", Side B: " << sideB2.size() << std::endl;
 
-    // Create a scalar field to color faces based on their classification
-    Eigen::VectorXd faceColors(F1.rows());
-    faceColors.setConstant(-1); // Default value for unclassified faces (optional)
-    // Assign colors to faces in sideA and sideB
-    for (int faceIdx : sideA) {
-        faceColors(faceIdx) = 0; // Color for Side A
-    }
-    for (int faceIdx : sideB) {
-        faceColors(faceIdx) = 1; // Color for Side B
-    }
+    // --- Store classifications globally/static for GUI toggle
+    static std::vector<int> sideA_stored = sideA;
+    static std::vector<int> sideB_stored = sideB;
+    static std::vector<int> sideA2_stored = sideA2;
+    static std::vector<int> sideB2_stored = sideB2;
+    static bool flipped = false;
+
+    // --- Polyscope setup
     polyscope::init();
-    // Register connected border as a point cloud
-    polyscope::registerPointCloud("Unique Vertices", connectedBorder);
-    // Register the original boundary vertices
-    polyscope::registerPointCloud("Original Boundary Vertices", B1);
-    // Register the mesh with the face scalar quantity
-    polyscope::registerSurfaceMesh("M111", V1, F1)
-        ->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC);
 
+    // Register border and boundary points
+    polyscope::registerPointCloud("Connected Border 1", connectedBorder);
+    polyscope::registerPointCloud("Original Boundary 1", B1);
+    polyscope::registerPointCloud("Connected Border 2", connectedBorder2);
+    polyscope::registerPointCloud("Original Boundary 2", B2);
 
+    // Register surface meshes
+    polyscope::registerSurfaceMesh("M111", V1, F1);
+    polyscope::registerSurfaceMesh("M222", V2, F2);
 
-    Eigen::VectorXd faceColors2(F2.rows());
-    faceColors2.setConstant(-1); // Default value for unclassified faces (optional)
-    // Assign colors to faces in sideA and sideB
-    for (int faceIdx : sideA2) {
-        faceColors2(faceIdx) = 0; // Color for Side A
-    }
-    for (int faceIdx : sideB2) {
-        faceColors2(faceIdx) = 1; // Color for Side B
-    }
-    polyscope::registerPointCloud("Unique Vertices2", connectedBorder2);
-    polyscope::registerPointCloud("Original Boundary Vertices2", B2);
+    // --- Scalars
+    static Eigen::VectorXd faceColors(F1.rows());
+    static Eigen::VectorXd faceColors2(F2.rows());
 
+    auto updateFaceClassificationDisplay = [&]() {
+        faceColors.setConstant(-1);
+        faceColors2.setConstant(-1);
 
-    // Optionally register another mesh
-    polyscope::registerSurfaceMesh("M222", V2, F2)
-        ->addFaceScalarQuantity("Side Classification2", faceColors2, polyscope::DataType::SYMMETRIC);;
+        const auto& currentA1 = sideA_stored;
+        const auto& currentB1 = sideB_stored;
+        const auto& currentA2 = flipped ? sideB2_stored : sideA2_stored;
+        const auto& currentB2 = flipped ? sideA2_stored : sideB2_stored;
 
+        for (int faceIdx : currentA1) faceColors(faceIdx) = 0;
+        for (int faceIdx : currentB1) faceColors(faceIdx) = 1;
+        for (int faceIdx : currentA2) faceColors2(faceIdx) = 0;
+        for (int faceIdx : currentB2) faceColors2(faceIdx) = 1;
 
+        polyscope::getSurfaceMesh("M111")->addFaceScalarQuantity("Side Classification", faceColors, polyscope::DataType::SYMMETRIC)->setEnabled(true);
+        polyscope::getSurfaceMesh("M222")->addFaceScalarQuantity("Side Classification2", faceColors2, polyscope::DataType::SYMMETRIC)->setEnabled(true);
+    };
 
+    // First display
+    updateFaceClassificationDisplay();
+
+    // Add a GUI button to flip
+    polyscope::state::userCallback = [&]() {
+        if (ImGui::Button("Swap Sides")) {
+            flipped = !flipped;
+            updateFaceClassificationDisplay();
+        }
+    };
+
+    // Launch GUI
     polyscope::show();
 
-
+    if (flipped) {
+        sideA2 = sideB2_stored;
+        sideB2 = sideA2_stored;
+    }
 
 
 

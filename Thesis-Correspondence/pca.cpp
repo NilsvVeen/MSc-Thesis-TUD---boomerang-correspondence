@@ -819,6 +819,62 @@ double computeThickness(const Eigen::MatrixXd& V) {
     return val;
 }
 
+double computeThicknessFromMeanShape(const Eigen::VectorXd& meanShape) {
+    double minZ = std::numeric_limits<double>::infinity();
+    double maxZ = -std::numeric_limits<double>::infinity();
+
+    int numVertices = static_cast<int>(meanShape.size() / 3);
+    for (int i = 0; i < numVertices; ++i) {
+        double z = meanShape(3 * i + 2); // Z component
+        minZ = std::min(minZ, z);
+        maxZ = std::max(maxZ, z);
+    }
+
+    return maxZ - minZ;
+}
+
+
+void showInputShapes(const std::vector<std::pair<Eigen::MatrixXd, Eigen::MatrixXi>>& inputShapes) {
+    polyscope::init();
+
+    const double offset = 1.2; // shift distance between shapes
+    for (size_t i = 0; i < inputShapes.size(); ++i) {
+        Eigen::MatrixXd V = inputShapes[i].first;
+        const Eigen::MatrixXi& F = inputShapes[i].second;
+
+        // Compute bounding box width (X-axis span)
+        double minX = V.col(0).minCoeff();
+        double maxX = V.col(0).maxCoeff();
+        double width = maxX - minX;
+
+        // Apply X-axis shift
+        V.col(0).array() += i * (width + offset);
+
+        // Register surface mesh
+        std::string meshName = "Shape " + std::to_string(i);
+        polyscope::registerSurfaceMesh(meshName, V, F);
+
+        // Extract and register sparse vertex point cloud: indices 1000, 2000, ..., 18000
+        std::vector<Eigen::Vector3d> highlightPoints;
+        for (int idx = 1000; idx <= 18000; idx += 1000) {
+            if (idx < V.rows()) {
+                highlightPoints.push_back(V.row(idx));
+            }
+        }
+
+        Eigen::MatrixXd points(highlightPoints.size(), 3);
+        for (size_t j = 0; j < highlightPoints.size(); ++j) {
+            points.row(j) = highlightPoints[j];
+        }
+
+        std::string cloudName = "Vertices " + std::to_string(i);
+        auto* cloud = polyscope::registerPointCloud(cloudName, points);
+        cloud->setPointRadius(0.003, true); // true = relative to bounding box
+    }
+}
+
+
+
 
 
 // Main PCA computation and visualization setup
@@ -827,6 +883,8 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         std::cerr << "No shapes provided." << std::endl;
         return;
     }
+
+    showInputShapes(inputShapes);
 
     printThicknesses(inputShapes);
 
@@ -848,6 +906,11 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
 
     // Compute mean shape and center data
     g_meanShape = data.rowwise().mean();
+
+    double meanShapeThickness = computeThicknessFromMeanShape(g_meanShape);
+    std::cout << "Mean shape thickness (Z): " << meanShapeThickness << std::endl;
+
+
     Eigen::MatrixXd centered = data.colwise() - g_meanShape;
 
     // Compute PCA using SVD

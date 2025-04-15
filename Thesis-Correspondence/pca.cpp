@@ -884,7 +884,7 @@ void performPCAAndEditWithVisualization(const std::vector<std::pair<Eigen::Matri
         return;
     }
 
-    showInputShapes(inputShapes);
+    //showInputShapes(inputShapes);
 
     printThicknesses(inputShapes);
 

@@ -110,7 +110,7 @@ int main2()
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_12_decimate01.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Deborah.stl";
         //std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/Boomerang_11_decimate01.stl";
-        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/boomerang_21_decimate01-failed-use.stl";
+        std::string modelPath = GLOBAL_MODELS_DIRECTORY + "/boomerang_11_decimate01.stl";
 
         // Call the function to view the STL object
         //viewSTLObject(modelPath);
